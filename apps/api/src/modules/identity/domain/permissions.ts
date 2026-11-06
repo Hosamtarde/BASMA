@@ -11,6 +11,9 @@ export const Permission = {
   CatalogWrite: 'catalog.write',
   SettingsRead: 'settings.read',
   SettingsWrite: 'settings.write',
+  CasesRead: 'cases.read',
+  CasesWrite: 'cases.write',
+  CasesCancel: 'cases.cancel',
 } as const;
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];

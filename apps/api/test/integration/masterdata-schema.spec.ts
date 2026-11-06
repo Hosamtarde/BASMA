@@ -65,15 +65,18 @@ describe('B1 master-data migration (PostgreSQL 16)', () => {
       `SELECT rp.permission_code AS code FROM role_permissions rp JOIN roles r ON r.id = rp.role_id
        WHERE r.code = 'owner' ORDER BY 1`,
     );
-    expect(rows.map((r) => r.code)).toEqual([
-      'account.self',
-      'catalog.read',
-      'catalog.write',
-      'doctors.read',
-      'doctors.write',
-      'settings.read',
-      'settings.write',
-    ]);
+    // Later milestones add more; B1's own permissions must all be granted.
+    expect(rows.map((r) => r.code)).toEqual(
+      expect.arrayContaining([
+        'account.self',
+        'catalog.read',
+        'catalog.write',
+        'doctors.read',
+        'doctors.write',
+        'settings.read',
+        'settings.write',
+      ]),
+    );
   });
 
   it('enforces case-insensitive unique names on every list', async () => {

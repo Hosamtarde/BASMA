@@ -1,0 +1,11 @@
+# Keep LF in the repository and in working copies on every OS, so Prettier (LF) and
+# Git on Windows (core.autocrlf) stop disagreeing about line endings.
+* text=auto eol=lf
+
+# Binary assets: never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.ttf binary
+*.ico binary

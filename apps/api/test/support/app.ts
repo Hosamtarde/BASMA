@@ -5,6 +5,7 @@ import { Pool } from 'pg';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { createApp } from '../../src/app.factory';
+import type { AppOptions } from '../../src/app.module';
 import { AppConfig } from '../../src/config/app-config';
 import { runMigrations } from '../../src/shared/db/migrator';
 import { startPostgres, testConfig } from './database';
@@ -37,12 +38,12 @@ export function setupBody(overrides: Record<string, unknown> = {}): Record<strin
 }
 
 /** Fresh PostgreSQL + migrated schema + running app + owner logged in. */
-export async function startTestApp(env: NodeJS.ProcessEnv = {}): Promise<TestApp> {
+export async function startTestApp(env: NodeJS.ProcessEnv = {}, options: AppOptions = {}): Promise<TestApp> {
   const container = await startPostgres();
   const pool = new Pool({ connectionString: container.getConnectionUri() });
   const config = testConfig(container.getConnectionUri(), { AUTH_RATE_LIMIT_PER_MINUTE: '1000', ...env });
   await runMigrations(pool, config.migrationsDir);
-  const app = await createApp(config);
+  const app = await createApp(config, options);
   await app.init();
   const http = app.getHttpServer() as App;
 
@@ -99,6 +100,17 @@ export function requestFor(http: App, method: HttpMethod, path: string): request
     delete: agent.delete.bind(agent),
   };
   return byMethod[method](path);
+}
+
+/** A clock tests can move (e.g. across the lab's midnight). */
+export class FakeClock {
+  constructor(public current: Date) {}
+  now(): Date {
+    return this.current;
+  }
+  set(iso: string): void {
+    this.current = new Date(iso);
+  }
 }
 
 /** Pairs of statuses, sorted, from concurrent requests. */
