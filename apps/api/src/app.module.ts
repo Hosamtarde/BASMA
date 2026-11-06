@@ -1,6 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { AppConfig } from './config/app-config';
 import { ConfigModule } from './config/config.module';
+import { CasesModule } from './modules/cases/cases.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { DoctorsModule } from './modules/doctors/doctors.module';
 import { HealthModule } from './modules/health/health.module';
@@ -34,6 +35,7 @@ export class AppModule {
         CatalogModule,
         DoctorsModule,
         SettingsModule,
+        CasesModule,
       ],
     };
   }

@@ -60,13 +60,14 @@ export class SettingsRepository {
 
   /**
    * True once any money amount is stored (locks currency code/decimals).
-   * Later milestones add their tables here: cases (B2), payments (B3), invoices (B6).
+   * Any case counts (B2). Later milestones add their tables here: payments (B3), invoices (B6).
    */
   async hasMoneyData(db: Executor): Promise<boolean> {
     const result = await db.execute<{ present: boolean }>(sql`
       SELECT EXISTS (SELECT 1 FROM work_types WHERE unit_price <> 0)
           OR EXISTS (SELECT 1 FROM doctors WHERE opening_balance <> 0)
-          OR EXISTS (SELECT 1 FROM doctor_prices) AS present`);
+          OR EXISTS (SELECT 1 FROM doctor_prices)
+          OR EXISTS (SELECT 1 FROM cases) AS present`);
     return result.rows[0]?.present === true;
   }
 }
