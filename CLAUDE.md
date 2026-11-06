@@ -30,6 +30,7 @@ Each customer installs the product independently on its own computer, with its o
 - After every milestone: run lint + typecheck + tests + build, report **real** results (never claim tested otherwise), summarise in ≤5 Arabic lines, and wait for the go-ahead.
 - No features outside SPEC §3.1. No dead endpoints for §3.2. When you must assume something, take the SPEC §12 default, say so in one line, keep it easy to change.
 - One logical change per commit (conventional commits). Don't modify unrelated modules; don't rewrite working code without a reason.
+- **No AI attribution in commits or PRs** (owner preference): no `Co-Authored-By`, `Claude-Session` or any Claude/AI signature lines in commit messages or PR descriptions.
 - Don't add a dependency without explaining why it is needed.
 
 ## Non-negotiables (details in SPEC §7 and the skills)
