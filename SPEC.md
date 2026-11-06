@@ -53,6 +53,16 @@ Source files (`assets/`): `logo-clean.png` (transparent lockup: tooth + SMILE AR
 - Font: **Cairo** (or Tajawal), bundled locally — the app must work fully offline.
 - UI is RTL; numbers inside Arabic text use Western digits (0-9) everywhere (the owner's current program does).
 
+### 1.1 Approved look — DECIDED by the owner (2026-11-07)
+Mockups and screenshots: `docs/design-directions/` (A, B, C; A is the reference).
+- **Direction A «تدرّج الشعار / Brand gradient» is approved**: gradient sidebar (navy → blue), white top bar, cards with soft spacing, shade-tab action cards on Home. Light theme only.
+- **Taken from direction C**, each built in its own slice: the **case pipeline strip** on Home (waiting → … → delivered with counts) and the **dense case-list rows** (status colour bar per row).
+- **Contrast fix** (WCAG AA): logo cyan `#03C3DB` is for accents, borders and the gradient only; text uses darker shades (e.g. `#06728A`); status badges use a tinted background, darker text and a dot in the exact status colour.
+- **Tooth chart artwork** is our own vector drawing for now and will later be replaced by **licensed realistic artwork**. The chart keeps three separate layers — **artwork**, **hotspots** (all interaction and accessibility) and **number badges** — so the artwork can be swapped without touching the other two.
+- **Chart models:** the **mouth view** (two U-shaped arches) is the default; **front rows** (straight upper/lower rows with roots) is the alternative. A toggle switches them and the choice is remembered.
+- **Chart fits the screen (applies to the real F2 chart too):** the whole chart (both arches, all 32 teeth and numbers) is always visible without scrolling. The chart panel is sticky and sized to the visible viewport height, the chart scales with its SVG viewBox, and the form column scrolls on its own. Number badges are at least 16 px (14 px only on very short screens). When the available height is under about 560 px, a «تكبير المخطط» button opens the chart full-screen in a dialog (Esc closes, selection kept).
+- No image, code or asset from the reference program is used anywhere (§0.1).
+
 ---
 
 ## 2. Architecture & tech stack
