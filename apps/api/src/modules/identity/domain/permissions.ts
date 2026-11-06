@@ -5,6 +5,12 @@
 export const Permission = {
   /** Own session and password (logout, change password, me). */
   AccountSelf: 'account.self',
+  DoctorsRead: 'doctors.read',
+  DoctorsWrite: 'doctors.write',
+  CatalogRead: 'catalog.read',
+  CatalogWrite: 'catalog.write',
+  SettingsRead: 'settings.read',
+  SettingsWrite: 'settings.write',
 } as const;
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];

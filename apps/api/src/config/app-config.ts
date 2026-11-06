@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { z } from 'zod';
+import { isValidTimeZone } from '../shared/time/time-zone';
 
 const MIN_SECRET_LENGTH = 32;
 const MIN_DISTINCT_SECRET_CHARS = 16;
@@ -19,6 +20,12 @@ const envSchema = z.object({
   MIGRATE_ON_START: booleanFromString.default(true),
   MIGRATIONS_DIR: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  // Initial lab time zone for first-run setup; the installer sets it from Windows (B7).
+  // Neutral code default; the lab's own value lives in .env / the installer, not in code.
+  DEFAULT_TIME_ZONE: z
+    .string()
+    .refine(isValidTimeZone, { message: 'must be an IANA time zone, e.g. Asia/Hebron' })
+    .default('UTC'),
 });
 
 export interface AppConfig {
@@ -33,6 +40,8 @@ export interface AppConfig {
   migrateOnStart: boolean;
   migrationsDir: string;
   logLevel: string;
+  /** Used by first-run setup when the request names no time zone. */
+  defaultTimeZone: string;
   /** Pretty logs and OpenAPI UI are development conveniences only. */
   isProduction: boolean;
 }
@@ -87,6 +96,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
     migrateOnStart: e.MIGRATE_ON_START,
     migrationsDir: e.MIGRATIONS_DIR ?? DEFAULT_MIGRATIONS_DIR,
     logLevel: e.LOG_LEVEL,
+    defaultTimeZone: e.DEFAULT_TIME_ZONE,
     isProduction,
   };
 }
