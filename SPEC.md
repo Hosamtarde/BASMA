@@ -610,6 +610,8 @@ Inspect the repo, then produce `docs/00-assessment.md`: stack proposal + justifi
 ---
 
 ## 12. Decisions & open questions (defaults in bold — confirm with the owner)
+
+> **Owner answers, 2026-11-06 (Phase 0):** currency **₪ ILS, 2 decimals** (6) · **no VAT** (13) · dues **from case creation** (4) · cheques count **only when cleared** (5) · Arabic lab name **«مختبر سمايل آرتك لتقنية الأسنان»** as the owner installation's setting (9) · case and invoice numbering **start at a number the owner chooses**, settable only before the first case/invoice (12 — changed from "1") · product name **not decided yet** (19) · **no import** of old data; use doctor opening balances · **one computer per installation** (API on localhost only) · **no backup encryption** in v1 · time zone = setting, initial value **taken from Windows at install**. Details: `docs/00-assessment.md` §2.
 1. **Lab or clinic?** Built as a *lab serving doctors* (patient = name on the case, not a patient record). If the owner also wants direct patient accounts, we add a `patients` table later.
 2. Technician: **plain lookup list per case**, no stages and no pay accounting (staff module was removed). Per-stage tracking (design/milling/ceramic) is out of v1.
 3. Work type and material: **one list** («نوع العمل» such as «زيركون») with a price per tooth. A bridge = several teeth, one line per tooth.
