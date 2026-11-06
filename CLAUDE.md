@@ -42,7 +42,13 @@ Each customer installs the product independently on its own computer, with its o
 - No entities in API responses; no secrets in code or logs; no stack traces to clients.
 - This product is a **behavioural** re-implementation of workflows the owner knows from another dental program. Do not look for, copy or reuse that product's code, images, icons or texts. Original code and original assets only. Brand assets of the owner's lab (Smile Artec — the vendor / main lab, **not** the product name) are in `assets/` (transparent PNG logos from a high-resolution source — never enlarge past native size; the logo path is a setting). The product name is still being chosen by the owner: use one `PRODUCT_NAME` constant everywhere (SPEC §2.3); the repo/folder name `smile-artec` is temporary.
 
-## Commands (fill in after B0)
+## Commands (run from the repo root; Node 24, Docker for the dev DB and for integration/e2e tests)
 ```
-make / npm scripts: dev · test · test:integration · lint · typecheck · build · migrate
+cp .env.example .env        # then fill POSTGRES_PASSWORD, DATABASE_URL, JWT_ACCESS_SECRET (random values)
+npm run db:up               # PostgreSQL 16 in Docker (development only)
+npm run dev                 # API on http://127.0.0.1:4310 (migrates on start); OpenAPI UI at /api/docs
+npm run lint · typecheck · i18n:check · test · test:integration · test:e2e · build
+npm run migrate             # apply migrations explicitly (installer path: MIGRATE_ON_START=false)
+npm run db:generate -w apps/api -- --name <name>   # new migration from the Drizzle schema; review the SQL
 ```
+- Never add "Co-Authored-By", "Claude-Session" or any Claude/AI attribution lines to commit messages or pull request descriptions (owner's preference).
