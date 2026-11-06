@@ -7,8 +7,6 @@ export function mayHardDelete(doctor: { openingBalance: number }): boolean {
   return doctor.openingBalance === 0;
 }
 
-/** Digits of any script (Arabic-Indic too), spaces, +, -, parentheses. */
-export const PHONE_PATTERN = /^[\p{Nd}+\-() ]+$/u;
-export const PHONE_MAX_LENGTH = 30;
+export { PHONE_MAX_LENGTH, PHONE_PATTERN } from '../../../shared/http/text-fields';
 export const CLINIC_MAX_LENGTH = 100;
 export const NOTES_MAX_LENGTH = 1000;

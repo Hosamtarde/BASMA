@@ -1,22 +1,10 @@
-import { applyDecorators } from '@nestjs/common';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsBoolean, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { IsBoolean } from 'class-validator';
 import { IsOptionalNonNull, PageMeta, VersionedPatch } from '../../../shared/http/common.dto';
+import { OptionalPhone, OptionalText, PHONE_MAX_LENGTH } from '../../../shared/http/text-fields';
 import { IsAmount, IsSignedAmount } from '../../../shared/money/amount.validators';
-import { IsName, normalizeOptionalText } from '../../../shared/text/names';
-import { CLINIC_MAX_LENGTH, NOTES_MAX_LENGTH, PHONE_MAX_LENGTH, PHONE_PATTERN } from '../domain/doctor-rules';
-
-/** Optional, nullable free text: trimmed; blank or null clears it. */
-const OptionalText = (max: number) =>
-  applyDecorators(
-    Transform(({ value }: { value: unknown }) => normalizeOptionalText(value)),
-    IsOptional(),
-    IsString(),
-    MaxLength(max),
-  );
-
-const OptionalPhone = () => applyDecorators(OptionalText(PHONE_MAX_LENGTH), Matches(PHONE_PATTERN));
+import { IsName } from '../../../shared/text/names';
+import { CLINIC_MAX_LENGTH, NOTES_MAX_LENGTH } from '../domain/doctor-rules';
 
 const balanceDoc = {
   description: 'Signed, integer minor units: > 0 the doctor owes the lab, < 0 the lab owes the doctor',
