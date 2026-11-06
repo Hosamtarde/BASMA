@@ -58,6 +58,16 @@ Previously decided in SPEC: NestJS + PostgreSQL; Windows installer; one independ
 6. Names: NFC, trim, collapse spaces; case-insensitive uniqueness; **no Arabic letter folding**.
 7. Doctor phone is not unique. `DEFAULT_TIME_ZONE` = `Asia/Hebron` in `.env.example` (code default `UTC`).
 
+### 2.4 Owner decisions for B2 (2026-11-06)
+1. Lines: tooth (FDI 11–48) **or** area (`upper_arch`, `lower_arch`, `both_arches`, `none`) — exactly one (DB CHECK); ≤ 100 lines per case.
+2. Shade: free text ≤ 20 characters, optional.
+3. Transitions: pre-delivery statuses free among themselves → delivered; delivered → returned; returned → in_progress / ready / delivered. Cancel only before delivery (not from returned — revisit in B3); cancel is final.
+4. The doctor never changes after creation. Received date ≤ today (lab time zone).
+5. `delivered_date` ≥ received, ≤ today, NULL unless delivered; every delivery date is kept in `case_status_history.delivered_date`.
+6. Patient names are never written to the audit log.
+7. "Today" comes from one function (lab time zone); the overdue flag and the overdue filter use the same value.
+8. Any case locks the currency code/decimals. Advance payment → B3; delivery amount prompt → B5.
+
 ## 3. Architecture
 
 **Modular monolith**, one NestJS process, one PostgreSQL database (ADR-0001).

@@ -211,6 +211,7 @@ Two-panel layout.
 - A case needs ≥ 1 work line.
 - Save → assigns the next `case_no`, writes `case_items`, status history entry, audit entry, optional advance payment, then shows a success toast with the case number and offers «إضافة حالة أخرى» / «فتح الحالة».
 - Selecting teeth that already have a line asks whether to replace or add another line for the same tooth (e.g. a crown and an abutment can coexist) — default: allow multiple lines per tooth.
+- **Owner decisions (B2):** a line is on **one FDI tooth or one area** (`upper_arch`, `lower_arch`, `both_arches`, `none`) — exactly one; at most **100 lines** per case; shade is **free text ≤ 20** (the Vita picker is a UI aid only); the **doctor cannot change** after creation; the received date is **never in the future** (lab time zone); patient names are **not written to the audit log**. The advance payment is added in B3 (needs payments).
 
 ### 5.4 Work types manager «أنواع العمل»
 - Table: name, **price per tooth**, actions (rename, edit price, delete/deactivate).
@@ -563,6 +564,7 @@ CREATE TABLE audit_log (
    ملغاة (cancelled): only before delivery and before invoicing.
 ```
 - Any status can be set manually by the user (forward or back) with an optional note; **every change is logged** in `case_status_history`.
+- **Owner decision (B2) — transitions:** waiting / design / in_progress / ready move freely among themselves and to delivered; delivered → returned only; returned → in_progress / ready / delivered. Cancel only before delivery and **final**. `delivered_date` is set (≥ received, ≤ today) only while delivered and cleared otherwise; every delivery date stays in the history. **Open item (B3):** whether a *returned* case may be cancelled, once payments exist.
 - «invoiced» and «paid» are **derived facts**, not statuses: `invoice_id IS NOT NULL`, `remaining = 0`.
 - The case is "closed" in lists when delivered + invoiced + remaining = 0 (show a «مغلقة» chip).
 - Moving back from delivered to returned does not touch payments/invoices; if it is invoiced, the owner must void the invoice first before editing lines.

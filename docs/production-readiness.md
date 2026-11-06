@@ -17,7 +17,9 @@ Items to decide or build before selling the product to other labs (SPEC §2.4). 
 | 11 | Access token after password change | Stays valid up to 15 min (refresh tokens are revoked at once). Add a per-user token version if this matters |
 | 12 | Lockout as denial of service | Anyone who can reach the API can lock the owner for 15 min. Acceptable while bound to 127.0.0.1; revisit with LAN use (#8) |
 | 13 | Rate-limit store | In-memory, per process. Fine for one service; revisit if several API processes ever run |
-| 14 | "Money exists" check grows per milestone | `SettingsRepository.hasMoneyData` covers work-type prices, opening balances and special prices (B1); B2 must add cases, B3 payments, B6 invoices, or the currency could change under real amounts |
-| 15 | Search speed | Doctor/catalog search uses `ILIKE '%…%'` (sequential scan): fine for hundreds of rows; decide on `pg_trgm` indexes with global search (B4) and the 20k-case load test (B8) |
+| 14 | "Money exists" check grows per milestone | `SettingsRepository.hasMoneyData` covers work-type prices, opening balances, special prices (B1) and any case (B2); **B3 must add payments, B6 invoices**, or the currency could change under real amounts |
+| 15 | Search speed | Doctor/catalog search and the case patient-name search use `ILIKE '%…%'` (sequential scan): fine for hundreds of doctors; for 20k cases decide on `pg_trgm` indexes with global search (B4) and the load test (B8) |
 | 16 | Logo in the browser | `GET /settings/logo` needs the bearer token, so Phase 2 must fetch it as a blob (a plain `<img src>` cannot send the header) |
 | 17 | Pre-B1 databases | A database set up with the B0 first run has no settings and no expense categories. No customer install exists yet; developers reset their dev DB (`docker compose down -v`) |
+| 18 | Open item for B3: cancel from "returned" | Not allowed in B2. Decide in B3, once payments exist, whether a returned case may be cancelled and what happens to its payments (owner, B2) |
+| 19 | Case search by patient | Contains-search on patient names returns personal data to any user with `cases.read`; fine with one owner, review when more roles exist |
