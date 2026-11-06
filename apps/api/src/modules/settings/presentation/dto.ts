@@ -145,7 +145,22 @@ class NumberingView {
   @ApiProperty({ type: CounterView }) invoiceNo!: CounterView;
 }
 
+class LogoView {
+  @ApiProperty({ description: 'false = clients use the bundled default logo' }) present!: boolean;
+  @ApiProperty({ type: String, nullable: true, enum: ['image/png', 'image/jpeg'] }) mimeType!: string | null;
+  @ApiProperty({ type: Number, nullable: true }) sizeBytes!: number | null;
+  @ApiProperty({ type: String, nullable: true, description: 'SHA-256; changes when the logo changes' })
+  sha256!: string | null;
+  @ApiProperty({ type: String, nullable: true, format: 'date-time' }) updatedAt!: string | null;
+}
+
+export class LogoUploadRequest {
+  @ApiProperty({ type: 'string', format: 'binary', description: 'PNG or JPEG, at most 1 MB' })
+  file!: unknown;
+}
+
 export class SettingsResponse {
+  @ApiProperty({ type: LogoView }) logo!: LogoView;
   @ApiProperty({ type: LabProfileView, nullable: true }) labProfile!: LabProfileView | null;
   @ApiProperty({ type: CurrencyView, nullable: true }) currency!: CurrencyView | null;
   @ApiProperty({ type: LanguageView, nullable: true }) language!: LanguageView | null;

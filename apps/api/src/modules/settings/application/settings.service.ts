@@ -19,6 +19,7 @@ import {
   lockedCurrencyFields,
   withNewStart,
 } from '../domain/settings-rules';
+import { LogoMeta, LogoRepository } from '../infrastructure/logo.repository';
 import { SettingsRepository } from '../infrastructure/settings.repository';
 
 type Versioned<T> = T & { rowVersion: number };
@@ -28,6 +29,7 @@ export interface SettingsView {
   currency: (Versioned<CurrencySetting> & { locked: { code: boolean; decimals: boolean } }) | null;
   language: Versioned<LanguageSetting> | null;
   numbering: Record<CounterName, Counter & { locked: boolean }>;
+  logo: LogoMeta | null;
 }
 
 export interface InitialSettings {
@@ -65,15 +67,17 @@ export class SettingsService {
     @Inject(DB) private readonly db: Database,
     private readonly repo: SettingsRepository,
     private readonly audit: AuditWriter,
+    private readonly logos: LogoRepository,
   ) {}
 
   async view(): Promise<SettingsView> {
-    const [labProfile, currency, language, counters, hasMoney] = await Promise.all([
+    const [labProfile, currency, language, counters, hasMoney, logo] = await Promise.all([
       this.repo.get<LabProfile>(this.db, LAB_PROFILE),
       this.repo.get<CurrencySetting>(this.db, CURRENCY),
       this.repo.get<LanguageSetting>(this.db, LANGUAGE),
       this.repo.counters(this.db),
       this.repo.hasMoneyData(this.db),
+      this.logos.meta(this.db),
     ]);
     const numbering = Object.fromEntries(
       COUNTER_NAMES.map((name) => {
@@ -92,6 +96,7 @@ export class SettingsService {
         : null,
       language: language ? { ...language.value, rowVersion: language.rowVersion } : null,
       numbering,
+      logo: logo ?? null,
     };
   }
 

@@ -51,7 +51,7 @@ describe('Settings (e2e)', () => {
 
   it('returns every group with its version and lock state', async () => {
     const s = await getSettings();
-    expect(Object.keys(s).sort()).toEqual(['currency', 'labProfile', 'language', 'numbering']);
+    expect(Object.keys(s).sort()).toEqual(['currency', 'labProfile', 'language', 'logo', 'numbering']);
     expect(s.numbering).toEqual({
       caseNo: { startValue: 1, nextValue: 1, locked: false },
       invoiceNo: { startValue: 1, nextValue: 1, locked: false },

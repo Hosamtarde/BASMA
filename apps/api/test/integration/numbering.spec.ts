@@ -2,6 +2,7 @@ import { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { SettingsService } from '../../src/modules/settings/application/settings.service';
+import { LogoRepository } from '../../src/modules/settings/infrastructure/logo.repository';
 import { SettingsRepository } from '../../src/modules/settings/infrastructure/settings.repository';
 import { AuditWriter } from '../../src/shared/audit/audit-writer';
 import { runMigrations } from '../../src/shared/db/migrator';
@@ -49,7 +50,12 @@ describe('numbering start (addition C, PostgreSQL 16)', () => {
       `INSERT INTO users (username, password_hash) VALUES ('owner', 'x') RETURNING id`,
     );
     userId = Number(u.rows[0]?.id);
-    service = new SettingsService(drizzle(pool, { schema }), new SettingsRepository(), new AuditWriter());
+    service = new SettingsService(
+      drizzle(pool, { schema }),
+      new SettingsRepository(),
+      new AuditWriter(),
+      new LogoRepository(),
+    );
   });
 
   afterAll(async () => {
