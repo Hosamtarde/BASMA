@@ -169,7 +169,15 @@ describe('B0 API end to end', () => {
       expect(me.body).toEqual({
         id: expect.any(Number),
         username: OWNER.username,
-        permissions: ['account.self'],
+        permissions: [
+          'account.self',
+          'catalog.read',
+          'catalog.write',
+          'doctors.read',
+          'doctors.write',
+          'settings.read',
+          'settings.write',
+        ],
         mustChangePassword: false,
       });
     });
