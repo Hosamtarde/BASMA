@@ -141,6 +141,16 @@ describe('Catalog: technicians, work types, expense categories (e2e)', () => {
       await request(t.http).delete(api('/technicians/999999')).set('Authorization', t.auth).expect(404);
     });
 
+    it('rejects malformed or out-of-range ids with 400, not a database error', async () => {
+      for (const id of ['99999999999999999999', '0', '-5', 'abc', '1.5']) {
+        const res = await request(t.http)
+          .delete(api(`/technicians/${id}`))
+          .set('Authorization', t.auth)
+          .expect(400);
+        expect(res.body.error.code).toBe('error.bad_request');
+      }
+    });
+
     it('deletes an unused technician but only deactivates a used one', async () => {
       const unused = await request(t.http)
         .post(api('/technicians'))

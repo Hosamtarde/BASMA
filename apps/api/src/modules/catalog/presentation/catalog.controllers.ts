@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Query } from '@nestjs/common';
+import { ParseIdPipe } from '../../../shared/http/parse-id.pipe';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
@@ -90,7 +91,7 @@ export class TechniciansController {
   @ApiNotFoundResponse({ description: 'error.not_found' })
   @ApiConflictResponse({ description: 'error.concurrency.stale | error.technician.name_taken' })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIdPipe) id: number,
     @Body() body: UpdateTechnicianRequest,
     @CurrentUser() user: AuthUser,
   ): Promise<TechnicianResponse> {
@@ -102,10 +103,7 @@ export class TechniciansController {
   @RequirePermission(Permission.CatalogWrite)
   @ApiOkResponse({ type: DeleteResponse })
   @ApiNotFoundResponse({ description: 'error.not_found' })
-  async remove(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: AuthUser,
-  ): Promise<DeleteResponse> {
+  async remove(@Param('id', ParseIdPipe) id: number, @CurrentUser() user: AuthUser): Promise<DeleteResponse> {
     return { outcome: await this.service.remove(id, user.id) };
   }
 }
@@ -146,7 +144,7 @@ export class WorkTypesController {
   @ApiNotFoundResponse({ description: 'error.not_found' })
   @ApiConflictResponse({ description: 'error.concurrency.stale | error.work_type.name_taken' })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIdPipe) id: number,
     @Body() body: UpdateWorkTypeRequest,
     @CurrentUser() user: AuthUser,
   ): Promise<WorkTypeResponse> {
@@ -158,10 +156,7 @@ export class WorkTypesController {
   @RequirePermission(Permission.CatalogWrite)
   @ApiOkResponse({ type: DeleteResponse })
   @ApiNotFoundResponse({ description: 'error.not_found' })
-  async remove(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: AuthUser,
-  ): Promise<DeleteResponse> {
+  async remove(@Param('id', ParseIdPipe) id: number, @CurrentUser() user: AuthUser): Promise<DeleteResponse> {
     return { outcome: await this.service.remove(id, user.id) };
   }
 }
@@ -200,7 +195,7 @@ export class ExpenseCategoriesController {
       'error.concurrency.stale | error.expense_category.name_taken | error.expense_category.system',
   })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIdPipe) id: number,
     @Body() body: UpdateExpenseCategoryRequest,
     @CurrentUser() user: AuthUser,
   ): Promise<ExpenseCategoryResponse> {
@@ -213,10 +208,7 @@ export class ExpenseCategoriesController {
   @ApiOkResponse({ type: DeleteResponse })
   @ApiNotFoundResponse({ description: 'error.not_found' })
   @ApiConflictResponse({ description: 'error.expense_category.system' })
-  async remove(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: AuthUser,
-  ): Promise<DeleteResponse> {
+  async remove(@Param('id', ParseIdPipe) id: number, @CurrentUser() user: AuthUser): Promise<DeleteResponse> {
     return { outcome: await this.service.remove(id, user.id) };
   }
 }

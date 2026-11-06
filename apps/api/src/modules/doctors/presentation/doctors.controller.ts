@@ -1,3 +1,4 @@
+import { ParseIdPipe } from '../../../shared/http/parse-id.pipe';
 import {
   Body,
   Controller,
@@ -6,7 +7,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
   Put,
@@ -95,7 +95,7 @@ export class DoctorsController {
   @RequirePermission(Permission.DoctorsRead)
   @ApiOkResponse({ type: DoctorResponse })
   @ApiNotFoundResponse({ description: 'error.not_found' })
-  async get(@Param('id', ParseIntPipe) id: number): Promise<DoctorResponse> {
+  async get(@Param('id', ParseIdPipe) id: number): Promise<DoctorResponse> {
     return toDoctor(await this.service.get(id));
   }
 
@@ -105,7 +105,7 @@ export class DoctorsController {
   @ApiNotFoundResponse({ description: 'error.not_found' })
   @ApiConflictResponse({ description: 'error.concurrency.stale | error.doctor.name_taken' })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIdPipe) id: number,
     @Body() body: UpdateDoctorRequest,
     @CurrentUser() user: AuthUser,
   ): Promise<DoctorResponse> {
@@ -118,10 +118,7 @@ export class DoctorsController {
   @ApiOperation({ summary: 'Delete if never used and opening balance is 0; otherwise deactivate' })
   @ApiOkResponse({ type: DeleteResponse })
   @ApiNotFoundResponse({ description: 'error.not_found' })
-  async remove(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() user: AuthUser,
-  ): Promise<DeleteResponse> {
+  async remove(@Param('id', ParseIdPipe) id: number, @CurrentUser() user: AuthUser): Promise<DeleteResponse> {
     return { outcome: await this.service.remove(id, user.id) };
   }
 
@@ -130,7 +127,7 @@ export class DoctorsController {
   @ApiOperation({ summary: 'Work types with general and special price for this doctor' })
   @ApiOkResponse({ type: [DoctorPriceResponse] })
   @ApiNotFoundResponse({ description: 'error.not_found' })
-  async prices(@Param('id', ParseIntPipe) id: number): Promise<DoctorPriceResponse[]> {
+  async prices(@Param('id', ParseIdPipe) id: number): Promise<DoctorPriceResponse[]> {
     return (await this.service.listPrices(id)).map(toPrice);
   }
 
@@ -139,8 +136,8 @@ export class DoctorsController {
   @ApiOkResponse({ type: DoctorPriceResponse })
   @ApiNotFoundResponse({ description: 'error.not_found' })
   async setPrice(
-    @Param('id', ParseIntPipe) id: number,
-    @Param('workTypeId', ParseIntPipe) workTypeId: number,
+    @Param('id', ParseIdPipe) id: number,
+    @Param('workTypeId', ParseIdPipe) workTypeId: number,
     @Body() body: SetDoctorPriceRequest,
     @CurrentUser() user: AuthUser,
   ): Promise<DoctorPriceResponse> {
@@ -154,8 +151,8 @@ export class DoctorsController {
   @ApiNoContentResponse()
   @ApiNotFoundResponse({ description: 'error.not_found' })
   async removePrice(
-    @Param('id', ParseIntPipe) id: number,
-    @Param('workTypeId', ParseIntPipe) workTypeId: number,
+    @Param('id', ParseIdPipe) id: number,
+    @Param('workTypeId', ParseIdPipe) workTypeId: number,
     @CurrentUser() user: AuthUser,
   ): Promise<void> {
     await this.service.removePrice(id, workTypeId, user.id);
