@@ -55,7 +55,9 @@ describe('B1 master-data migration (PostgreSQL 16)', () => {
   });
 
   it('rejects a next_value below the start value', async () => {
-    expect(await pgErrorCode(pool.query(`UPDATE counters SET start_value = 5, next_value = 4`))).toBe('23514');
+    expect(await pgErrorCode(pool.query(`UPDATE counters SET start_value = 5, next_value = 4`))).toBe(
+      '23514',
+    );
   });
 
   it('grants the new permissions to the owner role', async () => {
@@ -85,30 +87,38 @@ describe('B1 master-data migration (PostgreSQL 16)', () => {
   it('allows only one doctor-refund expense category', async () => {
     await pool.query(`INSERT INTO expense_categories (name, is_doctor) VALUES ('Doctor A', true)`);
     expect(
-      await pgErrorCode(pool.query(`INSERT INTO expense_categories (name, is_doctor) VALUES ('Doctor B', true)`)),
+      await pgErrorCode(
+        pool.query(`INSERT INTO expense_categories (name, is_doctor) VALUES ('Doctor B', true)`),
+      ),
     ).toBe('23505');
   });
 
   it('rejects negative and out-of-range money', async () => {
-    expect(await pgErrorCode(pool.query(`INSERT INTO work_types (name, unit_price) VALUES ('Neg', -1)`))).toBe(
-      '23514',
-    );
     expect(
-      await pgErrorCode(pool.query(`INSERT INTO doctors (name, opening_balance) VALUES ('Big', 1000000000000)`)),
+      await pgErrorCode(pool.query(`INSERT INTO work_types (name, unit_price) VALUES ('Neg', -1)`)),
+    ).toBe('23514');
+    expect(
+      await pgErrorCode(
+        pool.query(`INSERT INTO doctors (name, opening_balance) VALUES ('Big', 1000000000000)`),
+      ),
     ).toBe('23514');
     // Opening balance is signed.
     await pool.query(`INSERT INTO doctors (name, opening_balance) VALUES ('Owes nothing', -500)`);
   });
 
   it('keeps special prices from silently disappearing (RESTRICT)', async () => {
-    const d = await pool.query<{ id: string }>(`INSERT INTO doctors (name) VALUES ('With price') RETURNING id`);
+    const d = await pool.query<{ id: string }>(
+      `INSERT INTO doctors (name) VALUES ('With price') RETURNING id`,
+    );
     const w = await pool.query<{ id: string }>(`INSERT INTO work_types (name) VALUES ('Crown') RETURNING id`);
     await pool.query(`INSERT INTO doctor_prices (doctor_id, work_type_id, price) VALUES ($1, $2, 100)`, [
       d.rows[0]?.id,
       w.rows[0]?.id,
     ]);
     expect(await pgErrorCode(pool.query(`DELETE FROM doctors WHERE id = $1`, [d.rows[0]?.id]))).toBe('23503');
-    expect(await pgErrorCode(pool.query(`DELETE FROM work_types WHERE id = $1`, [w.rows[0]?.id]))).toBe('23503');
+    expect(await pgErrorCode(pool.query(`DELETE FROM work_types WHERE id = $1`, [w.rows[0]?.id]))).toBe(
+      '23503',
+    );
   });
 
   it('accepts only a single PNG/JPEG logo row', async () => {
