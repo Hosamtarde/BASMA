@@ -61,7 +61,8 @@ Source files (`assets/`): `logo-clean.png` (transparent lockup: tooth + SMILE AR
 
 **Delivery:** REST API with OpenAPI/Swagger, versioned under `/api/v1`. The frontend (Phase 2) is a separate app consuming only that API. Repo is a monorepo: `apps/api` now, `apps/web` later.
 
-**Stack — DECIDED by the owner:** TypeScript + **NestJS** and **PostgreSQL**. Do not re-litigate; choose the remaining pieces and justify each briefly in an ADR:
+**Stack — DECIDED by the owner:** TypeScript + **NestJS** and **PostgreSQL**. Do not re-litigate; choose the remaining pieces and justify each briefly in an ADR.
+Versions in use (B0, see `docs/adr/0015-toolchain-versions.md`): **NestJS 12** (stable/GA line), **Node.js 24 LTS**, **TypeScript 6.0**, **PostgreSQL 16**. Remaining pieces:
 - one migration tool (Prisma Migrate / Drizzle / Knex), **Argon2id** hashing, access + rotating refresh tokens (or server sessions), zod/class-validator at boundaries, Pino structured logging with correlation IDs
 - Jest or Vitest + Supertest + Testcontainers for integration tests
 - Docker + Docker Compose for **development only**; GitHub Actions CI (lint, typecheck, tests, build, dependency audit)

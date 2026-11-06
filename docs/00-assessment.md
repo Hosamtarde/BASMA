@@ -139,7 +139,7 @@ erDiagram
 ### 5.1 Tables (summary — exact DDL comes with each milestone's migration)
 | Table | Key columns / constraints |
 |---|---|
-| `schema_meta` | `key`, `value` — `db_marker` (random UUID per install + product marker), `schema_version` |
+| `schema_meta` | `key`, `value` — `db_marker` (random UUID per install), `product`. Schema version = applied rows in `drizzle.__drizzle_migrations` (no second copy to keep in sync) |
 | `settings` | `key` PK, `value jsonb`, `row_version`, `updated_at/by` |
 | `counters` | `name` PK (`case_no`,`invoice_no`,`payment_in`,`payment_out`), `next_value BIGINT CHECK (>0)` |
 | `users` | `username` unique (lower), `password_hash`, `active`, `must_change_password`, `failed_logins`, `locked_until` |

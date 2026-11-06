@@ -1,0 +1,19 @@
+{
+  "error.internal": "حدث خطأ غير متوقع. حاول مرة أخرى، وإذا تكرر أبلغ الدعم مع رقم الطلب {correlationId}.",
+  "error.bad_request": "الطلب غير صحيح.",
+  "error.not_found": "العنصر المطلوب غير موجود.",
+  "error.payload_too_large": "حجم البيانات المرسلة كبير جداً.",
+  "error.rate_limited": "محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.",
+  "error.validation.failed": "بعض البيانات المدخلة غير صحيحة.",
+  "error.auth.unauthenticated": "يجب تسجيل الدخول أولاً.",
+  "error.auth.forbidden": "ليس لديك صلاحية لهذه العملية.",
+  "error.auth.invalid_credentials": "اسم المستخدم أو كلمة المرور غير صحيحة، أو الحساب مقفل مؤقتاً بسبب محاولات كثيرة.",
+  "error.auth.invalid_refresh_token": "انتهت الجلسة. سجّل الدخول من جديد.",
+  "error.auth.wrong_current_password": "كلمة المرور الحالية غير صحيحة.",
+  "error.setup.already_done": "تم إعداد النظام مسبقاً.",
+  "error.health.not_ready": "النظام غير جاهز بعد.",
+  "audit.setup.completed": "إعداد النظام وإنشاء حساب المالك «{username}»",
+  "audit.auth.password_changed": "تغيير كلمة المرور",
+  "audit.auth.account_locked": "قفل الحساب مؤقتاً بعد {attempts} محاولات دخول فاشلة",
+  "audit.auth.refresh_token_reuse": "إلغاء كل الجلسات بعد استخدام جلسة قديمة"
+}
