@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Invoice reference — sample data</title>
+<!--
+  REFERENCE DESIGN for the printed invoice (Phase 2). Sample data only.
+  - Everything the template owner can change in «مظهر الفاتورة» is a CSS variable below.
+  - Lab identity (logo, name, phone, address) comes from the installation's lab profile, never hard-coded.
+  - One printed row groups the per-tooth rows of a case that share work type + shade + unit price (qty = teeth count).
+  - Currency symbol / decimals come from settings. Digits: Western 0-9 by default.
+  - Rendered from the stored invoice snapshot; the template changes only colours/fonts/columns, never the content.
+-->
+<style>
+  @font-face { font-family: "Cairo"; src: url("../../assets/fonts/Cairo.ttf"); font-weight: 200 1000; }
+  :root{
+    --primary:#03A9C4;        /* accent / lines            */
+    --deep:#01416C;           /* table header, totals      */
+    --header-text:#FFFFFF;
+    --ink:#023F65;
+    --muted:#6B7F8C;
+    --line:#DCE6EC;
+    --zebra:#F4F8FA;
+    --font-size:11.5pt;       /* template: S 10 / M 11.5 / L 13 */
+  }
+  @page { size: A4; margin: 0 }
+  *{ box-sizing:border-box }
+  body{ margin:0; font-family:"Cairo","Segoe UI",Tahoma,sans-serif; color:var(--ink); font-size:var(--font-size); background:#e9eef1 }
+  .page{ width:210mm; min-height:297mm; margin:0 auto; background:#fff; position:relative; padding:0 14mm 16mm }
+  @media print{ body{background:#fff} .page{margin:0} }
+
+  .topbar{ height:5mm; margin:0 -14mm 8mm; background:linear-gradient(90deg,#01416C,#006EBD 55%,#03C3DB) }
+  header{ display:flex; justify-content:space-between; align-items:flex-start; gap:10mm }
+  .lab{ display:flex; gap:6mm; align-items:center }
+  .lab img{ width:46mm; height:auto; display:block }
+  .lab-info{ line-height:1.55; font-size:.88em; color:var(--muted) }
+  .lab-info b{ display:block; color:var(--ink); font-size:1.15em; font-weight:700 }
+  .doc{ text-align:left; min-width:62mm }
+  .doc h1{ margin:0; font-size:2.1em; font-weight:800; color:var(--deep); letter-spacing:.5px }
+  .meta{ margin-top:2mm; border:1px solid var(--line); border-radius:3mm; overflow:hidden; font-size:.9em }
+  .meta div{ display:flex; justify-content:space-between; padding:1.6mm 3.5mm }
+  .meta div:nth-child(odd){ background:var(--zebra) }
+  .meta span:first-child{ color:var(--muted) }
+  .meta b{ direction:ltr }
+
+  .party{ margin:8mm 0 5mm; padding:4mm 5mm; border-inline-start:1.6mm solid var(--primary); background:var(--zebra); border-radius:2mm; display:flex; gap:12mm; flex-wrap:wrap }
+  .party small{ display:block; color:var(--muted); font-size:.78em }
+  .party strong{ font-weight:700 }
+
+  table{ width:100%; border-collapse:collapse; font-size:.92em }
+  thead th{ background:var(--deep); color:var(--header-text); font-weight:600; padding:2.6mm 2mm; text-align:center; white-space:nowrap }
+  thead th:first-child{ border-start-start-radius:2mm } thead th:last-child{ border-start-end-radius:2mm }
+  tbody td{ padding:2.4mm 2mm; text-align:center; border-bottom:1px solid var(--line) }
+  tbody tr:nth-child(even){ background:var(--zebra) }
+  td.text{ text-align:start } td.num{ direction:ltr; font-variant-numeric:tabular-nums }
+  .teeth{ direction:ltr; unicode-bidi:bidi-override; display:inline-block; letter-spacing:.3px }
+
+  .totals-wrap{ display:flex; justify-content:space-between; align-items:flex-start; margin-top:6mm; gap:10mm }
+  .notes{ flex:1; font-size:.85em; color:var(--muted); line-height:1.7 }
+  .notes h4{ margin:0 0 1mm; color:var(--ink); font-size:1em }
+  .totals{ width:78mm; border:1px solid var(--line); border-radius:3mm; overflow:hidden }
+  .totals div{ display:flex; justify-content:space-between; padding:2.2mm 4mm }
+  .totals .sep{ border-top:1px dashed var(--line) }
+  .totals .grand{ background:linear-gradient(90deg,#01416C,#006EBD 55%,#03C3DB); color:#fff; font-weight:800; font-size:1.12em }
+  .totals .bal{ background:var(--zebra); font-weight:700 }
+  .totals bdi{ direction:ltr; font-variant-numeric:tabular-nums }
+
+  .sign{ display:flex; justify-content:space-between; gap:20mm; margin-top:22mm; font-size:.85em; color:var(--muted) }
+  .sign div{ flex:1; border-top:1px solid var(--line); padding-top:2mm; text-align:center }
+  footer{ position:absolute; inset-inline:14mm; bottom:8mm; display:flex; justify-content:space-between; font-size:.75em; color:var(--muted); border-top:1px solid var(--line); padding-top:2mm }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar"></div>
+
+  <header>
+    <div class="lab">
+      <img src="../../assets/logo-clean.png" alt="logo">
+      <div class="lab-info">
+        <b>مختبر سمايل آرتك لتقنية الأسنان</b>   <!-- sample: Arabic lab name = setting -->
+        هاتف: 0000000000<br>
+        العنوان: المدينة، الشارع
+      </div>
+    </div>
+    <div class="doc">
+      <h1>فاتورة</h1>
+      <div class="meta">
+        <div><span>رقم الفاتورة</span><b>000127</b></div>
+        <div><span>التاريخ</span><b>2026-11-06</b></div>
+        <div><span>الفترة</span><b>2026-10-01 → 2026-11-06</b></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="party">
+    <div><small>الطبيب</small><strong>د. أحمد سالم</strong></div>
+    <div><small>العيادة</small><strong>عيادة الابتسامة</strong></div>
+    <div><small>الهاتف</small><strong dir="ltr">0000000000</strong></div>
+  </section>
+
+  <table>
+    <thead><tr>
+      <th>#</th><th>رقم الحالة</th><th>المريض</th><th>الأسنان</th><th>نوع العمل</th><th>اللون</th><th>العدد</th><th>سعر الوحدة</th><th>الإجمالي</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="num">1024</td><td class="text">ليلى حداد</td><td><span class="teeth">11 · 12 · 21 · 22</span></td><td class="text">زيركون</td><td>A2</td><td>4</td><td class="num">150.00</td><td class="num">600.00</td></tr>
+      <tr><td>2</td><td class="num">1024</td><td class="text">ليلى حداد</td><td><span class="teeth">23</span></td><td class="text">زيركون شفاف</td><td>A2</td><td>1</td><td class="num">180.00</td><td class="num">180.00</td></tr>
+      <tr><td>3</td><td class="num">1031</td><td class="text">محمود ناصر</td><td><span class="teeth">36 · 37</span></td><td class="text">إي-ماكس</td><td>B1</td><td>2</td><td class="num">220.00</td><td class="num">440.00</td></tr>
+      <tr><td>4</td><td class="num">1033</td><td class="text">رنا يوسف</td><td><span class="teeth">14 · 15 · 16</span></td><td class="text">زيركون متعدد الطبقات</td><td>A3</td><td>3</td><td class="num">200.00</td><td class="num">600.00</td></tr>
+    </tbody>
+  </table>
+
+  <div class="totals-wrap">
+    <div class="notes">
+      <h4>ملاحظات</h4>
+      شكراً لثقتكم. يرجى السداد خلال 30 يوماً من تاريخ الفاتورة.   <!-- footer text = template setting -->
+    </div>
+    <div class="totals">
+      <div><span>المجموع</span><bdi>1,820.00 ₪</bdi></div>
+      <div><span>الخصم</span><bdi>- 70.00 ₪</bdi></div>
+      <div class="grand"><span>الإجمالي المطلوب</span><bdi>1,750.00 ₪</bdi></div>
+      <div class="sep"><span>الرصيد السابق</span><bdi>300.00 ₪</bdi></div>
+      <div class="bal"><span>الرصيد الحالي</span><bdi>2,050.00 ₪</bdi></div>
+    </div>
+  </div>
+
+  <div class="sign"><div>المستلم</div><div>المحاسب</div></div>
+
+  <footer><span>مختبر سمايل آرتك لتقنية الأسنان</span><span>صفحة 1 من 1</span></footer>
+</div>
+</body>
+</html>
