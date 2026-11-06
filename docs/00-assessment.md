@@ -40,7 +40,7 @@ Consequence: no existing behaviour to preserve; every structural choice below is
 Previously decided in SPEC: NestJS + PostgreSQL; Windows installer; one independent install per customer; one `owner` role, RBAC-ready; invoice PDF rendered in Phase 2 from snapshot + template JSON.
 
 ### 2.2 Deviations from SPEC (small, justified — please confirm)
-1. **Numbering start (owner answer 7).** `counters` table holds `case_no` and `invoice_no` next values. The start value is settable in Settings/first-run **only while no case / invoice exists**; after that it is locked. Payment numbers `IN-`/`OUT-` start at 1.
+1. **Numbering start (owner answer 7).** `counters` holds `start_value` and `next_value` for `case_no` and `invoice_no`. The start may change **only while `next_value = start_value`** (nothing issued), and `next_value` moves with it in the same row-locked transaction; after that it is locked (implemented in B1). Payment numbers `IN-`/`OUT-` start at 1.
 2. **Audit log text is rendered, not stored.** SPEC §8 has `summary_ar`; §6.1 forbids frozen Arabic text. `audit_log` stores `action` code + `params` JSON + `user_id`; «آخر العمليات» is rendered per language on read.
 3. **Invoice void keeps history.** SPEC §8 says voiding deletes `invoice_cases` rows. We **keep** them (never delete financial records) and only clear `cases.invoice_id`. "Case is on an active invoice" = `cases.invoice_id IS NOT NULL`.
 4. **"Backup on app close"** (§5.18) does not fit a background service. Replaced by: daily scheduled backup + backup on service stop + mandatory pre-upgrade backup (§2.1 already asks for these). Keep last 10.
@@ -48,6 +48,15 @@ Previously decided in SPEC: NestJS + PostgreSQL; Windows installer; one independ
 6. **"Today"** is computed in the lab's time zone — a setting whose initial value is read from Windows at install time — not the server's UTC clock.
 
 ---
+
+### 2.3 Owner decisions for B1 (2026-11-06)
+1. Currency: once any amount exists, **code and decimals lock; the symbol stays editable**.
+2. Doctor opening balance stays editable; old and new values are audited. A doctor with a **non-zero opening balance is never hard-deleted**, only deactivated.
+3. Lab logo is **stored in the database** (`lab_logo`, single row), so backups include it.
+4. Delete everywhere = **hard delete if never used, otherwise deactivate** (only FK violation 23503 means "used").
+5. First run is **one step**: owner + lab profile + currency + language + time zone. **No work types and no prices are seeded**; only the system «doctor refund» expense category plus rent, electricity, water, materials, salaries, transport, other — named in the setup language.
+6. Names: NFC, trim, collapse spaces; case-insensitive uniqueness; **no Arabic letter folding**.
+7. Doctor phone is not unique. `DEFAULT_TIME_ZONE` = `Asia/Hebron` in `.env.example` (code default `UTC`).
 
 ## 3. Architecture
 
@@ -141,7 +150,8 @@ erDiagram
 |---|---|
 | `schema_meta` | `key`, `value` — `db_marker` (random UUID per install), `product`. Schema version = applied rows in `drizzle.__drizzle_migrations` (no second copy to keep in sync) |
 | `settings` | `key` PK, `value jsonb`, `row_version`, `updated_at/by` |
-| `counters` | `name` PK (`case_no`,`invoice_no`,`payment_in`,`payment_out`), `next_value BIGINT CHECK (>0)` |
+| `counters` | `name` PK (`case_no`,`invoice_no` since B1; `payment_in`,`payment_out` in B3), `start_value`, `next_value BIGINT`, `CHECK (start_value > 0 AND next_value >= start_value)` |
+| `lab_logo` | single row (`id = 1`), `content bytea`, `mime_type IN (png, jpeg)`, `size_bytes ≤ 1 MiB`, `sha256`, `updated_at/by` (B1) |
 | `users` | `username` unique (lower), `password_hash`, `active`, `must_change_password`, `failed_logins`, `locked_until` |
 | `roles`, `permissions`, `role_permissions`, `user_roles` | RBAC; seed: role `owner` ← all permissions |
 | `refresh_tokens` | `token_hash` unique, `family_id`, `user_id`, `expires_at`, `revoked_at`, `replaced_by` |
@@ -209,7 +219,7 @@ Trust boundary: the API process; the client (later the browser UI) is untrusted.
 | DB password exposure | Random per install, stored in a config file readable only by the service account (Windows ACL); never in repo |
 | Backup theft | Backup folder ACL; no encryption in v1 (owner decision, §11 Q2) — accepted risk, revisit before production |
 | Vulnerable dependencies | `npm audit` + lockfile in CI; minimal dependency list |
-| Logo upload abuse (B1) | PNG/JPEG only (no SVG in v1), checked by magic bytes, size limit, stored outside web root with generated name |
+| Logo upload abuse (B1) | PNG/JPEG only (no SVG), type taken from the file's magic bytes (never name/Content-Type), 1 MB limit, stored in the database (never on disk or in a web root), served with its detected type + `nosniff`, owner permission required |
 
 ---
 
@@ -250,7 +260,7 @@ Coverage goals: `shared/money` and `ledger/domain` ≈ 100% branches; overall me
 | # | Content | Done when |
 |---|---|---|
 | **B0** | Monorepo skeleton (`apps/api`), env config + validation, `PRODUCT_NAME` constant, Drizzle + first migration (identity, settings, counters, audit, schema_meta), Docker Compose, CI, health, pino + correlation id, error filter + envelope, i18n service + parity check, OpenAPI, setup/login/refresh/logout/change-password, audit writer | Pipeline green, empty DB boots, login works |
-| B1 | Doctors, technicians, work types (+ seed), special prices, expense categories (+ seed), settings (lab profile, currency, numbering start, language, logo) | CRUD + validation + tests |
+| B1 | Doctors, technicians, work types (no seed), special prices, expense categories (seeded at first run), settings (lab profile, currency, numbering start, language, logo), one-step first run | CRUD + validation + tests |
 | B2 | Cases, items, price resolution, status machine + history, numbering | Rules of §5.3/§5.6/§9 enforced |
 | B3 | Payments in/out/void, cheques, idempotency, `allocate`, `doctorBalance` | Exhaustive unit tests tie to hand calculations |
 | B4 | Debts + breakdown, statement, receipts/expenses reports, CSV, search | Breakdown ties to ledger |

@@ -217,7 +217,7 @@ Two-panel layout.
 - Add: name (required, unique), price (≥ 0). Messages: «هذا النوع أُضيف مسبقًا.», «الاسم فارغ.»
 - Delete: confirmation; if the type is used by any case → deactivate instead of delete (old cases keep their snapshot `work_type_name` and price).
 - Editing a price affects only **new** lines (existing lines keep their snapshot price).
-- Seed list for first run (editable, prices 0 so the owner must fill them): زيركون، زيركون شفاف، زيركون متعدد الطبقات، أكريليك PMMA، كومبوزيت، معدن (NP)، تيتانيوم، شمع، إي-ماكس (ليثيوم دسيليكات)، سيراميك هجين. The owner may delete any of them.
+- **No seed list (owner decision, B1):** the work-type list starts empty; the owner enters their own types and prices. No prices are ever invented by the system.
 
 ### 5.5 Shade picker «اختيار اللون»
 - Modal with the classic Vita shade guide grouped A1–A4, B1–B4, C1–C4, D2–D4 (plus bleach BL1–BL4), «الأكثر استخدامًا» row (computed from past use), and «بدون لون».
@@ -245,7 +245,7 @@ Button «تسجيل الدفعة». Success toast shows new balance.
 Below: **«تقرير المقبوضات»** — table of incoming payments (no., date, doctor, method, amount, status) with filters (date range, doctor, method), total, and «آخر دفعة». Row actions: print receipt (A4 small receipt with logo), cancel.
 
 ### 5.9 Outgoing payment «إنشاء دفعة صادرة»
-Fields: **category** (from `expense_categories`, editable list: مواد، إيجار، كهرباء وماء، رواتب، مواصلات، أخرى, + «طبيب (استرداد)») ; payee (free text, required except for doctor category); if category = doctor → doctor dropdown instead; amount (> 0); method cash/cheque (+cheque fields); date; note.
+Fields: **category** (from `expense_categories`, editable list seeded at first run in the setup language: إيجار، كهرباء، ماء، مواد، رواتب، مواصلات، أخرى, + the system category «طبيب (استرداد)», which can be renamed but never deleted or deactivated — owner decision B1) ; payee (free text, required except for doctor category); if category = doctor → doctor dropdown instead; amount (> 0); method cash/cheque (+cheque fields); date; note.
 - Doctor category = money returned to a doctor (refund / overpayment): increases what the lab owes him (§7.3).
 - Success: «✅ تم حفظ المصروف».
 - Below: **«تقرير المصاريف»** with date/category filters and totals per category.
@@ -305,7 +305,8 @@ Single box; matches doctor name, patient name or case number as you type (deboun
 - Currency: symbol/code (free text, e.g. ₪ / JOD / $), decimals (0–3). **Changing it after data exists is blocked** (show why) — v1 is single-currency, amounts are not converted.
 - Language: UI language (Arabic default / English) and, separately, the language of printed documents (§6.1).
 - Data & backup: data folder shown; «أخذ نسخة احتياطية الآن» (save a copy of the DB file to a chosen folder), «استرجاع نسخة» (validate it is a Smile Artec DB with a compatible schema version, back up the current one first, then replace and restart), **automatic backup on app close** keeping the last N (default 10) copies in a chosen folder.
-- First run wizard: lab name + phone + currency (required), then offer to restore a backup.
+- First run wizard: one step — owner account, lab name (Arabic or English) + phone + currency (required), language, time zone (default from the installation) — then offer to restore a backup.
+- Logo: PNG/JPEG ≤ 1 MB, stored in the database so backups include it (owner decision B1). Currency code and decimals lock once any amount exists; the symbol stays editable (owner decision B1).
 
 ---
 
@@ -322,7 +323,7 @@ Single box; matches doctor name, patient name or case number as you type (deboun
 - **No user-facing text hard-coded anywhere** (API or UI). All strings come from catalogs `ar.json` / `en.json`; every new string is added to **both** at the same time. A CI check fails when a key exists in one catalog and not the other.
 - **Backend (Phase 1):** responses carry stable machine codes (`error.code`, enum values like `waiting`, `delivered`) plus parameters; human-readable messages are produced from the catalog using `Accept-Language` (fallback `ar`). Localize: validation and business-rule errors, status/direction/method labels, notification texts, report and CSV headers, audit-log summaries (store code + params, render on read, not frozen Arabic text), seed names.
 - **Database stores codes, not translated labels** (e.g. status `'in_progress'`). User-entered data (doctor, patient, work-type names…) is stored as typed and never auto-translated.
-- **Seed data** (default work types, expense categories) is created at first run **in the language chosen in the setup wizard**; changing the language later does not rename existing records.
+- **Seed data** (expense categories only; work types start empty — owner decision B1) is created at first run **in the language chosen in the setup wizard**; changing the language later does not rename existing records.
 - **Frontend (Phase 2):** switching language flips direction RTL↔LTR (logical CSS properties only), fonts (Arabic: Cairo/Tajawal; English: a matching Latin font), dates and number formatting; the choice persists per installation (and per user when users are added later). Digits: Western 0-9 by default in both languages, with a setting for Arabic-Indic digits.
 - **Printed documents** (invoice, statement, receipt) have their own **document language** setting (default = UI language, can differ: e.g. UI English, invoices Arabic). Stored invoice snapshots keep the language they were issued in; reprints use the stored language unless the user explicitly reprints in another one.
 - Tooth numbering (FDI) and shade codes (A1, B2…) are language-neutral.
