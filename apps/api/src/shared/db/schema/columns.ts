@@ -1,8 +1,8 @@
 import { bigint, integer, timestamp } from 'drizzle-orm/pg-core';
+import { MAX_AMOUNT_MINOR } from '../../money/limits';
 import { users } from './identity';
 
-/** Largest money amount accepted anywhere, in minor units (fits safely in a JS number). */
-export const MAX_AMOUNT_MINOR = 999_999_999_999;
+export { MAX_AMOUNT_MINOR };
 
 /** Money in integer minor units (SPEC §7.1). */
 export const amountColumn = (name: string) => bigint(name, { mode: 'number' });

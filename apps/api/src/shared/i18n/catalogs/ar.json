@@ -12,6 +12,7 @@
   "error.auth.wrong_current_password": "كلمة المرور الحالية غير صحيحة.",
   "error.setup.already_done": "تم إعداد النظام مسبقاً.",
   "error.health.not_ready": "النظام غير جاهز بعد.",
+  "error.concurrency.stale": "تم تعديل هذا السجل من مكان آخر. حدّث الصفحة ثم أعد المحاولة.",
   "audit.setup.completed": "إعداد النظام وإنشاء حساب المالك «{username}»",
   "audit.auth.password_changed": "تغيير كلمة المرور",
   "audit.auth.account_locked": "قفل الحساب مؤقتاً بعد {attempts} محاولات دخول فاشلة",

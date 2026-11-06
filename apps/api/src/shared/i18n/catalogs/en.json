@@ -12,6 +12,7 @@
   "error.auth.wrong_current_password": "The current password is not correct.",
   "error.setup.already_done": "The system has already been set up.",
   "error.health.not_ready": "The system is not ready yet.",
+  "error.concurrency.stale": "This record was changed elsewhere. Refresh and try again.",
   "audit.setup.completed": "System set up and owner account «{username}» created",
   "audit.auth.password_changed": "Password changed",
   "audit.auth.account_locked": "Account temporarily locked after {attempts} failed sign-in attempts",
