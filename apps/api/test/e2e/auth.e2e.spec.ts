@@ -174,6 +174,9 @@ describe('B0 API end to end', () => {
         username: OWNER.username,
         permissions: [
           'account.self',
+          'cases.cancel',
+          'cases.read',
+          'cases.write',
           'catalog.read',
           'catalog.write',
           'doctors.read',
