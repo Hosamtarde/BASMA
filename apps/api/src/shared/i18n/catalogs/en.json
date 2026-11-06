@@ -1,0 +1,19 @@
+{
+  "error.internal": "An unexpected error occurred. Try again; if it repeats, contact support with request id {correlationId}.",
+  "error.bad_request": "The request is not valid.",
+  "error.not_found": "The requested item was not found.",
+  "error.payload_too_large": "The data sent is too large.",
+  "error.rate_limited": "Too many attempts. Wait a moment and try again.",
+  "error.validation.failed": "Some of the entered data is not valid.",
+  "error.auth.unauthenticated": "You need to sign in first.",
+  "error.auth.forbidden": "You do not have permission for this action.",
+  "error.auth.invalid_credentials": "Wrong username or password, or the account is temporarily locked after too many attempts.",
+  "error.auth.invalid_refresh_token": "Your session has ended. Please sign in again.",
+  "error.auth.wrong_current_password": "The current password is not correct.",
+  "error.setup.already_done": "The system has already been set up.",
+  "error.health.not_ready": "The system is not ready yet.",
+  "audit.setup.completed": "System set up and owner account «{username}» created",
+  "audit.auth.password_changed": "Password changed",
+  "audit.auth.account_locked": "Account temporarily locked after {attempts} failed sign-in attempts",
+  "audit.auth.refresh_token_reuse": "All sessions ended after an old session was reused"
+}
