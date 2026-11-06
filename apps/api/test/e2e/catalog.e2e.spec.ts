@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { markUsed, startTestApp, statusesOf, TestApp } from '../support/app';
+import { HttpMethod, markUsed, requestFor, startTestApp, statusesOf, TestApp } from '../support/app';
 
 jest.setTimeout(180_000);
 
@@ -16,19 +16,19 @@ describe('Catalog: technicians, work types, expense categories (e2e)', () => {
   });
 
   describe('authorization on every route', () => {
-    const routes: [string, string][] = [];
+    const routes: [HttpMethod, string][] = [];
     for (const base of ['/technicians', '/work-types', '/expense-categories']) {
       routes.push(['get', base], ['post', base], ['patch', `${base}/1`], ['delete', `${base}/1`]);
     }
 
     it.each(routes)('%s %s → 401 without a token', async (method, path) => {
-      const res = await request(t.http)[method as 'get'](api(path)).send({});
+      const res = await requestFor(t.http, method, api(path)).send({});
       expect(res.status).toBe(401);
       expect(res.body.error.code).toBe('error.auth.unauthenticated');
     });
 
     it.each(routes)('%s %s → 403 without the catalog permission', async (method, path) => {
-      const res = await request(t.http)[method as 'get'](api(path)).set('Authorization', t.limitedAuth).send({});
+      const res = await requestFor(t.http, method, api(path)).set('Authorization', t.limitedAuth).send({});
       expect(res.status).toBe(403);
       expect(res.body.error.code).toBe('error.auth.forbidden');
     });
@@ -41,7 +41,12 @@ describe('Catalog: technicians, work types, expense categories (e2e)', () => {
         .set('Authorization', t.auth)
         .send({ name: '  Ahmad   Saleh ' })
         .expect(201);
-      expect(created.body).toEqual({ id: expect.any(Number), name: 'Ahmad Saleh', active: true, rowVersion: 1 });
+      expect(created.body).toEqual({
+        id: expect.any(Number),
+        name: 'Ahmad Saleh',
+        active: true,
+        rowVersion: 1,
+      });
 
       const list = await request(t.http).get(api('/technicians')).set('Authorization', t.auth).expect(200);
       expect(list.body).toEqual({ items: [created.body], page: 1, pageSize: 25, total: 1 });
@@ -68,8 +73,16 @@ describe('Catalog: technicians, work types, expense categories (e2e)', () => {
     });
 
     it('treats Arabic letter variants as different names (no folding)', async () => {
-      await request(t.http).post(api('/technicians')).set('Authorization', t.auth).send({ name: 'أحمد' }).expect(201);
-      await request(t.http).post(api('/technicians')).set('Authorization', t.auth).send({ name: 'احمد' }).expect(201);
+      await request(t.http)
+        .post(api('/technicians'))
+        .set('Authorization', t.auth)
+        .send({ name: 'أحمد' })
+        .expect(201);
+      await request(t.http)
+        .post(api('/technicians'))
+        .set('Authorization', t.auth)
+        .send({ name: 'احمد' })
+        .expect(201);
       await request(t.http)
         .post(api('/technicians'))
         .set('Authorization', t.auth)
@@ -222,14 +235,17 @@ describe('Catalog: technicians, work types, expense categories (e2e)', () => {
       });
     });
 
-    it.each([[-1], [10.5], ['100'], [1_000_000_000_000], [null]])('rejects unitPrice %p', async (unitPrice) => {
-      const res = await request(t.http)
-        .post(api('/work-types'))
-        .set('Authorization', t.auth)
-        .send({ name: `Bad ${String(unitPrice)}`, unitPrice })
-        .expect(400);
-      expect(res.body.error.details.fields[0].field).toBe('unitPrice');
-    });
+    it.each([[-1], [10.5], ['100'], [1_000_000_000_000], [null]])(
+      'rejects unitPrice %p',
+      async (unitPrice) => {
+        const res = await request(t.http)
+          .post(api('/work-types'))
+          .set('Authorization', t.auth)
+          .send({ name: `Bad ${String(unitPrice)}`, unitPrice })
+          .expect(400);
+        expect(res.body.error.details.fields[0].field).toBe('unitPrice');
+      },
+    );
 
     it('audits price changes with old and new values', async () => {
       const list = await request(t.http)
@@ -245,7 +261,11 @@ describe('Catalog: technicians, work types, expense categories (e2e)', () => {
       const { rows } = await t.pool.query<{ params: Record<string, unknown> }>(
         `SELECT params FROM audit_log WHERE action = 'work_type.updated' ORDER BY id DESC LIMIT 1`,
       );
-      expect(rows[0]?.params).toMatchObject({ unitPriceOld: 25000, unitPriceNew: 27500, fields: 'unitPrice' });
+      expect(rows[0]?.params).toMatchObject({
+        unitPriceOld: 25000,
+        unitPriceNew: 27500,
+        fields: 'unitPrice',
+      });
     });
 
     it('deleting an unused work type also removes its special prices', async () => {
@@ -254,7 +274,9 @@ describe('Catalog: technicians, work types, expense categories (e2e)', () => {
         .set('Authorization', t.auth)
         .send({ name: 'Wax', unitPrice: 1000 })
         .expect(201);
-      const doc = await t.pool.query<{ id: string }>(`INSERT INTO doctors (name) VALUES ('Dr Wax') RETURNING id`);
+      const doc = await t.pool.query<{ id: string }>(
+        `INSERT INTO doctors (name) VALUES ('Dr Wax') RETURNING id`,
+      );
       await t.pool.query(`INSERT INTO doctor_prices (doctor_id, work_type_id, price) VALUES ($1, $2, 900)`, [
         doc.rows[0]?.id,
         wt.body.id,
@@ -274,7 +296,9 @@ describe('Catalog: technicians, work types, expense categories (e2e)', () => {
         .set('Authorization', t.auth)
         .send({ name: 'Titanium', unitPrice: 5000 })
         .expect(201);
-      const doc = await t.pool.query<{ id: string }>(`INSERT INTO doctors (name) VALUES ('Dr Ti') RETURNING id`);
+      const doc = await t.pool.query<{ id: string }>(
+        `INSERT INTO doctors (name) VALUES ('Dr Ti') RETURNING id`,
+      );
       await t.pool.query(`INSERT INTO doctor_prices (doctor_id, work_type_id, price) VALUES ($1, $2, 4500)`, [
         doc.rows[0]?.id,
         wt.body.id,
@@ -285,7 +309,9 @@ describe('Catalog: technicians, work types, expense categories (e2e)', () => {
         .set('Authorization', t.auth)
         .expect(200);
       expect(res.body).toEqual({ outcome: 'deactivated' });
-      const kept = await t.pool.query(`SELECT price FROM doctor_prices WHERE work_type_id = $1`, [wt.body.id]);
+      const kept = await t.pool.query(`SELECT price FROM doctor_prices WHERE work_type_id = $1`, [
+        wt.body.id,
+      ]);
       expect(kept.rows).toEqual([{ price: '4500' }]);
     });
 
@@ -309,7 +335,9 @@ describe('Catalog: technicians, work types, expense categories (e2e)', () => {
     let doctorCategoryId: number;
 
     beforeAll(async () => {
-      const existing = await t.pool.query<{ id: string }>(`SELECT id FROM expense_categories WHERE is_doctor`);
+      const existing = await t.pool.query<{ id: string }>(
+        `SELECT id FROM expense_categories WHERE is_doctor`,
+      );
       if (existing.rows[0]) {
         doctorCategoryId = Number(existing.rows[0].id);
       } else {

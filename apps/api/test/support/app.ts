@@ -83,6 +83,21 @@ export async function markUsed(pool: Pool, table: string, id: number): Promise<v
   await pool.query(`INSERT INTO ${usage} (ref_id) VALUES ($1)`, [id]);
 }
 
+export type HttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
+
+/** A request with the method chosen at runtime (for route tables). */
+export function requestFor(http: App, method: HttpMethod, path: string): request.Test {
+  const agent = request(http);
+  const byMethod = {
+    get: agent.get.bind(agent),
+    post: agent.post.bind(agent),
+    put: agent.put.bind(agent),
+    patch: agent.patch.bind(agent),
+    delete: agent.delete.bind(agent),
+  };
+  return byMethod[method](path);
+}
+
 /** Pairs of statuses, sorted, from concurrent requests. */
 export const statusesOf = (responses: { status: number }[]): number[] =>
   responses.map((r) => r.status).sort((a, b) => a - b);
