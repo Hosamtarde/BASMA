@@ -51,4 +51,3 @@ npm run lint · typecheck · i18n:check · test · test:integration · test:e2e 
 npm run migrate             # apply migrations explicitly (installer path: MIGRATE_ON_START=false)
 npm run db:generate -w apps/api -- --name <name>   # new migration from the Drizzle schema; review the SQL
 ```
-- Never add "Co-Authored-By", "Claude-Session" or any Claude/AI attribution lines to commit messages or pull request descriptions (owner's preference).
