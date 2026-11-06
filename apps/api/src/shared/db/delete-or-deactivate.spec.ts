@@ -53,9 +53,9 @@ describe('pg error helpers', () => {
       code: '23505',
       constraint: 'doctors_name_lower_uq',
     });
-    expect(isUniqueViolation(wrapped(pgError('23505', 'doctors_name_lower_uq')), 'doctors_name_lower_uq')).toBe(
-      true,
-    );
+    expect(
+      isUniqueViolation(wrapped(pgError('23505', 'doctors_name_lower_uq')), 'doctors_name_lower_uq'),
+    ).toBe(true);
     expect(isUniqueViolation(pgError('23505', 'other'), 'doctors_name_lower_uq')).toBe(false);
     expect(pgErrorOf(new Error('plain'))).toBeUndefined();
   });

@@ -50,7 +50,9 @@ export const expenseCategories = pgTable(
   (t) => [
     uniqueIndex('expense_categories_name_lower_uq').on(sql`lower(${t.name})`),
     // At most one doctor-refund category.
-    uniqueIndex('expense_categories_single_doctor_uq').on(t.isDoctor).where(sql`${t.isDoctor}`),
+    uniqueIndex('expense_categories_single_doctor_uq')
+      .on(t.isDoctor)
+      .where(sql`${t.isDoctor}`),
     check('expense_categories_name_length_ck', sql`char_length(${t.name}) between 1 and 100`),
     check('expense_categories_row_version_ck', sql`${t.rowVersion} >= 1`),
   ],

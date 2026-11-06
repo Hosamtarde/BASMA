@@ -7,7 +7,7 @@ export { MAX_AMOUNT_MINOR };
 /** Money in integer minor units (SPEC §7.1). */
 export const amountColumn = (name: string) => bigint(name, { mode: 'number' });
 
-export const idColumn =() => bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity();
+export const idColumn = () => bigint('id', { mode: 'number' }).primaryKey().generatedAlwaysAsIdentity();
 
 /** Shared audit + optimistic-concurrency columns of mutable aggregates. */
 export const aggregateColumns = () => ({
