@@ -68,11 +68,4 @@ export function withNewStart(counter: Counter, start: number): Counter | null {
 export const hasLabName = (p: Pick<LabProfile, 'nameAr' | 'nameEn'>): boolean =>
   Boolean(p.nameAr?.trim() || p.nameEn?.trim());
 
-export function isValidTimeZone(timeZone: string): boolean {
-  try {
-    new Intl.DateTimeFormat('en', { timeZone });
-    return true;
-  } catch {
-    return false;
-  }
-}
+export { isValidTimeZone } from '../../../shared/time/time-zone';

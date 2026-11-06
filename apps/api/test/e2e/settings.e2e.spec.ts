@@ -21,13 +21,6 @@ describe('Settings (e2e)', () => {
 
   beforeAll(async () => {
     t = await startTestApp();
-    // First-run setup creates these; insert them only if this build's setup did not.
-    await t.pool.query(`
-      INSERT INTO settings (key, value) VALUES
-        ('lab_profile', '{"nameAr":"مختبر","nameEn":null,"phone":null,"address":null,"timeZone":"Asia/Hebron"}'),
-        ('currency', '{"code":"ILS","symbol":"₪","decimals":2}'),
-        ('language', '{"ui":"ar","documents":"ar"}')
-      ON CONFLICT (key) DO NOTHING`);
   });
 
   afterAll(async () => {

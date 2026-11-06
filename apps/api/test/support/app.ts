@@ -29,6 +29,9 @@ export function setupBody(overrides: Record<string, unknown> = {}): Record<strin
   return {
     username: 'owner',
     password: OWNER_PASSWORD,
+    lab: { nameAr: 'مختبر الاختبار', phone: '02 222 3333' },
+    currency: { code: 'ILS', symbol: '₪', decimals: 2 },
+    language: 'ar',
     ...overrides,
   };
 }

@@ -3,6 +3,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AppConfig } from '../../config/app-config';
+import { CatalogModule } from '../catalog/catalog.module';
+import { SettingsModule } from '../settings/settings.module';
 import { APP_CONFIG } from '../../config/config.module';
 import { AuthService } from './application/auth.service';
 import { PasswordHasher } from './application/password-hasher';
@@ -15,6 +17,9 @@ import { SetupController } from './presentation/setup.controller';
 
 @Module({
   imports: [
+    // First-run setup writes the initial settings and expense categories.
+    SettingsModule,
+    CatalogModule,
     JwtModule.registerAsync({
       inject: [APP_CONFIG],
       useFactory: (config: AppConfig) => ({

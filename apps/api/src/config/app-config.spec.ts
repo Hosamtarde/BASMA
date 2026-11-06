@@ -27,6 +27,12 @@ describe('loadConfig', () => {
     expect(c.isProduction).toBe(false);
   });
 
+  it('validates DEFAULT_TIME_ZONE (neutral UTC default in code)', () => {
+    expect(loadConfig(base).defaultTimeZone).toBe('UTC');
+    expect(loadConfig({ ...base, DEFAULT_TIME_ZONE: 'Asia/Hebron' }).defaultTimeZone).toBe('Asia/Hebron');
+    expect(problemsOf({ ...base, DEFAULT_TIME_ZONE: 'Gaza' })[0]).toMatch(/DEFAULT_TIME_ZONE/);
+  });
+
   it('can disable migrations on start (installer runs them after a backup)', () => {
     expect(loadConfig({ ...base, MIGRATE_ON_START: 'false' }).migrateOnStart).toBe(false);
   });

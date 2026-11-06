@@ -29,12 +29,21 @@ export class SetupController {
   @Post()
   @UseGuards(ThrottlerGuard)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create the owner account (works only once)' })
+  @ApiOperation({
+    summary: 'First run (works only once): owner, lab profile, currency, language, time zone',
+  })
   @ApiCreatedResponse({ type: SetupResponse })
-  @ApiBadRequestResponse({ description: 'error.validation.failed' })
+  @ApiBadRequestResponse({ description: 'error.validation.failed | error.settings.lab_name_required' })
   @ApiConflictResponse({ description: 'error.setup.already_done' })
   @ApiTooManyRequestsResponse({ description: 'error.rate_limited' })
   createOwner(@Body() body: SetupRequest): Promise<SetupResponse> {
-    return this.setup.createOwner(body.username, body.password);
+    return this.setup.run({
+      username: body.username,
+      password: body.password,
+      lab: body.lab,
+      currency: { code: body.currency.code, symbol: body.currency.symbol, decimals: body.currency.decimals },
+      language: body.language,
+      ...(body.timeZone === undefined ? {} : { timeZone: body.timeZone }),
+    });
   }
 }

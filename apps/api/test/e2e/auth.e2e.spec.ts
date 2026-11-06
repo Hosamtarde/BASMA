@@ -5,6 +5,7 @@ import request from 'supertest';
 import type { App } from 'supertest/types';
 import { createApp } from '../../src/app.factory';
 import { runMigrations } from '../../src/shared/db/migrator';
+import { setupBody } from '../support/app';
 import { startPostgres, testConfig } from '../support/database';
 
 jest.setTimeout(180_000);
@@ -92,7 +93,7 @@ describe('B0 API end to end', () => {
       expect(ar.body.error.code).toBe('error.validation.failed');
       expect(ar.body.error.message).toBe('بعض البيانات المدخلة غير صحيحة.');
       const fields = (ar.body.error.details.fields as { field: string }[]).map((f) => f.field).sort();
-      expect(fields).toEqual(['password', 'role', 'username']);
+      expect(fields).toEqual(['currency', 'lab', 'language', 'password', 'role', 'username']);
 
       const en = await request(http)
         .post('/api/v1/setup')
@@ -104,8 +105,10 @@ describe('B0 API end to end', () => {
 
     it('creates exactly one owner even under concurrent requests, then locks itself', async () => {
       const results = await Promise.all([
-        request(http).post('/api/v1/setup').send(OWNER),
-        request(http).post('/api/v1/setup').send({ username: 'intruder', password: 'intruder-pass-1' }),
+        request(http).post('/api/v1/setup').send(setupBody(OWNER)),
+        request(http)
+          .post('/api/v1/setup')
+          .send(setupBody({ username: 'intruder', password: 'intruder-pass-1' })),
       ]);
       const statuses = results.map((r) => r.status).sort();
       expect(statuses).toEqual([201, 409]);
@@ -120,7 +123,7 @@ describe('B0 API end to end', () => {
 
       await request(http)
         .post('/api/v1/setup')
-        .send({ username: 'late', password: 'late-password-1' })
+        .send(setupBody({ username: 'late', password: 'late-password-1' }))
         .expect(409);
       const status = await request(http).get('/api/v1/setup/status').expect(200);
       expect(status.body).toEqual({ setupRequired: false });
