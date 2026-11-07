@@ -95,6 +95,11 @@
   background-image: linear-gradient(135deg, #01416c 0%, #006ebd 100%);
   box-shadow: inset 0 -6px 12px rgb(3 195 219 / 0.35);
 }
+/* The same knob for a card whose screen ships later: the brand gradient, lighter and softer. */
+@utility knob-soon {
+  background-image: linear-gradient(135deg, #4d7c9d 0%, #5c9fd3 100%);
+  box-shadow: inset 0 -6px 12px rgb(3 195 219 / 0.22);
+}
 /* Numbers, phones, case numbers and tooth lists keep LTR inside Arabic text. */
 @utility num {
   direction: ltr;
@@ -118,8 +123,9 @@
     font-size: 15px;
     line-height: 1.65;
   }
-  /* Never letter-space Arabic. */
-  :lang(ar) * {
+  /* Never letter-space Arabic (text whose own language is Arabic; a lang="en" line inside an
+     Arabic page, such as the banner's Latin subtitle, keeps its tracking). */
+  :lang(ar) {
     letter-spacing: normal !important;
   }
   :focus-visible {

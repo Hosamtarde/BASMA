@@ -49,7 +49,6 @@
   },
   "home": {
     "title": "Home",
-    "welcome": "Welcome to {{product}}",
     "today": "Today",
     "pipeline": {
       "title": "Case pipeline",
@@ -60,6 +59,7 @@
     "actions": {
       "title": "What do you want to record?",
       "soon": "Soon",
+      "soonHint": "In a later update",
       "newCase": {
         "title": "Add a new case",
         "body": "Record a case, mark the teeth and the work type",
@@ -91,12 +91,20 @@
         "figure": "active doctors"
       }
     },
+    "keyNumbers": {
+      "title": "Key numbers",
+      "doctors": "Active doctors",
+      "cases": "Cases",
+      "ready": "Ready for delivery",
+      "overdue": "Overdue cases"
+    },
     "donut": {
       "title": "Overview of all cases",
       "label": "Cases by status, {{total}} in total"
     },
     "latest": {
       "title": "Latest cases",
+      "empty": "Cases you record will appear here.",
       "all": "All cases",
       "open": "Open",
       "openCase": "Open case {{no}}"
