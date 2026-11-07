@@ -4,13 +4,14 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { AppModule, AppOptions } from './app.module';
+import { API_PREFIX } from './config/api';
 import { AppConfig } from './config/app-config';
 import { PRODUCT_NAME } from './config/product';
 import { AllExceptionsFilter } from './shared/errors/all-exceptions.filter';
 import { createValidationPipe } from './shared/errors/validation';
 import { I18nService } from './shared/i18n/i18n.service';
 
-export const API_PREFIX = 'api/v1';
+export { API_PREFIX };
 
 /** Builds the fully configured app; shared by main.ts and the e2e tests so both run the same pipeline. */
 export async function createApp(config: AppConfig, options: AppOptions = {}): Promise<INestApplication> {

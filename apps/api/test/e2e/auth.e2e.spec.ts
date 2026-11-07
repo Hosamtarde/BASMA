@@ -13,6 +13,16 @@ jest.setTimeout(180_000);
 const OWNER = { username: 'Owner', password: 'first-password-1' };
 const NEW_PASSWORD = 'second-password-2';
 
+/** The refresh_token cookie from a response: its value and its raw Set-Cookie line. */
+function refreshCookie(res: request.Response): { value: string; header: string } {
+  const raw = res.headers['set-cookie'] as unknown as string[] | undefined;
+  const header = (raw ?? []).find((c) => c.startsWith('refresh_token='));
+  if (!header) throw new Error('no refresh_token cookie in the response');
+  return { value: decodeURIComponent(header.slice('refresh_token='.length).split(';')[0] ?? ''), header };
+}
+const asCookie = (value: string) => `refresh_token=${encodeURIComponent(value)}`;
+const CLEARED = /Expires=Thu, 01 Jan 1970/;
+
 describe('B0 API end to end', () => {
   let container: StartedPostgreSqlContainer;
   let pool: Pool;
@@ -21,6 +31,8 @@ describe('B0 API end to end', () => {
 
   const login = (username: string, password: string) =>
     request(http).post('/api/v1/auth/login').send({ username, password });
+  const refresh = (token: string) =>
+    request(http).post('/api/v1/auth/refresh').set('Cookie', asCookie(token));
 
   beforeAll(async () => {
     container = await startPostgres();
@@ -161,10 +173,17 @@ describe('B0 API end to end', () => {
       expect(res.body).toEqual({
         accessToken: expect.any(String),
         accessTokenExpiresIn: 900,
-        refreshToken: expect.any(String),
         refreshTokenExpiresAt: expect.any(String),
         mustChangePassword: false,
       });
+      // The refresh token is only in an httpOnly, SameSite=Strict cookie scoped to the auth routes.
+      const cookie = refreshCookie(res);
+      expect(cookie.value.length).toBeGreaterThan(20);
+      expect(cookie.header).toMatch(/; Path=\/api\/v1\/auth(;|$)/);
+      expect(cookie.header).toMatch(/; HttpOnly(;|$)/);
+      expect(cookie.header).toMatch(/; SameSite=Strict(;|$)/);
+      expect(cookie.header).toMatch(/; Expires=/);
+      expect(cookie.header).not.toMatch(/; Secure/); // plain http on 127.0.0.1
       const me = await request(http)
         .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${res.body.accessToken}`)
@@ -189,47 +208,67 @@ describe('B0 API end to end', () => {
     });
 
     it('rotates refresh tokens and revokes the family when an old one is reused', async () => {
-      const first = await login(OWNER.username, OWNER.password).expect(200);
-      const second = await request(http)
-        .post('/api/v1/auth/refresh')
-        .send({ refreshToken: first.body.refreshToken })
-        .expect(200);
-      expect(second.body.refreshToken).not.toBe(first.body.refreshToken);
+      const first = refreshCookie(await login(OWNER.username, OWNER.password).expect(200)).value;
+      const res = await refresh(first).expect(200);
+      expect(res.body.accessToken).toEqual(expect.any(String));
+      expect(res.body.refreshToken).toBeUndefined();
+      const second = refreshCookie(res).value;
+      expect(second).not.toBe(first);
 
-      // Replay of the used token: rejected, and the newer token dies with it.
-      const replay = await request(http)
-        .post('/api/v1/auth/refresh')
-        .send({ refreshToken: first.body.refreshToken })
-        .expect(401);
+      // Replay of the used token: rejected (dead cookie cleared), and the newer token dies with it.
+      const replay = await refresh(first).expect(401);
       expect(replay.body.error.code).toBe('error.auth.invalid_refresh_token');
-      await request(http)
-        .post('/api/v1/auth/refresh')
-        .send({ refreshToken: second.body.refreshToken })
-        .expect(401);
+      expect(refreshCookie(replay).header).toMatch(CLEARED);
+      await refresh(second).expect(401);
 
       const { rows } = await pool.query(`SELECT 1 FROM audit_log WHERE action = 'auth.refresh_token_reuse'`);
       expect(rows).toHaveLength(1);
     });
 
     it('stores refresh tokens only as hashes', async () => {
-      const res = await login(OWNER.username, OWNER.password).expect(200);
-      const { rows } = await pool.query(`SELECT 1 FROM refresh_tokens WHERE token_hash = $1`, [
-        res.body.refreshToken,
-      ]);
+      const token = refreshCookie(await login(OWNER.username, OWNER.password).expect(200)).value;
+      const { rows } = await pool.query(`SELECT 1 FROM refresh_tokens WHERE token_hash = $1`, [token]);
       expect(rows).toHaveLength(0);
+    });
+
+    it('refuses a refresh without the cookie, and ignores a token sent in the body', async () => {
+      const token = refreshCookie(await login(OWNER.username, OWNER.password).expect(200)).value;
+      const none = await request(http).post('/api/v1/auth/refresh').expect(401);
+      expect(none.body.error.code).toBe('error.auth.invalid_refresh_token');
+      await request(http).post('/api/v1/auth/refresh').send({ refreshToken: token }).expect(401);
+    });
+
+    it('refuses cookie routes called from another origin (CSRF defence)', async () => {
+      const res = await login(OWNER.username, OWNER.password).expect(200);
+      const token = refreshCookie(res).value;
+      const cross = await refresh(token).set('Origin', 'http://127.0.0.1:5500').expect(403);
+      expect(cross.body.error.code).toBe('error.auth.forbidden');
+      await refresh(token).set('Sec-Fetch-Site', 'same-site').expect(403);
+      await request(http)
+        .post('/api/v1/auth/logout')
+        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .set('Cookie', asCookie(token))
+        .set('Origin', 'https://evil.example')
+        .expect(403);
+      // The token survived the rejected attempts.
+      await refresh(token).set('Sec-Fetch-Site', 'same-origin').expect(200);
     });
 
     it('logout ends the session', async () => {
       const res = await login(OWNER.username, OWNER.password).expect(200);
+      const token = refreshCookie(res).value;
+      const out = await request(http)
+        .post('/api/v1/auth/logout')
+        .set('Authorization', `Bearer ${res.body.accessToken}`)
+        .set('Cookie', asCookie(token))
+        .expect(204);
+      expect(refreshCookie(out).header).toMatch(CLEARED);
+      await refresh(token).expect(401);
+      // Logging out again without a cookie is harmless.
       await request(http)
         .post('/api/v1/auth/logout')
         .set('Authorization', `Bearer ${res.body.accessToken}`)
-        .send({ refreshToken: res.body.refreshToken })
         .expect(204);
-      await request(http)
-        .post('/api/v1/auth/refresh')
-        .send({ refreshToken: res.body.refreshToken })
-        .expect(401);
 
       // A retry with a logged-out token is not a replay attack: no extra reuse audit entry.
       const { rows } = await pool.query(`SELECT 1 FROM audit_log WHERE action = 'auth.refresh_token_reuse'`);
@@ -239,6 +278,7 @@ describe('B0 API end to end', () => {
     it('changes the password, checks the current one and ends all sessions', async () => {
       const res = await login(OWNER.username, OWNER.password).expect(200);
       const auth = `Bearer ${res.body.accessToken}`;
+      const token = refreshCookie(res).value;
 
       const wrong = await request(http)
         .post('/api/v1/auth/change-password')
@@ -247,16 +287,14 @@ describe('B0 API end to end', () => {
         .expect(400);
       expect(wrong.body.error.code).toBe('error.auth.wrong_current_password');
 
-      await request(http)
+      const changed = await request(http)
         .post('/api/v1/auth/change-password')
         .set('Authorization', auth)
         .send({ currentPassword: OWNER.password, newPassword: NEW_PASSWORD })
         .expect(204);
+      expect(refreshCookie(changed).header).toMatch(CLEARED);
 
-      await request(http)
-        .post('/api/v1/auth/refresh')
-        .send({ refreshToken: res.body.refreshToken })
-        .expect(401);
+      await refresh(token).expect(401);
       await login(OWNER.username, OWNER.password).expect(401);
       await login(OWNER.username, NEW_PASSWORD).expect(200);
       OWNER.password = NEW_PASSWORD;

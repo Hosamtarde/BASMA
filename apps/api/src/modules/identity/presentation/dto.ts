@@ -109,14 +109,6 @@ export class LoginRequest {
   password!: string;
 }
 
-export class RefreshTokenRequest {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
-  refreshToken!: string;
-}
-
 export class ChangePasswordRequest {
   @ApiProperty({ format: 'password' })
   @IsString()
@@ -145,8 +137,8 @@ export class SetupResponse {
 export class TokenResponse {
   @ApiProperty() accessToken!: string;
   @ApiProperty({ description: 'Seconds' }) accessTokenExpiresIn!: number;
-  @ApiProperty() refreshToken!: string;
-  @ApiProperty({ type: String, format: 'date-time' }) refreshTokenExpiresAt!: string;
+  @ApiProperty({ type: String, format: 'date-time', description: 'Expiry of the refresh cookie' })
+  refreshTokenExpiresAt!: string;
   @ApiProperty() mustChangePassword!: boolean;
 }
 
