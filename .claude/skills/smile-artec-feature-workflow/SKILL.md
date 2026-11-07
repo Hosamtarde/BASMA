@@ -14,6 +14,8 @@ Follow in order; skip nothing for non-trivial work.
 6. **Review** — security (see `smile-artec-security-review`), performance (N+1, indexes, pagination at DB level), correctness, maintainability.
 7. **Document** — what changed, why, how to test; update OpenAPI and `docs/`.
 
+**Vertical slices:** when the change has screens, also follow `smile-artec-web-feature-workflow` (contract → generated client → UI → both catalogs → tests in both languages → screenshots).
+
 ## Response format (non-trivial requests)
 Understanding · Design · DB changes · Security · Performance · Plan · Implementation · Tests & verification · Summary. Keep it concise for small tasks.
 
