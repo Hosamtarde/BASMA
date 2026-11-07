@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { donutArcs } from './donut';
+import { donutArcs, withGaps } from './donut';
 
 describe('donutArcs', () => {
   it('splits the ring in proportion, in order, skipping zero counts', () => {
@@ -35,5 +35,41 @@ describe('donutArcs', () => {
   it('a single status fills the ring; no cases give no arcs', () => {
     expect(donutArcs([{ key: 'a', count: 7 }], 10)).toEqual([{ key: 'a', count: 7, start: 0, length: 10 }]);
     expect(donutArcs([{ key: 'a', count: 0 }], 10)).toEqual([]);
+  });
+});
+
+describe('withGaps', () => {
+  const arcs = donutArcs(
+    [
+      { key: 'a', count: 1 },
+      { key: 'b', count: 3 },
+    ],
+    100,
+  );
+
+  it('opens an equal gap between neighbours and keeps each arc in its own slot', () => {
+    expect(withGaps(arcs, 2)).toEqual([
+      { key: 'a', count: 1, start: 1, length: 23 },
+      { key: 'b', count: 3, start: 26, length: 73 },
+    ]);
+  });
+
+  it('never lets a gap swallow a small arc', () => {
+    const tiny = donutArcs(
+      [
+        { key: 'a', count: 1 },
+        { key: 'b', count: 999 },
+      ],
+      100,
+    );
+    const [small] = withGaps(tiny, 2);
+    expect(small?.length).toBeCloseTo(0.05, 10);
+    expect(small?.length).toBeGreaterThan(0);
+  });
+
+  it('leaves a full ring or an empty ring alone', () => {
+    const full = donutArcs([{ key: 'a', count: 4 }], 100);
+    expect(withGaps(full, 2)).toEqual(full);
+    expect(withGaps([], 2)).toEqual([]);
   });
 });

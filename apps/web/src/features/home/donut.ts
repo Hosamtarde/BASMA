@@ -30,3 +30,16 @@ export function donutArcs<K extends string>(
   }
   return arcs;
 }
+
+/**
+ * Opens a thin gap between neighbouring arcs (direction A's refined ring). Each arc gives up at
+ * most half of its length, so a very small status stays visible as a sliver. One arc (or none)
+ * is returned unchanged: a full ring needs no gap.
+ */
+export function withGaps<K extends string>(arcs: readonly DonutArc<K>[], gap: number): DonutArc<K>[] {
+  if (arcs.length < 2) return [...arcs];
+  return arcs.map((a) => {
+    const g = Math.min(gap, a.length / 2);
+    return { ...a, start: a.start + g / 2, length: a.length - g };
+  });
+}

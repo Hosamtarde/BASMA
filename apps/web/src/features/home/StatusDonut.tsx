@@ -6,24 +6,31 @@ import { STATUS_STYLE } from '@/features/cases/status';
 import { formatNumber } from '@/i18n/format';
 import { currentLanguage } from '@/i18n/i18n';
 import { cn } from '@/lib/cn';
-import { donutArcs } from './donut';
+import { donutArcs, withGaps } from './donut';
 
-// 136 px ring, 56 % hole (direction A): stroke centred between radius 38 and 68.
+// Direction A: a 136 px ring whose hole reaches radius 54 (its mask is 56 % of the distance to
+// the box corner, 0.56 × 68√2), so the ring is 14 px thick, centred on radius 61.
 const SIZE = 136;
-const R = 53;
-const STROKE = 30;
+const R = 61;
+const STROKE = 14;
 const C = 2 * Math.PI * R;
+/** White space between neighbouring statuses, along the ring. */
+const GAP = 2.5;
 
 /**
  * «بيان عام على جميع الحالات»: our own SVG donut. The picture is one image with a summary name;
  * the legend beside it is the text alternative (every status, its count, a link to the list).
+ * The centre stays empty, as in the mockup.
  */
 export function StatusDonut({ counts }: { counts: CaseCounts }) {
   const { t } = useTranslation();
   const lang = currentLanguage();
-  const arcs = donutArcs(
-    CASE_STATUSES.map((s) => ({ key: s, count: counts.byStatus[s] })),
-    C,
+  const arcs = withGaps(
+    donutArcs(
+      CASE_STATUSES.map((s) => ({ key: s, count: counts.byStatus[s] })),
+      C,
+    ),
+    GAP,
   );
   return (
     <div className="flex flex-wrap items-center gap-[18px]">
@@ -33,14 +40,17 @@ export function StatusDonut({ counts }: { counts: CaseCounts }) {
         role="img"
         aria-label={t('home.donut.label', { total: formatNumber(counts.total, lang) })}
       >
-        <circle
-          cx={SIZE / 2}
-          cy={SIZE / 2}
-          r={R}
-          fill="none"
-          strokeWidth={STROKE}
-          className="stroke-border"
-        />
+        {arcs.length === 0 && (
+          // No cases: the bare ring, so the panel keeps its shape.
+          <circle
+            cx={SIZE / 2}
+            cy={SIZE / 2}
+            r={R}
+            fill="none"
+            strokeWidth={STROKE}
+            className="stroke-border"
+          />
+        )}
         {/* Starts at 12 o'clock and runs clockwise in both languages (a chart, not text). */}
         <g transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}>
           {arcs.map((a) => (
@@ -59,12 +69,12 @@ export function StatusDonut({ counts }: { counts: CaseCounts }) {
           ))}
         </g>
       </svg>
-      <ul className="m-0 min-w-40 flex-1 list-none p-0 text-[13.5px]">
+      <ul className="m-0 min-w-[136px] flex-1 list-none p-0 text-[13.5px]">
         {CASE_STATUSES.map((s) => (
           <li key={s}>
             <Link
               to={`/cases?status=${s}`}
-              className="flex items-center gap-2 rounded-md py-[3px] text-ink no-underline hover:bg-hover"
+              className="-mx-1.5 flex items-center gap-2 rounded-md px-1.5 py-[3px] text-ink no-underline hover:bg-hover"
             >
               <i aria-hidden="true" className={cn('size-2.5 shrink-0 rounded-[3px]', STATUS_STYLE[s].dot)} />
               <span>{t(`caseStatus.${s}`)}</span>{' '}
