@@ -26,7 +26,8 @@ interface CardDef {
 
 /**
  * The seven cards of direction A in its order. A card becomes a link when its slice ships
- * (add `to`); until then it is visibly unavailable, not focusable, and announced as disabled.
+ * (add `to`); until then it keeps the same look in a softer tone (lighter knob, «قريباً» in the
+ * figure band), is not focusable, has no hover, and is announced as an unavailable link.
  */
 const CARDS: readonly CardDef[] = [
   { key: 'newCase', icon: <ToothIcon />, band: 'bg-band-1', to: '/cases/new' },
@@ -58,12 +59,14 @@ export function ActionCards({ figures }: { figures: Partial<Record<CardKey, numb
               <span
                 className={cn(
                   'grid size-[54px] shrink-0 place-items-center rounded-full text-white [&_svg]:size-[26px]',
-                  c.to ? 'knob' : 'bg-st-cancelled',
+                  c.to ? 'knob' : 'knob-soon',
                 )}
               >
                 {c.icon}
               </span>
-              <h3 className="mt-3 mb-1 text-[15px] leading-[1.35] font-extrabold">
+              <h3
+                className={cn('mt-3 mb-1 text-[15px] leading-[1.35] font-extrabold', !c.to && 'text-ink/80')}
+              >
                 {t(`home.actions.${c.key}.title`)}
               </h3>
               <p className="mb-3 text-[12.5px] leading-normal text-muted">
@@ -72,7 +75,7 @@ export function ActionCards({ figures }: { figures: Partial<Record<CardKey, numb
               <span
                 className={cn(
                   'mt-auto flex min-h-[58px] w-[calc(100%+20px)] flex-col items-center justify-center border-t border-border px-1.5 pt-2 pb-2.5',
-                  c.to ? c.band : 'bg-surface',
+                  c.band,
                 )}
               >
                 {c.to ? (
@@ -85,9 +88,10 @@ export function ActionCards({ figures }: { figures: Partial<Record<CardKey, numb
                     </>
                   )
                 ) : (
-                  <span className="rounded-full border border-border bg-card px-2.5 text-[12px] font-bold text-muted">
-                    {t('home.actions.soon')}
-                  </span>
+                  <>
+                    <b className="block text-[15px] font-extrabold text-muted">{t('home.actions.soon')}</b>{' '}
+                    <small className="text-[12px] text-muted">{t('home.actions.soonHint')}</small>
+                  </>
                 )}
               </span>
             </>

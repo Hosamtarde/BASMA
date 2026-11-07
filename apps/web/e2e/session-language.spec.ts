@@ -41,7 +41,7 @@ test('the language switch flips the page in place and is saved for the installat
   await setLanguage(page, 'ar');
   await setLanguage(page, 'en');
   await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
-  await expect(page.getByText('Welcome to')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'What do you want to record?' })).toBeVisible();
   await page.reload();
   await expectDirection(page, 'en');
   await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();

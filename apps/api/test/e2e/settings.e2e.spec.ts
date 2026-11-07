@@ -68,6 +68,42 @@ describe('Settings (e2e)', () => {
       });
     });
 
+    it('sets, trims, limits and clears the optional slogan, with an audit entry', async () => {
+      const start = await getSettings();
+      expect(start.labProfile.slogan).toBeNull();
+      const set = await patch('/settings/lab-profile', {
+        rowVersion: start.labProfile.rowVersion,
+        slogan: '  Precision in every tooth  ',
+      }).expect(200);
+      expect(set.body.labProfile.slogan).toBe('Precision in every tooth');
+
+      const tooLong = await patch('/settings/lab-profile', {
+        rowVersion: set.body.labProfile.rowVersion,
+        slogan: 'x'.repeat(81),
+      }).expect(400);
+      expect(tooLong.body.error.code).toBe('error.validation.failed');
+      await patch('/settings/lab-profile', {
+        rowVersion: set.body.labProfile.rowVersion,
+        slogan: 42,
+      }).expect(400);
+
+      const audit = await t.pool.query<{ action: string; params: Record<string, unknown> }>(
+        `SELECT action, params FROM audit_log WHERE action = 'settings.lab_profile_updated'
+         ORDER BY id DESC LIMIT 1`,
+      );
+      expect(audit.rows[0]?.params).toMatchObject({
+        fields: 'slogan',
+        sloganOld: null,
+        sloganNew: 'Precision in every tooth',
+      });
+
+      const cleared = await patch('/settings/lab-profile', {
+        rowVersion: set.body.labProfile.rowVersion,
+        slogan: '   ',
+      }).expect(200);
+      expect(cleared.body.labProfile.slogan).toBeNull();
+    });
+
     it('requires a name in at least one language', async () => {
       const { labProfile } = await getSettings();
       const res = await patch('/settings/lab-profile', {

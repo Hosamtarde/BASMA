@@ -54,4 +54,7 @@ npm run dev:web             # web UI on http://127.0.0.1:5173 (proxies /api to t
 npm run rtl:check           # web: logical CSS only (i18n:check covers both API and web catalogs)
 npm run contract:check      # export openapi.json + regenerate the web client; fails on drift
 npm run test:e2e:web        # build all, then Playwright + axe; needs E2E_DATABASE_URL to a *_e2e database
+                            # (E2E_BROWSER=chromium for Playwright's Chromium locally; retries stay off locally)
+npm run demo                # dev only: build, then the app with fictional demo data on :4330 (needs DEMO_OWNER_PASSWORD in .env)
+npm run seed:demo -w apps/api   # dev only: demo data into an EMPTY *_demo / *_e2e database (DEMO_DATABASE_URL)
 ```

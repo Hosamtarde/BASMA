@@ -9,11 +9,15 @@ import { defineConfig, devices } from '@playwright/test';
  *   wizard, the currency and numbering locks appearing, the password change.
  * - app: an installation whose owner is seeded at start-up. Every test signs in itself, sets the
  *   language it checks and creates uniquely named data, so files and tests run in any order.
+ * - demo: an installation filled with the fictional demo data (apps/api/scripts/demo) through the
+ *   real API, for Home with realistic numbers. Its tests only read, except the logo they restore.
  *
- * Local runs use the installed Microsoft Edge; CI uses Playwright's Chromium.
+ * Local runs use the installed Microsoft Edge; CI (or E2E_BROWSER=chromium) uses Playwright's
+ * Chromium.
  */
 const FIRST_RUN_PORT = Number(process.env.E2E_PORT ?? 4320);
 const APP_PORT = FIRST_RUN_PORT + 1;
+const DEMO_PORT = FIRST_RUN_PORT + 2;
 // Same value as OWNER.password in e2e/support.ts.
 const OWNER_PASSWORD = 'owner-pass-1234';
 
@@ -21,16 +25,18 @@ function databaseUrl(suffix: string): string {
   const base = process.env.E2E_DATABASE_URL ?? '';
   if (!base) return '';
   const url = new URL(base);
-  // lab_e2e → lab_e2e (first run) and lab_app_e2e (app); both end with _e2e as the launcher requires.
+  // lab_e2e → lab_e2e (first run), lab_app_e2e (app), lab_demo_e2e (demo): all end with _e2e as the
+  // launcher requires.
   url.pathname = `/${decodeURIComponent(url.pathname.slice(1)).replace(/_e2e$/, '')}${suffix}`;
   return url.toString();
 }
 
-const browser = process.env.CI
-  ? { ...devices['Desktop Chrome'] }
-  : { ...devices['Desktop Edge'], channel: 'msedge' };
+const browser =
+  process.env.CI || process.env.E2E_BROWSER === 'chromium'
+    ? { ...devices['Desktop Chrome'] }
+    : { ...devices['Desktop Edge'], channel: 'msedge' };
 
-const server = (port: number, dbUrl: string, seedOwner: boolean) => ({
+const server = (port: number, dbUrl: string, seedOwner: boolean, seedDemo = false) => ({
   command: 'node ../api/scripts/serve-e2e.cjs',
   url: `http://127.0.0.1:${port}/api/v1/health/ready`,
   reuseExistingServer: false,
@@ -41,6 +47,7 @@ const server = (port: number, dbUrl: string, seedOwner: boolean) => ({
     E2E_PORT: String(port),
     E2E_DATABASE_URL: dbUrl,
     ...(seedOwner ? { E2E_SEED_OWNER_PASSWORD: OWNER_PASSWORD } : {}),
+    ...(seedDemo ? { E2E_SEED_DEMO: '1' } : {}),
   },
 });
 
@@ -65,12 +72,18 @@ export default defineConfig({
     },
     {
       name: 'app',
-      testIgnore: /first-run\.spec\.ts$/,
+      testIgnore: /(first-run|home-demo)\.spec\.ts$/,
       use: { ...browser, baseURL: `http://127.0.0.1:${APP_PORT}` },
+    },
+    {
+      name: 'demo',
+      testMatch: /home-demo\.spec\.ts$/,
+      use: { ...browser, baseURL: `http://127.0.0.1:${DEMO_PORT}` },
     },
   ],
   webServer: [
     server(FIRST_RUN_PORT, databaseUrl('_e2e'), false),
     server(APP_PORT, databaseUrl('_app_e2e'), true),
+    server(DEMO_PORT, databaseUrl('_demo_e2e'), true, true),
   ],
 });

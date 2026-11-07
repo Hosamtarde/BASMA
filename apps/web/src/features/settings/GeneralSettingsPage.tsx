@@ -72,6 +72,7 @@ const profileSchema = z
     nameEn: text(100),
     phone: text(30).regex(/^[\p{Nd}+\-() ]*$/u, msg('validation.phoneFormat')),
     address: text(300),
+    slogan: text(80),
     timeZone: z.string().trim().refine(isTimeZone, msg('validation.timeZone')),
   })
   .refine((v) => v.nameAr !== '' || v.nameEn !== '', {
@@ -92,6 +93,7 @@ function LabProfileSection({ settings }: { settings: Settings }) {
       nameEn: p?.nameEn ?? '',
       phone: p?.phone ?? '',
       address: p?.address ?? '',
+      slogan: p?.slogan ?? '',
       timeZone: p?.timeZone ?? '',
     },
   });
@@ -103,11 +105,14 @@ function LabProfileSection({ settings }: { settings: Settings }) {
         nameEn: nullIfBlank(v.nameEn),
         phone: nullIfBlank(v.phone),
         address: nullIfBlank(v.address),
+        slogan: nullIfBlank(v.slogan),
         timeZone: v.timeZone,
       }),
     'settings.saved',
     (e) =>
-      setFormError(applyServerErrors(e, form.setError, ['nameAr', 'nameEn', 'phone', 'address', 'timeZone'])),
+      setFormError(
+        applyServerErrors(e, form.setError, ['nameAr', 'nameEn', 'phone', 'address', 'slogan', 'timeZone']),
+      ),
   );
   const { errors } = form.formState;
   const err = (m: string | undefined) => renderMessage(t, m);
@@ -152,6 +157,13 @@ function LabProfileSection({ settings }: { settings: Settings }) {
           dir="auto"
           error={err(errors.address?.message)}
           {...form.register('address')}
+        />
+        <TextField
+          label={t('settings.slogan')}
+          hint={t('settings.sloganHint')}
+          dir="auto"
+          error={err(errors.slogan?.message)}
+          {...form.register('slogan')}
         />
         <TextField
           label={t('setup.timeZone')}

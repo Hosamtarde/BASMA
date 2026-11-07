@@ -50,6 +50,7 @@ export const toSettingsResponse = (v: SettingsView): SettingsResponse => ({
     nameEn: v.labProfile.nameEn,
     phone: v.labProfile.phone,
     address: v.labProfile.address,
+    slogan: v.labProfile.slogan,
     timeZone: v.labProfile.timeZone,
     rowVersion: v.labProfile.rowVersion,
   },

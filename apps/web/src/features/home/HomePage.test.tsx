@@ -41,9 +41,9 @@ const summary = (over: Partial<CaseSummary> = {}): CaseSummary => ({
 
 const page = (items: object[], total = items.length) => ({ page: 1, pageSize: 25, total, items });
 
-function render(c: CaseCounts, latest: CaseSummary[] = []) {
+function render(c: CaseCounts, latest: CaseSummary[] = [], settings = settingsFixture()) {
   const calls = stubApi({
-    'GET /api/v1/settings': () => json(200, settingsFixture()),
+    'GET /api/v1/settings': () => json(200, settings),
     'GET /api/v1/cases/summary': () => json(200, c),
     'GET /api/v1/cases': () => json(200, page(latest)),
     'GET /api/v1/doctors': () => json(200, page([], 4)),
@@ -78,9 +78,60 @@ describe('HomePage', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'مختبر الاختبار' })).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'لا توجد حالات بعد' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'أضف أول حالة' })).toHaveAttribute('href', '/cases/new');
-    // No pipeline, donut or latest list without cases.
+    // No pipeline without cases; the three bottom panels stay, with zeros and an empty ring.
     expect(screen.queryByRole('heading', { name: 'مسار الحالات' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('img', { name: /توزيع الحالات/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'توزيع الحالات حسب المرحلة، المجموع 0' })).toBeInTheDocument();
+    expect(document.querySelectorAll('circle[data-status]')).toHaveLength(0);
+    const keyNumbers = screen.getByRole('heading', { name: 'الأرقام الرئيسية' }).closest('section')!;
+    expect(within(keyNumbers).getByRole('link', { name: 'الحالات 0' })).toHaveAttribute('href', '/cases');
+    const latest = screen.getByRole('heading', { name: 'آخر الحالات' }).closest('section')!;
+    expect(await within(latest).findByText('ستظهر هنا الحالات التي تسجّلها.')).toBeInTheDocument();
+  });
+
+  it('banner: the other-language name as a letter-spaced Latin line, a brand mark without a logo, no product name', async () => {
+    render(counts());
+    const banner = (await screen.findByRole('heading', { level: 1 })).closest('section')!;
+    const subtitle = banner.querySelector('[data-banner-subtitle]')!;
+    expect(subtitle).toHaveTextContent('Test Lab');
+    expect(subtitle).toHaveAttribute('lang', 'en');
+    expect(subtitle).toHaveClass('uppercase');
+    expect(banner.querySelector('[data-banner-mark]')).toHaveAttribute('aria-hidden', 'true');
+    expect(within(banner).queryByRole('img')).not.toBeInTheDocument();
+    expect(banner).not.toHaveTextContent('DentalLab');
+    expect(banner).toHaveTextContent(/\d{4}-\d{2}-\d{2}/);
+  });
+
+  it('banner: the slogan replaces the second line; an Arabic slogan is never letter-spaced', async () => {
+    const s = settingsFixture();
+    render(counts(), [], { ...s, labProfile: { ...s.labProfile!, slogan: 'الدقة في كل سن' } });
+    const banner = (await screen.findByRole('heading', { level: 1 })).closest('section')!;
+    const subtitle = banner.querySelector('[data-banner-subtitle]')!;
+    expect(subtitle).toHaveTextContent('الدقة في كل سن');
+    expect(subtitle).toHaveAttribute('lang', 'ar');
+    expect(subtitle).not.toHaveClass('uppercase');
+    expect(banner).not.toHaveTextContent('Test Lab');
+  });
+
+  it('key numbers: only real figures (doctors, cases, ready, overdue), each opening its list', async () => {
+    render(counts({ design: 3, ready: 2, delivered: 4 }, 1), [summary()]);
+    const panel = (await screen.findByRole('heading', { name: 'الأرقام الرئيسية' })).closest('section')!;
+    await waitFor(() =>
+      expect(within(panel).getByRole('link', { name: 'الأطباء النشطون 4' })).toHaveAttribute(
+        'href',
+        '/doctors',
+      ),
+    );
+    expect(within(panel).getByRole('link', { name: 'الحالات 9' })).toHaveAttribute('href', '/cases');
+    expect(within(panel).getByRole('link', { name: 'جاهزة للتسليم 2' })).toHaveAttribute(
+      'href',
+      '/cases?status=ready',
+    );
+    expect(within(panel).getByRole('link', { name: 'حالات متأخرة 1' })).toHaveAttribute(
+      'href',
+      '/cases?overdue=1',
+    );
+    expect(within(panel).getAllByRole('link')).toHaveLength(4);
+    expect(panel).not.toHaveTextContent(/₪|الدخل|المصاريف|الفواتير/);
   });
 
   it('pipeline: a live count per stage and overdue, each linking to the filtered case list', async () => {
@@ -110,6 +161,11 @@ describe('HomePage', () => {
       '/cases?status=delivered',
     );
     expect(within(legend).getByRole('link', { name: 'جاهزة للتسليم 0' })).toBeInTheDocument();
+    // A thin ring (14 of 136), one arc per non-empty status, the centre left empty.
+    const arcs = legend.querySelectorAll('circle[data-status]');
+    expect([...arcs].map((a) => a.getAttribute('data-status'))).toEqual(['design', 'delivered']);
+    expect(arcs[0]).toHaveAttribute('stroke-width', '14');
+    expect(legend.querySelector('svg text')).toBeNull();
   });
 
   it('action cards: built ones are links with live figures; the others are unavailable, not focusable', async () => {
@@ -124,7 +180,10 @@ describe('HomePage', () => {
       expect(card).toHaveAttribute('aria-disabled', 'true');
       expect(card).not.toHaveAttribute('href');
       expect(card).not.toHaveAttribute('tabindex');
-      expect(card).toHaveTextContent('قريباً');
+      expect(card).toHaveTextContent('قريباً في تحديث قادم');
+      // Same language as the built cards: brand knob (softer) and the figure band.
+      expect(card.querySelector('.knob-soon')).not.toBeNull();
+      expect(card.querySelector('[class*="bg-band-"]')).not.toBeNull();
     }
   });
 

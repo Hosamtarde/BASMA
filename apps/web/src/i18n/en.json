@@ -49,7 +49,6 @@
   },
   "home": {
     "title": "Home",
-    "welcome": "Welcome to {{product}}",
     "today": "Today",
     "pipeline": {
       "title": "Case pipeline",
@@ -60,6 +59,7 @@
     "actions": {
       "title": "What do you want to record?",
       "soon": "Soon",
+      "soonHint": "In a later update",
       "newCase": {
         "title": "Add a new case",
         "body": "Record a case, mark the teeth and the work type",
@@ -91,12 +91,20 @@
         "figure": "active doctors"
       }
     },
+    "keyNumbers": {
+      "title": "Key numbers",
+      "doctors": "Active doctors",
+      "cases": "Cases",
+      "ready": "Ready for delivery",
+      "overdue": "Overdue cases"
+    },
     "donut": {
       "title": "Overview of all cases",
       "label": "Cases by status, {{total}} in total"
     },
     "latest": {
       "title": "Latest cases",
+      "empty": "Cases you record will appear here.",
       "all": "All cases",
       "open": "Open",
       "openCase": "Open case {{no}}"
@@ -324,6 +332,8 @@
     "saved": "Settings saved.",
     "labProfile": "Lab details",
     "labProfileIntro": "Shown on invoices, statements and receipts.",
+    "slogan": "Slogan (optional)",
+    "sloganHint": "A short line shown under the lab name on the Home screen, for example your motto. Leave it empty to show nothing.",
     "currencyLocked": "Amounts have been recorded, so the currency code and decimal places can no longer change (amounts are not converted). Only the symbol can change.",
     "language": "Language",
     "languageIntro": "The language of the program for this installation, and of printed documents.",

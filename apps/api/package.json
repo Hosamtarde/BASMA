@@ -15,6 +15,7 @@
     "i18n:check": "node -r ts-node/register scripts/check-i18n.ts",
     "openapi:export": "node -r ts-node/register scripts/export-openapi.ts",
     "migrate": "node --env-file-if-exists=../../.env -r ts-node/register scripts/migrate.ts",
+    "seed:demo": "node --env-file-if-exists=../../.env -r ts-node/register scripts/seed-demo.ts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {

@@ -1,4 +1,3 @@
-import { PRODUCT_NAME } from '@app/shared';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -11,17 +10,21 @@ import { doctorsQuery } from '@/features/doctors/api';
 import { labNameFor, settingsQuery, useLogoUrl } from '@/features/shell/settings';
 import { formatIsoDate, formatWeekday, todayIn } from '@/i18n/format';
 import { currentLanguage } from '@/i18n/i18n';
+import { cn } from '@/lib/cn';
 import { ActionCards } from './ActionCards';
+import { bannerSubtitle } from './banner';
+import { KeyNumbers } from './KeyNumbers';
 import { LatestCases } from './LatestCases';
 import { Pipeline } from './Pipeline';
 import { StatusDonut } from './StatusDonut';
 
 const LATEST = 5;
 const panel = 'min-w-0 rounded-[14px] border border-border bg-card px-5 py-[18px]';
+const panelTitle = 'mb-3 text-[16px] font-extrabold';
 
 /**
  * Home (direction A, SPEC §1.1): lab banner, case pipeline (C's idea in A's look), the seven
- * action cards, the status donut and the latest cases. Every number is live from the API.
+ * action cards, then key numbers, the status donut and the latest cases. Every number is live.
  */
 export function HomePage() {
   const { t } = useTranslation();
@@ -33,34 +36,56 @@ export function HomePage() {
   const { data: doctors } = useQuery(doctorsQuery({ search: '', active: true, page: 1 }));
   const today = todayIn(settings.labProfile?.timeZone ?? 'UTC');
   const labName = labNameFor(settings, lang);
+  const subtitle = bannerSubtitle(settings, lang);
   const empty = counts?.total === 0;
 
   return (
     <>
       <section
         aria-labelledby="home-title"
-        className="relative mt-[18px] flex flex-wrap items-center gap-x-7 gap-y-3 overflow-hidden rounded-[20px] border border-border bg-card px-7 py-5"
+        className="relative mt-[18px] flex min-h-[180px] flex-wrap items-center gap-x-7 gap-y-3 overflow-hidden rounded-[20px] border border-border bg-card px-7 py-5"
       >
-        {logoUrl !== null && (
-          // The logo is raster: never enlarged past its native size.
+        {logoUrl !== null ? (
+          // The logo is raster: never enlarged past its native size (200 px wide in the mockup).
           <img
             src={logoUrl}
             alt={t('shell.logoAlt')}
-            className="block h-auto max-h-[120px] w-auto max-w-[200px]"
+            data-banner-logo=""
+            className="block h-auto max-h-[140px] w-auto max-w-[200px]"
           />
+        ) : (
+          // No logo: a brand tile with the tooth mark holds the logo's place, so the banner keeps
+          // its shape. Decorative; the lab name is the heading.
+          <span
+            aria-hidden="true"
+            data-banner-mark=""
+            className="knob grid size-[108px] shrink-0 place-items-center rounded-[30px] text-white [&_svg]:size-[54px]"
+          >
+            <ToothIcon />
+          </span>
         )}
         <div className="min-w-0">
-          <h1 id="home-title" dir="auto" className="text-[26px] leading-[1.35] font-extrabold">
+          <h1 id="home-title" dir="auto" className="text-[28px] leading-[1.3] font-black">
             {labName ?? t('home.title')}
           </h1>
-          <p className="mt-0.5 text-[13px] font-bold text-cyan-ink">
-            {t('home.welcome', { product: PRODUCT_NAME })}
-          </p>
+          {subtitle && (
+            <p
+              lang={subtitle.lang}
+              dir={subtitle.lang === 'ar' ? 'rtl' : 'ltr'}
+              data-banner-subtitle=""
+              className={cn(
+                'mt-1 font-bold text-cyan-ink',
+                subtitle.lang === 'ar' ? 'text-[14.5px]' : 'text-[12.5px] tracking-[0.28em] uppercase',
+              )}
+            >
+              {subtitle.text}
+            </p>
+          )}
         </div>
         <p className="ms-auto text-end text-[14px] text-muted">
           <span className="sr-only">{t('home.today')}: </span>
           <span className="block">{formatWeekday(today, lang)}</span>
-          <b className="num block text-[20px] font-extrabold text-ink">{formatIsoDate(today)}</b>
+          <b className="num block text-[20px] font-bold text-ink">{formatIsoDate(today)}</b>
         </p>
         <div aria-hidden="true" className="bg-logo-rule absolute inset-x-0 bottom-0 h-[5px]" />
       </section>
@@ -94,19 +119,32 @@ export function HomePage() {
 
       <ActionCards figures={{ newCase: counts?.byStatus.ready, doctors: doctors?.total }} />
 
-      {counts && !empty && (
-        <div className="mt-[22px] grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1.25fr)]">
+      {counts && (
+        // Direction A's three panels; latest cases takes the full row on medium screens.
+        <div className="mt-[22px] grid gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)_minmax(0,1.25fr)]">
+          <section aria-labelledby="key-numbers-title" className={panel}>
+            <h2 id="key-numbers-title" className={panelTitle}>
+              {t('home.keyNumbers.title')}
+            </h2>
+            <KeyNumbers counts={counts} activeDoctors={doctors?.total} />
+          </section>
           <section aria-labelledby="donut-title" className={panel}>
-            <h2 id="donut-title" className="mb-3 text-[16px] font-extrabold">
+            <h2 id="donut-title" className={panelTitle}>
               {t('home.donut.title')}
             </h2>
             <StatusDonut counts={counts} />
           </section>
-          <section aria-labelledby="latest-title" className={panel}>
-            <h2 id="latest-title" className="mb-2 text-[16px] font-extrabold">
+          <section aria-labelledby="latest-title" className={cn(panel, 'md:col-span-2 xl:col-span-1')}>
+            <h2 id="latest-title" className={panelTitle}>
               {t('home.latest.title')}
             </h2>
-            {latest ? <LatestCases items={latest.items} /> : <Spinner label={t('common.loading')} />}
+            {!latest ? (
+              <Spinner label={t('common.loading')} />
+            ) : latest.items.length === 0 ? (
+              <p className="py-2 text-[13.5px] text-muted">{t('home.latest.empty')}</p>
+            ) : (
+              <LatestCases items={latest.items} />
+            )}
           </section>
         </div>
       )}

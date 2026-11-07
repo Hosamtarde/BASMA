@@ -128,6 +128,8 @@ test('action cards: live ones are links, «قريباً» ones are unavailable a
     await expect(card).toHaveAttribute('aria-disabled', 'true');
     await expect(card).not.toHaveAttribute('href');
     await expect(card).toContainText('قريباً');
+    await expect(card).toContainText('في تحديث قادم');
+    await expect(card.locator('.knob-soon')).toBeVisible();
   }
   // Keyboard: from the first card, Tab goes straight to the doctors card (no trap, no dead stop).
   await add.focus();
@@ -216,4 +218,48 @@ test('the banner shows the uploaded logo next to the lab name, and only the name
   await page.getByRole('button', { name: 'حذف الشعار' }).click();
   await page.getByRole('alertdialog').getByRole('button', { name: 'حذف الشعار' }).click();
   await expect(page.getByText('تم حذف الشعار.')).toBeVisible();
+});
+
+test('the slogan from Settings shows under the lab name in both languages, and goes away when cleared', async ({
+  page,
+}) => {
+  await signedIn(page);
+  await setLanguage(page, 'ar');
+  const subtitle = page.getByRole('main').locator('[data-banner-subtitle]');
+  // No slogan: the other-language name, letter-spaced Latin capitals.
+  await expect(subtitle).toHaveText('Test Lab');
+  await expect(subtitle).toHaveAttribute('lang', 'en');
+  await expect(subtitle).toHaveCSS('text-transform', 'uppercase');
+
+  const slogan = `الدقة في كل سن ${uid()}`;
+  await page.goto('/settings');
+  const form = page.getByRole('form', { name: 'بيانات المختبر' });
+  const field = form.getByRole('textbox', { name: 'الشعار النصي (اختياري)' });
+  await field.fill('x'.repeat(81));
+  await form.getByRole('button', { name: 'حفظ' }).click();
+  await expect(form.getByText('النص أطول من المسموح (الحد 80).')).toBeVisible();
+  await field.fill(slogan);
+  await form.getByRole('button', { name: 'حفظ' }).click();
+  await expect(page.getByText('تم حفظ الإعدادات.')).toBeVisible();
+  await expectAccessible(page);
+
+  await page.getByRole('link', { name: 'الرئيسية' }).click();
+  await expect(subtitle).toHaveText(slogan);
+  // Arabic is never letter-spaced.
+  await expect(subtitle).toHaveAttribute('lang', 'ar');
+  await expect(subtitle).toHaveCSS('letter-spacing', 'normal');
+  await expectAccessible(page);
+  await setLanguage(page, 'en');
+  await expect(subtitle).toHaveText(slogan);
+  await setLanguage(page, 'ar');
+
+  await page.goto('/settings');
+  await page
+    .getByRole('form', { name: 'بيانات المختبر' })
+    .getByRole('textbox', { name: 'الشعار النصي (اختياري)' })
+    .fill('');
+  await page.getByRole('form', { name: 'بيانات المختبر' }).getByRole('button', { name: 'حفظ' }).click();
+  await expect(page.getByText('تم حفظ الإعدادات.').first()).toBeVisible();
+  await page.getByRole('link', { name: 'الرئيسية' }).click();
+  await expect(subtitle).toHaveText('Test Lab');
 });

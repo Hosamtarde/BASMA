@@ -3279,6 +3279,11 @@
             "type": "string",
             "nullable": true
           },
+          "slogan": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 80
+          },
           "timeZone": {
             "type": "string"
           },
@@ -3291,6 +3296,7 @@
           "nameEn",
           "phone",
           "address",
+          "slogan",
           "timeZone",
           "rowVersion"
         ]
@@ -3476,6 +3482,12 @@
           },
           "rowVersion": {
             "type": "number"
+          },
+          "slogan": {
+            "type": "string",
+            "maxLength": 80,
+            "nullable": true,
+            "description": "Short line under the lab name on Home; blank or null removes it"
           },
           "timeZone": {
             "type": "string",
