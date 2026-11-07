@@ -315,7 +315,8 @@
     "noResults": "لا توجد نتائج.",
     "loading": "جارٍ البحث…",
     "choose": "اختر…",
-    "clear": "مسح الاختيار"
+    "clear": "مسح الاختيار",
+    "results": "النتائج"
   },
   "date": {
     "placeholder": "YYYY-MM-DD",

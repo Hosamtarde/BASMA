@@ -300,7 +300,8 @@
     "noResults": "No results.",
     "loading": "Searching…",
     "choose": "Choose…",
-    "clear": "Clear the choice"
+    "clear": "Clear the choice",
+    "results": "Results"
   },
   "date": {
     "placeholder": "YYYY-MM-DD",

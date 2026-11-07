@@ -111,18 +111,19 @@ export function EntityPicker<T extends PickerOption>({
             id={`${id}-popup`}
             align="start"
             sideOffset={4}
+            aria-label={label}
             className="z-[60] w-[max(var(--radix-popover-trigger-width),240px)] rounded-[var(--radius-control)] border border-border bg-card p-1 shadow-[var(--shadow-dialog)]"
           >
-            <Command shouldFilter={false} label={label} loop>
+            {/* cmdk names the search box after the root label and the list after its own label. */}
+            <Command shouldFilter={false} label={t('picker.search')} loop>
               <Command.Input
                 value={text}
                 onValueChange={setText}
                 placeholder={t('picker.search')}
-                aria-label={t('picker.search')}
                 dir="auto"
                 className="mb-1 h-9 w-full rounded-md border border-border bg-surface px-2.5 outline-none focus-visible:outline-2 focus-visible:outline-focus"
               />
-              <Command.List className="max-h-64 overflow-y-auto">
+              <Command.List label={t('picker.results')} className="max-h-64 overflow-y-auto">
                 {isFetching && !data && (
                   <Command.Loading>
                     <span className="block px-2.5 py-2 text-[13.5px] text-muted">{t('picker.loading')}</span>
