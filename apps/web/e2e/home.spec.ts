@@ -200,6 +200,9 @@ test('the banner shows the uploaded logo next to the lab name, and only the name
   await expect(logo).toHaveAttribute('src', /^blob:/);
   // The sidebar card shows it too.
   await expect(page.getByRole('complementary').getByRole('img', { name: 'شعار المختبر' })).toBeVisible();
+  // Let the upload toast expire so it does not cover the sidebar in the screenshot.
+  await page.mouse.move(720, 600);
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 });
   await expectAccessible(page);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await shot(page, 'home-logo-ar', { fullPage: false });
