@@ -9,6 +9,7 @@ export function settingsFixture(overrides: Partial<Settings> = {}): Settings {
       nameEn: 'Test Lab',
       phone: '02 222 3333',
       address: null,
+      slogan: null,
       timeZone: 'Asia/Hebron',
       rowVersion: 3,
     },

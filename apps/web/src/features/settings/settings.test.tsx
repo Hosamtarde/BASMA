@@ -90,6 +90,47 @@ describe('general settings', () => {
     expect(within(form).getByRole('textbox', { name: 'رقم أول فاتورة' })).toBeEnabled();
   });
 
+  it('saves the optional slogan, refuses one that is too long, and clears it when emptied', async () => {
+    const calls = stubApi({
+      'GET /api/v1/settings': () => json(200, settingsFixture()),
+      'PATCH /api/v1/settings/lab-profile': () => json(200, settingsFixture()),
+    });
+    render();
+    const form = await screen.findByRole('form', { name: 'بيانات المختبر' });
+    const slogan = within(form).getByRole('textbox', { name: 'الشعار النصي (اختياري)' });
+    expect(slogan).toHaveAccessibleDescription(/سطر قصير يظهر تحت اسم المختبر/);
+    const save = within(form).getByRole('button', { name: 'حفظ' });
+
+    await userEvent.type(slogan, 'x'.repeat(81));
+    await userEvent.click(save);
+    expect(await within(form).findByText('النص أطول من المسموح (الحد 80).')).toBeInTheDocument();
+    expect(calls.some((c) => c.key === 'PATCH /api/v1/settings/lab-profile')).toBe(false);
+
+    await userEvent.clear(slogan);
+    await userEvent.type(slogan, '  الدقة في كل سن  ');
+    await userEvent.click(save);
+    await waitFor(() => expect(calls.some((c) => c.key === 'PATCH /api/v1/settings/lab-profile')).toBe(true));
+    const body = JSON.parse(calls.find((c) => c.key === 'PATCH /api/v1/settings/lab-profile')?.body ?? '{}');
+    expect(body).toMatchObject({ rowVersion: 3, slogan: 'الدقة في كل سن' });
+  });
+
+  it('sends null when the slogan is emptied', async () => {
+    const calls = stubApi({
+      'GET /api/v1/settings': () =>
+        json(200, settingsFixture({ labProfile: { ...settingsFixture().labProfile!, slogan: 'Precision' } })),
+      'PATCH /api/v1/settings/lab-profile': () => json(200, settingsFixture()),
+    });
+    render();
+    const form = await screen.findByRole('form', { name: 'بيانات المختبر' });
+    const slogan = within(form).getByRole('textbox', { name: 'الشعار النصي (اختياري)' });
+    expect(slogan).toHaveValue('Precision');
+    await userEvent.clear(slogan);
+    await userEvent.click(within(form).getByRole('button', { name: 'حفظ' }));
+    await waitFor(() => expect(calls.some((c) => c.key === 'PATCH /api/v1/settings/lab-profile')).toBe(true));
+    const body = JSON.parse(calls.find((c) => c.key === 'PATCH /api/v1/settings/lab-profile')?.body ?? '{}');
+    expect(body.slogan).toBeNull();
+  });
+
   it('refuses a non-image logo before uploading', async () => {
     const calls = stubApi({ 'GET /api/v1/settings': () => json(200, settingsFixture()) });
     render();

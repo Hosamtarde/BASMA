@@ -818,6 +818,7 @@ export interface components {
             nameEn: string | null;
             phone: string | null;
             address: string | null;
+            slogan: string | null;
             timeZone: string;
             rowVersion: number;
         };
@@ -865,6 +866,8 @@ export interface components {
             phone?: string | null;
             address?: string | null;
             rowVersion: number;
+            /** @description Short line under the lab name on Home; blank or null removes it */
+            slogan?: string | null;
             /** @example Asia/Hebron */
             timeZone?: string;
         };
