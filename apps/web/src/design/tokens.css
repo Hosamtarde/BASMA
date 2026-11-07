@@ -65,6 +65,15 @@
   --color-st-cancelled-ink: #4f5d67;
   --color-st-cancelled-bg: #eceff2;
 
+  /* Home action cards: the figure band deepens from the first card to the last (direction A) */
+  --color-band-1: #eef8fb;
+  --color-band-2: #e7f4fa;
+  --color-band-3: #e1f0f8;
+  --color-band-4: #daecf6;
+  --color-band-5: #d3e8f4;
+  --color-band-6: #cce4f2;
+  --color-band-7: #c5e0f0;
+
   --radius-control: 10px;
   --radius-card: 16px;
   --shadow-dialog: 0 24px 60px rgb(1 65 108 / 0.28);
@@ -80,6 +89,11 @@
 /* Navy at the reading start, cyan at the end, in both directions. */
 @utility bg-logo-rule {
   background-image: linear-gradient(var(--to-end), #01416c 0%, #006ebd 55%, #03c3db 100%);
+}
+/* The round «knob» of the Home action cards: brand gradient with a cyan glow from below. */
+@utility knob {
+  background-image: linear-gradient(135deg, #01416c 0%, #006ebd 100%);
+  box-shadow: inset 0 -6px 12px rgb(3 195 219 / 0.35);
 }
 /* Numbers, phones, case numbers and tooth lists keep LTR inside Arabic text. */
 @utility num {

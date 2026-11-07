@@ -15,7 +15,7 @@ export function LabBrand({ name, logoUrl, logoAlt }: LabBrandProps) {
         <img src={logoUrl} alt={logoAlt} className="mx-auto block h-auto max-h-24 w-auto max-w-[176px]" />
       )}
       {name !== null && (
-        <div dir="auto" className="mt-1 text-[13px] leading-[1.45] font-extrabold text-ink">
+        <div dir="auto" className="mt-1 text-[12.5px] leading-[1.45] font-extrabold text-ink">
           {name}
         </div>
       )}

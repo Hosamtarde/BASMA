@@ -1,8 +1,8 @@
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { ClipboardList, FilePlus2, House, Settings as SettingsIcon, Stethoscope } from 'lucide-react';
 import { useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet } from 'react-router';
+import { ClipboardIcon, DoctorsIcon, GearIcon, HomeIcon, ToothIcon } from '@/components/icons';
 import { meQuery } from '@/features/auth/api';
 import { changeLanguage, currentLanguage, rememberLanguage } from '@/i18n/i18n';
 import { AppShell } from './AppShell';
@@ -41,19 +41,17 @@ export function ShellLayout() {
   }, [queryClient, settings.language?.ui]);
 
   const nav: NavItem[] = [
-    { to: '/', label: t('nav.home'), icon: <House aria-hidden="true" />, end: true },
-    { to: '/cases/new', label: t('nav.newCase'), icon: <FilePlus2 aria-hidden="true" /> },
+    { to: '/', label: t('nav.home'), icon: <HomeIcon />, end: true },
+    { to: '/cases/new', label: t('nav.newCase'), icon: <ToothIcon /> },
     {
       to: '/cases',
       label: t('nav.cases'),
-      icon: <ClipboardList aria-hidden="true" />,
+      icon: <ClipboardIcon />,
       except: ['/cases/new'],
     },
-    { to: '/doctors', label: t('nav.doctors'), icon: <Stethoscope aria-hidden="true" /> },
+    { to: '/doctors', label: t('nav.doctors'), icon: <DoctorsIcon /> },
   ];
-  const navBottom: NavItem[] = [
-    { to: '/settings', label: t('nav.settings'), icon: <SettingsIcon aria-hidden="true" /> },
-  ];
+  const navBottom: NavItem[] = [{ to: '/settings', label: t('nav.settings'), icon: <GearIcon /> }];
 
   return (
     <AppShell

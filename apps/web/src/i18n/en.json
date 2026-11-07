@@ -50,7 +50,63 @@
   "home": {
     "title": "Home",
     "welcome": "Welcome to {{product}}",
-    "today": "Today"
+    "today": "Today",
+    "pipeline": {
+      "title": "Case pipeline",
+      "all": "All cases",
+      "overdue": "Overdue",
+      "open": "Open the case list: {{status}}"
+    },
+    "actions": {
+      "title": "What do you want to record?",
+      "soon": "Soon",
+      "newCase": {
+        "title": "Add a new case",
+        "body": "Record a case, mark the teeth and the work type",
+        "figure": "ready for delivery"
+      },
+      "incoming": {
+        "title": "Incoming payment",
+        "body": "Record an amount received from a doctor"
+      },
+      "outgoing": {
+        "title": "Outgoing payment",
+        "body": "Record an expense or an amount the lab paid"
+      },
+      "debts": {
+        "title": "Debts",
+        "body": "Amounts owed to and by the lab"
+      },
+      "cheques": {
+        "title": "Cheque register",
+        "body": "Incoming and outgoing cheques and their due dates"
+      },
+      "invoice": {
+        "title": "Create invoice",
+        "body": "Case invoice, statement of account or free invoice"
+      },
+      "doctors": {
+        "title": "Doctors",
+        "body": "Doctors, their accounts and special prices",
+        "figure": "active doctors"
+      }
+    },
+    "donut": {
+      "title": "Overview of all cases",
+      "label": "Cases by status, {{total}} in total",
+      "total": "Total"
+    },
+    "latest": {
+      "title": "Latest cases",
+      "all": "All cases",
+      "open": "Open",
+      "openCase": "Open case {{no}}"
+    },
+    "empty": {
+      "title": "No cases yet",
+      "body": "Start by recording your first case: choose the doctor, mark the teeth on the chart, then pick the work type.",
+      "cta": "Add the first case"
+    }
   },
   "auth": {
     "login": {
