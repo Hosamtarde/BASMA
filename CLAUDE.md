@@ -8,7 +8,7 @@
 Precedence: **business scope → SPEC.md wins** (the standards list *possible* modules; we build only SPEC §3.1). **Engineering quality → the standards win.**
 
 ## The plan in one paragraph
-We build the **whole backend first** (Phase 1, milestones B0–B8), get the owner's sign-off, **and only then** start the frontend (Phase 2). Do not scaffold, design or discuss UI in Phase 1. When Phase 2 starts, the first step is agreeing the look (colours, layout) with the owner — use the `frontend-design` skill (enable Anthropic's frontend-design skill/plugin if it is not active), propose 2–3 directions, let the owner choose.
+B0–B2 were built backend-first. The look is agreed (direction A, SPEC §1.1, `docs/design-directions/`). **From F0 on we work in vertical slices: every milestone delivers its backend and its screens together** (SPEC §11): F0 web foundation, F1 screens for B1, F2 screens for B2, then B3–B8 each with their UI. Each slice gets its own branch and stops for the owner's go-ahead. Frontend stack: ADR-0016; how the UI ships inside the installer: ADR-0017. Load the `smile-artec-web-*` skills for frontend work and `frontend-design` for visual work.
 
 ## Your first task — Phase 0 only (no feature code)
 1. Inspect the repo as it is now (it may be nearly empty — say so).
@@ -17,7 +17,7 @@ We build the **whole backend first** (Phase 1, milestones B0–B8), get the owne
 4. Stop and wait for approval. Then start B0.
 
 ## References
-`docs/reference/invoice-sample.{html,pdf,png}` — approved starting look of the printed invoice (Phase 2); Phase 1 must produce snapshot data that supports it (SPEC §5.14). Font: `assets/fonts/Cairo.ttf` (OFL).
+`docs/reference/invoice-sample.{html,pdf,png}` — approved starting look of the printed invoice (built in B6); the backend must produce snapshot data that supports it (SPEC §5.14). Font: `assets/fonts/Cairo.ttf` (OFL).
 
 ## Delivery requirement
 The system must ship as a **single Windows installer** that installs the API + portable PostgreSQL as Windows services (SPEC §2.1). Docker is for development only. Keep every design choice compatible with this from day one (config, paths, ports, secrets, backups, migrations).
@@ -26,7 +26,7 @@ The system must ship as a **single Windows installer** that installs the API + p
 Each customer installs the product independently on its own computer, with its own local owner account and its own data (SPEC §2.2). Single-tenant per install; nothing lab-specific hard-coded. Licensing, auto-update and cloud are **not** in v1 — keep the seams clean (SPEC §2.4) and note pre-production tasks in `docs/production-readiness.md`.
 
 ## Working agreement
-- Talk to the owner in simple Arabic (Palestinian-friendly), short and practical; he is not a programmer. Code, identifiers, comments, commits, docs: English. **Arabic is the default language and English must be switchable (SPEC §6.1):** all user-facing text lives only in the `ar.json`/`en.json` catalogs (API now, frontend later) — never hard-coded; every new string is added to both languages; the DB stores codes, not translated labels.
+- Talk to the owner in simple Arabic (Palestinian-friendly), short and practical; he is not a programmer. Code, identifiers, comments, commits, docs: English. **Arabic is the default language and English must be switchable (SPEC §6.1):** all user-facing text lives only in the `ar.json`/`en.json` catalogs (API: `apps/api/src/shared/i18n/catalogs`, web: `apps/web/src/i18n`) — never hard-coded; every new string is added to both languages; the DB stores codes, not translated labels.
 - After every milestone: run lint + typecheck + tests + build, report **real** results (never claim tested otherwise), summarise in ≤5 Arabic lines, and wait for the go-ahead.
 - No features outside SPEC §3.1. No dead endpoints for §3.2. When you must assume something, take the SPEC §12 default, say so in one line, keep it easy to change.
 - One logical change per commit (conventional commits). Don't modify unrelated modules; don't rewrite working code without a reason.

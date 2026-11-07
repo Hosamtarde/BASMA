@@ -17,7 +17,7 @@ It is a **reduced edition** of a commercial product the owner already knows (an 
 3. **Never invent business rules silently.** Anything in section 12 ("Decisions & open questions") is an assumption — confirm with the owner before building the dependent feature if it is risky, otherwise implement the stated default and keep it easy to change.
 4. **Money is never a float.** See section 7.
 5. **Nothing financial is ever deleted** — it is *voided* with a reason and stays visible.
-6. **Backend first, frontend later.** Phase 1 = the complete backend (domain rules, database, API, security, tests, docs). Phase 2 = the frontend, which starts only after the owner signs off the backend and we agree together on the look (colours, layout) — see section 11. Do not scaffold or design any UI in Phase 1.
+6. **Vertical slices (owner decision, 2026-11-06).** B0–B2 were built backend-first. The look is agreed (§1.1); from F0 on, **every milestone delivers backend + frontend together** for its screens — see section 11.
 7. Work in milestones (section 11). Stop after each milestone and show the owner what works.
 8. Follow `ENGINEERING_STANDARDS.md` in full. Where it conflicts with this SPEC on *business scope*, the SPEC wins (its list of possible domain modules is only a menu — we build §3.1). On *engineering quality* (security, testing, architecture), the standards win.
 9. Use the project skills in `.claude/skills/` — load the matching one before each kind of task.
@@ -26,7 +26,7 @@ It is a **reduced edition** of a commercial product the owner already knows (an 
 
 ## 1. Branding
 
-> **Phase 2 only.** Nothing here affects the backend except the lab-profile settings (name, logo reference). The colours are a starting point: **agree the final look with the owner before the first UI line is written.**
+> The look is **agreed with the owner** (§1.1). Nothing here affects the backend except the lab-profile settings (name, logo).
 
 Source files (`assets/`): `logo-clean.png` (transparent lockup: tooth + SMILE ARTEC + DENTAL LABORATORY, 1115×775 — use for app/invoices), `logo-full.png` (same with the «ART MEETS TECHNOLOGY» tagline and rules), `logo-small.png` (400 px wide), `logo-hires-source.png` (1536×1024 original on white). Raster only — an SVG/vector original would be welcome later.
 
@@ -69,7 +69,7 @@ Mockups and screenshots: `docs/design-directions/` (A, B, C; A is the reference)
 
 **Style:** modular monolith — one backend service, one database, clean layering (presentation → application → domain ← infrastructure). No microservices, queues, caches or Redis unless a *measured* need appears (YAGNI).
 
-**Delivery:** REST API with OpenAPI/Swagger, versioned under `/api/v1`. The frontend (Phase 2) is a separate app consuming only that API. Repo is a monorepo: `apps/api` now, `apps/web` later.
+**Delivery:** REST API with OpenAPI/Swagger, versioned under `/api/v1`. The frontend is a separate app (`apps/web`, ADR-0016) consuming only that API. Repo is a monorepo: `apps/api`, `apps/web`, `packages/shared`.
 
 **Stack — DECIDED by the owner:** TypeScript + **NestJS** and **PostgreSQL**. Do not re-litigate; choose the remaining pieces and justify each briefly in an ADR.
 Versions in use (B0, see `docs/adr/0015-toolchain-versions.md`): **NestJS 12** (stable/GA line), **Node.js 24 LTS**, **TypeScript 6.0**, **PostgreSQL 16**. Remaining pieces:
@@ -81,7 +81,7 @@ Versions in use (B0, see `docs/adr/0015-toolchain-versions.md`): **NestJS 12** (
 The owner will **install the system on the lab's computers from a single compressed installer** (`SmileArtec-Setup-x.y.z.exe`, optionally distributed inside a `.zip`/`.rar`). Docker is **not** required on the lab's machines. The installer must:
 - bundle the compiled API (with a bundled Node runtime) and **portable PostgreSQL binaries**; install both as **Windows services** (auto-start, restart on failure), with the database on a private port and a randomly generated DB password stored protected (never hard-coded, never in the repo);
 - create the database, run migrations, and start the first-run owner setup;
-- (Phase 2) serve the built frontend from the same service, so users open the app from a shortcut/browser at `http://localhost:<port>` (or an app window wrapper if the owner prefers);
+- serve the built frontend from the same service (`WEB_DIST_DIR`), opened from a shortcut as an Edge app window at `http://127.0.0.1:<port>`, or the default browser if Edge is missing (ADR-0017);
 - support **upgrade in place**: stop services → automatic pre-upgrade backup (`pg_dump`) → migrate → start; and **rollback** to the backup if migration fails; never touch the data folder on uninstall unless the owner explicitly chooses to;
 - offer scheduled automatic backups (e.g. daily + on exit/upgrade) to a folder the owner picks, keep the last N, and a restore procedure that is tested;
 - run fully offline; no telemetry; logs rotated in a known folder.
@@ -335,10 +335,10 @@ Single box; matches doctor name, patient name or case number as you type (deboun
 - **Backend (Phase 1):** responses carry stable machine codes (`error.code`, enum values like `waiting`, `delivered`) plus parameters; human-readable messages are produced from the catalog using `Accept-Language` (fallback `ar`). Localize: validation and business-rule errors, status/direction/method labels, notification texts, report and CSV headers, audit-log summaries (store code + params, render on read, not frozen Arabic text), seed names.
 - **Database stores codes, not translated labels** (e.g. status `'in_progress'`). User-entered data (doctor, patient, work-type names…) is stored as typed and never auto-translated.
 - **Seed data** (expense categories only; work types start empty — owner decision B1) is created at first run **in the language chosen in the setup wizard**; changing the language later does not rename existing records.
-- **Frontend (Phase 2):** switching language flips direction RTL↔LTR (logical CSS properties only), fonts (Arabic: Cairo/Tajawal; English: a matching Latin font), dates and number formatting; the choice persists per installation (and per user when users are added later). Digits: Western 0-9 by default in both languages, with a setting for Arabic-Indic digits.
+- **Frontend:** switching language flips direction RTL↔LTR (logical CSS properties only), fonts (Arabic: Cairo/Tajawal; English: a matching Latin font), dates and number formatting; the choice persists per installation (and per user when users are added later). Digits: Western 0-9 by default in both languages, with a setting for Arabic-Indic digits.
 - **Printed documents** (invoice, statement, receipt) have their own **document language** setting (default = UI language, can differ: e.g. UI English, invoices Arabic). Stored invoice snapshots keep the language they were issued in; reprints use the stored language unless the user explicitly reprints in another one.
 - Tooth numbering (FDI) and shade codes (A1, B2…) are language-neutral.
-- Tests: error/message codes covered in both languages; one E2E per language smoke-testing direction switching (Phase 2).
+- Tests: error/message codes covered in both languages; one E2E per language smoke-testing direction switching (from F0).
 
 ---
 
@@ -601,23 +601,29 @@ All tables export to CSV (UTF-8 with BOM so Excel shows Arabic correctly).
 ### Phase 0 — Assessment (no feature code)
 Inspect the repo, then produce `docs/00-assessment.md`: stack proposal + justification, architecture and module boundaries, ERD, API outline, threat model, test strategy, deployment/backup options, and the open questions of §12. **Wait for the owner's approval.** Record decisions as short ADRs in `docs/adr/`.
 
-### Phase 1 — Backend (complete before any frontend)
+### Phase 1 — Backend first (B0–B2, done)
+B0–B2 were built backend-only, as first planned. From B3 on, each B milestone also ships its screens (see vertical slices below).
+
 | # | Milestone | Done when |
 |---|---|---|
 | B0 | Repo skeleton, config, DB + migrations, CI, health, logging, error handling, OpenAPI, authentication (owner), audit-log foundation | Pipeline green, empty DB boots, login works |
 | B1 | Doctors, technicians, work types, special prices, expense categories, settings | CRUD + validation + tests |
 | B2 | Cases, case items, price resolution, status machine + history, numbering | Create/edit/search cases, rules enforced |
-| B3 | Payments in/out/void, cheques, idempotency, balance engine (`allocate`, `doctorBalance`) | Exhaustive unit tests; numbers tie to hand calculations |
-| B4 | Debts + breakdown, doctor statement, receipts/expenses reports, CSV export, global search | Breakdown ties out to the ledger |
-| B5 | Delivery flow, cheque status transitions, notifications feed | Cheque rules (§7.4) verified |
-| B6 | Invoices (3 types), immutable snapshots, void, template storage | Snapshot never changes after later edits |
-| B7 | **Windows installer** (§2.1): bundled API + portable PostgreSQL as services, first-run setup, upgrade + rollback, scheduled backups & tested restore, uninstall that keeps data | Clean Windows VM: install → use → upgrade → restore works |
-| B8 | Security review and hardening, index/query review, concurrency tests, frozen OpenAPI | **Backend sign-off by the owner** |
 
-### Phase 2 — Frontend (starts only after B8 sign-off)
-1. **Agree the look first:** colours, layout, typography, tooth-chart style. Use the `frontend-design` skill; show 2–3 visual directions; the owner picks. Update §1 with the decision.
-2. Then build screens in this order: shell + login → home → add case (tooth chart) → doctors → payments → debts → cheques → invoices + appearance + printing → settings.
-3. **Final installer:** rebuild the Windows installer so it includes the frontend; test install/upgrade/restore again on a clean Windows machine.
+### Vertical slices (owner decision, 2026-11-06) — every milestone = backend + frontend
+The look is agreed (§1.1, `docs/design-directions/`). Each slice delivers its API changes **and** its screens, with tests in both languages, then stops for the owner. Frontend stack: ADR-0016; delivery inside the installer: ADR-0017.
+
+| # | Slice | Done when |
+|---|---|---|
+| F0 | Web foundation: `apps/web` + `packages/shared`, design tokens and RTL app shell, i18n (ar/en) with guards, generated API client + drift check, boot via setup status, first-run wizard, login, forced password change, silent refresh, language switch, error handling and toasts; API contract fixes (refresh cookie, UI served by the API, OpenAPI export, case actions) | Both languages work end to end; CI web + web-e2e green |
+| F1 | Screens for B1: doctors (+ special prices), technicians, work types, expense categories, settings and logo | CRUD in both languages, axe clean |
+| F2 | Screens for B2: add case with the tooth chart (§1.1 rules), case list with filters and search, case details with status changes and cancel | Add → list → status → cancel works in both languages |
+| B3 | Payments in/out/void, cheques, idempotency, balance engine (`allocate`, `doctorBalance`) **+ their screens** | Exhaustive unit tests; numbers tie to hand calculations |
+| B4 | Debts + breakdown, doctor statement, receipts/expenses reports, CSV export, global search **+ screens** | Breakdown ties out to the ledger |
+| B5 | Delivery flow, cheque status transitions, notifications feed **+ screens** | Cheque rules (§7.4) verified |
+| B6 | Invoices (3 types), immutable snapshots, void, template storage **+ invoice appearance and printing** | Snapshot never changes after later edits |
+| B7 | **Windows installer** (§2.1) including the UI (ADR-0017): bundled API + portable PostgreSQL as services, first-run setup, upgrade + rollback, scheduled backups & tested restore, uninstall that keeps data | Clean Windows VM: install → use → upgrade → restore works |
+| B8 | Security review and hardening (API and UI), index/query review, concurrency tests, frozen OpenAPI | **Sign-off by the owner** |
 
 **A milestone is done only when** business logic, validation, authorization, tests (unit + integration + negative + concurrency where relevant) and docs are complete **and you actually ran** lint, typecheck, tests and build and report the real results. Never claim "tested" otherwise.
 
