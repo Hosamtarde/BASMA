@@ -70,7 +70,8 @@ export function DateField({
       </div>
       <Popover.Root open={open} onOpenChange={setOpen}>
         <Popover.Anchor asChild>
-          <div className="relative">
+          {/* The calendar button and the end padding follow the LTR date box, in both languages. */}
+          <div className="relative" dir="ltr">
             <input
               id={id}
               ref={inputRef}

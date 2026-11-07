@@ -61,7 +61,8 @@ export function TextField({ label, hint, error, required, className, suffix, ...
   const id = useId();
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} required={required}>
-      <div className="relative">
+      {/* The suffix and the end padding follow the box's own direction (an LTR amount in an RTL form). */}
+      <div className="relative" dir={input.dir === 'ltr' ? 'ltr' : undefined}>
         <input
           id={id}
           aria-invalid={error ? true : undefined}
@@ -97,7 +98,8 @@ export function PasswordField({
   const [visible, setVisible] = useState(false);
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} required={required}>
-      <div className="relative">
+      {/* The eye button and the end padding follow the LTR password box, in both languages. */}
+      <div className="relative" dir="ltr">
         <input
           id={id}
           type={visible ? 'text' : 'password'}
