@@ -1,0 +1,118 @@
+/*
+ * Tooth chart layers (SPEC §1.1). Artwork is decorative; hotspots carry all interaction and
+ * accessibility; badges show the FDI numbers. States: idle, hover, focus, selected, has-work
+ * (work-type colour in --wc), disabled.
+ */
+.tc-svg {
+  direction: ltr; /* fixed anatomical geometry: 18 on the viewer's left in every language */
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.tc-gum-line {
+  fill: none;
+  stroke: #f3c2c9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tc-gum-band {
+  fill: #f3c2c9;
+  opacity: 0.85;
+}
+.tc-root {
+  fill: #efe3c6;
+  stroke: #b9a77f;
+  stroke-width: 0.28;
+}
+.tc-crown {
+  fill: url(#tc-enamel);
+  stroke: #a1916d;
+  stroke-width: 0.3;
+}
+.tc-detail {
+  fill: none;
+  stroke: #b8a985;
+  stroke-width: 0.24;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.tc-midline {
+  stroke: #9fb3c1;
+  stroke-width: 0.3;
+  stroke-dasharray: 1.2 1;
+}
+.tc-label {
+  fill: var(--color-muted);
+  font-weight: 700;
+}
+
+/* Hotspots */
+.tc-hot {
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 0.5;
+  cursor: pointer;
+  outline: none;
+  transition: fill 120ms, stroke 120ms;
+}
+.tc-hot[data-work] {
+  fill: color-mix(in srgb, var(--wc) 26%, transparent);
+  stroke: var(--wc);
+  stroke-width: 0.6;
+}
+.tc-hot[data-hover] {
+  fill: rgb(0 110 189 / 0.14);
+  stroke: var(--color-blue);
+}
+.tc-hot[aria-checked='true'] {
+  fill: rgb(0 110 189 / 0.34);
+  stroke: var(--color-blue);
+  stroke-width: 0.75;
+}
+.tc-hot:focus-visible {
+  stroke: var(--color-focus);
+  stroke-width: 0.9;
+  stroke-dasharray: 1.1 0.6;
+}
+.tc-hot[aria-disabled='true'] {
+  fill: rgb(138 152 163 / 0.35);
+  stroke: transparent;
+  cursor: not-allowed;
+}
+
+/* Number badges */
+.tc-badge circle {
+  fill: #fff;
+  stroke: var(--color-ink);
+  stroke-width: 0.32;
+}
+.tc-badge text {
+  fill: var(--color-ink);
+  font-weight: 800;
+  pointer-events: none;
+}
+.tc-badge {
+  cursor: pointer;
+}
+.tc-badge[data-work] circle {
+  fill: var(--wc);
+  stroke: var(--wc);
+}
+.tc-badge[data-work] text {
+  fill: #fff;
+}
+.tc-badge[data-hover] circle {
+  stroke: var(--color-blue);
+  stroke-width: 0.6;
+}
+.tc-badge[data-selected] circle {
+  fill: var(--color-blue);
+  stroke: var(--color-navy);
+}
+.tc-badge[data-selected] text {
+  fill: #fff;
+}
+.tc-badge[data-disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
