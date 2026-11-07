@@ -167,6 +167,12 @@ describe('Cases (e2e)', () => {
       expect(res.body.history).toEqual([
         { fromStatus: null, toStatus: 'design', at: expect.any(String), note: null, deliveredDate: null },
       ]);
+      // The UI reads the allowed actions instead of re-implementing the state machine.
+      expect(res.body).toMatchObject({
+        allowedStatuses: ['waiting', 'in_progress', 'ready', 'delivered'],
+        canCancel: true,
+        canEdit: true,
+      });
     });
 
     it('assigns consecutive case numbers, also under concurrency (gap-free)', async () => {
@@ -512,6 +518,7 @@ describe('Cases (e2e)', () => {
         reason: 'doctor called',
       }).expect(200);
       expect(cancelled.body.status).toBe('cancelled');
+      expect(cancelled.body).toMatchObject({ allowedStatuses: [], canCancel: false, canEdit: false });
       expect(cancelled.body.history.at(-1)).toMatchObject({
         fromStatus: 'design',
         toStatus: 'cancelled',
@@ -532,6 +539,7 @@ describe('Cases (e2e)', () => {
       let c = (await post('/cases', baseCase()).expect(201)).body as Detail;
       c = (await post(`/cases/${c.id}/status`, { rowVersion: c.rowVersion, to: 'delivered' }).expect(200))
         .body as Detail;
+      expect(c).toMatchObject({ allowedStatuses: ['returned'], canCancel: false, canEdit: true });
       const fromDelivered = await post(`/cases/${c.id}/cancel`, { rowVersion: c.rowVersion }).expect(409);
       expect(fromDelivered.body.error).toMatchObject({
         code: 'error.case.cannot_cancel',
@@ -539,6 +547,7 @@ describe('Cases (e2e)', () => {
       });
       c = (await post(`/cases/${c.id}/status`, { rowVersion: c.rowVersion, to: 'returned' }).expect(200))
         .body as Detail;
+      expect(c).toMatchObject({ allowedStatuses: ['in_progress', 'ready', 'delivered'], canCancel: false });
       await post(`/cases/${c.id}/cancel`, { rowVersion: c.rowVersion }).expect(409);
     });
   });

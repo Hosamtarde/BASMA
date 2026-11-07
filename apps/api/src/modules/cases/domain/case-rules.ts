@@ -39,6 +39,25 @@ export function checkTransition(from: CaseStatus, to: CaseStatus): TransitionChe
 /** Cancel only before delivery; not from returned in B2 (to revisit with payments in B3). Final. */
 export const canCancel = (status: CaseStatus): boolean => PRE_DELIVERY.includes(status);
 
+/** Every case can be edited (header, lines, status) until it is cancelled; cancelled is final. */
+export const canEdit = (status: CaseStatus): boolean => status !== 'cancelled';
+
+/**
+ * What the UI may offer for a case, derived from the same rules the service enforces, so the
+ * client never re-implements the state machine. Cancel is a separate action (not a target).
+ */
+export function caseActions(status: CaseStatus): {
+  allowedStatuses: CaseStatus[];
+  canCancel: boolean;
+  canEdit: boolean;
+} {
+  return {
+    allowedStatuses: CASE_STATUSES.filter((to) => checkTransition(status, to) === 'ok'),
+    canCancel: canCancel(status),
+    canEdit: canEdit(status),
+  };
+}
+
 /** FDI permanent teeth: quadrants 1–4, units 1–8. */
 export function isFdiTooth(tooth: number): boolean {
   return Number.isInteger(tooth) && tooth >= 11 && tooth <= 48 && tooth % 10 >= 1 && tooth % 10 <= 8;

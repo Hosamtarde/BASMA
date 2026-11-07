@@ -231,4 +231,12 @@ export class CaseDetailResponse extends CaseSummaryResponse {
   @ApiProperty({ type: String, nullable: true }) notes!: string | null;
   @ApiProperty({ type: [CaseLineResponse] }) lines!: CaseLineResponse[];
   @ApiProperty({ type: [CaseHistoryResponse] }) history!: CaseHistoryResponse[];
+  @ApiProperty({
+    enum: CASE_STATUSES,
+    isArray: true,
+    description: 'Statuses this case may move to now (POST /cases/{id}/status); empty when none',
+  })
+  allowedStatuses!: CaseStatus[];
+  @ApiProperty({ description: 'true when POST /cases/{id}/cancel is allowed now' }) canCancel!: boolean;
+  @ApiProperty({ description: 'true when header and lines may be edited (not cancelled)' }) canEdit!: boolean;
 }

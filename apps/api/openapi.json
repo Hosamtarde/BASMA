@@ -3895,6 +3895,30 @@
             "items": {
               "$ref": "#/components/schemas/CaseHistoryResponse"
             }
+          },
+          "allowedStatuses": {
+            "type": "array",
+            "description": "Statuses this case may move to now (POST /cases/{id}/status); empty when none",
+            "items": {
+              "type": "string",
+              "enum": [
+                "waiting",
+                "design",
+                "in_progress",
+                "ready",
+                "delivered",
+                "returned",
+                "cancelled"
+              ]
+            }
+          },
+          "canCancel": {
+            "type": "boolean",
+            "description": "true when POST /cases/{id}/cancel is allowed now"
+          },
+          "canEdit": {
+            "type": "boolean",
+            "description": "true when header and lines may be edited (not cancelled)"
           }
         },
         "required": [
@@ -3914,7 +3938,10 @@
           "discount",
           "notes",
           "lines",
-          "history"
+          "history",
+          "allowedStatuses",
+          "canCancel",
+          "canEdit"
         ]
       },
       "UpdateCaseRequest": {

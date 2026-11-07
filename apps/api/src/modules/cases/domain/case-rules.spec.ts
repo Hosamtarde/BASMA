@@ -1,5 +1,6 @@
 import {
   canCancel,
+  caseActions,
   CASE_STATUSES,
   CaseStatus,
   checkTransition,
@@ -32,6 +33,14 @@ describe('status machine (full matrix)', () => {
 
   it('cancel only before delivery; never from delivered, returned or cancelled', () => {
     expect(CASE_STATUSES.filter(canCancel)).toEqual(['waiting', 'design', 'in_progress', 'ready']);
+  });
+
+  it.each(CASE_STATUSES)('exposes the same rules as UI actions for %s', (status) => {
+    expect(caseActions(status)).toEqual({
+      allowedStatuses: allowed[status],
+      canCancel: canCancel(status),
+      canEdit: status !== 'cancelled',
+    });
   });
 });
 
