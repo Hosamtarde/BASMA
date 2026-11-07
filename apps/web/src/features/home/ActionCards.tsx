@@ -79,7 +79,7 @@ export function ActionCards({ figures }: { figures: Partial<Record<CardKey, numb
                   figure !== undefined && (
                     <>
                       <b className="num block text-[15px] font-extrabold">{formatNumber(figure, lang)}</b>{' '}
-                      <small className="text-[12px] text-muted">
+                      <small className="text-[12px] text-ink">
                         {t(`home.actions.${c.key as 'newCase' | 'doctors'}.figure`)}
                       </small>
                     </>
