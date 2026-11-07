@@ -9,6 +9,7 @@ import { isValidTimeZone, MAX_COUNTER_START } from '../domain/settings-rules';
 
 export const LAB_NAME_MAX_LENGTH = 100;
 export const ADDRESS_MAX_LENGTH = 300;
+export const SLOGAN_MAX_LENGTH = 80;
 
 export const IsTimeZoneName = () =>
   ValidateBy({
@@ -60,6 +61,15 @@ export class CurrencyInput {
 
 export class UpdateLabProfileRequest extends LabProfileInput {
   @ApiProperty() @IsInt() @Min(1) rowVersion!: number;
+
+  @ApiPropertyOptional({
+    type: String,
+    maxLength: SLOGAN_MAX_LENGTH,
+    nullable: true,
+    description: 'Short line under the lab name on Home; blank or null removes it',
+  })
+  @OptionalText(SLOGAN_MAX_LENGTH)
+  slogan?: string | null;
 
   @ApiPropertyOptional({ example: 'Asia/Hebron' })
   @IsOptionalNonNull()
@@ -122,6 +132,7 @@ class LabProfileView {
   @ApiProperty({ type: String, nullable: true }) nameEn!: string | null;
   @ApiProperty({ type: String, nullable: true }) phone!: string | null;
   @ApiProperty({ type: String, nullable: true }) address!: string | null;
+  @ApiProperty({ type: String, nullable: true, maxLength: SLOGAN_MAX_LENGTH }) slogan!: string | null;
   @ApiProperty() timeZone!: string;
   @ApiProperty() rowVersion!: number;
 }

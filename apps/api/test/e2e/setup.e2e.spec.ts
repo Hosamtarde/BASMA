@@ -132,6 +132,7 @@ describe('First-run setup in one step (e2e)', () => {
           nameEn: 'Smile Lab',
           phone: '+970 59 000 0000',
           address: null,
+          slogan: null,
           timeZone: 'Asia/Amman',
         },
       },

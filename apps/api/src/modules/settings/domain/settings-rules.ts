@@ -9,6 +9,8 @@ export interface LabProfile {
   nameEn: string | null;
   phone: string | null;
   address: string | null;
+  /** Optional short line under the lab name on Home (a motto); null = none. */
+  slogan: string | null;
   /** IANA name; "today" for the lab is computed in this zone (assessment §2.2 deviation 6). */
   timeZone: string;
 }

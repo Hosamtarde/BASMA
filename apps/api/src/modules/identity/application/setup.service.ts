@@ -50,6 +50,7 @@ export class SetupService {
       nameEn: input.lab.nameEn ?? null,
       phone: input.lab.phone,
       address: input.lab.address ?? null,
+      slogan: null,
       timeZone: input.timeZone ?? this.config.defaultTimeZone,
     };
     if (!hasLabName(labProfile)) {
