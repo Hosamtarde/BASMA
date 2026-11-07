@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Link, useSearchParams } from 'react-router';
+import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Card, DataTable, PageHeader, Pager, SearchBox } from '@/components/ui/list';
@@ -11,44 +11,59 @@ import { settingsQuery } from '@/features/shell/settings';
 import { todayIn } from '@/i18n/format';
 import { cn } from '@/lib/cn';
 import { isIsoDate } from '@/lib/dates';
+import { useUrlState } from '@/lib/url-state';
 import { CASE_STATUSES, casesQuery } from './api';
 import type { CaseListParams, CaseStatus } from './api';
 import { DoctorPicker } from './pickers';
 import { OverdueMarker, STATUS_STYLE, StatusBadge } from './status';
 
-type Patch = Partial<Record<'q' | 'status' | 'doctor' | 'overdue' | 'from' | 'to' | 'page', string | undefined>>;
+type Key = 'q' | 'status' | 'doctor' | 'overdue' | 'from' | 'to' | 'page';
+type Filters = Record<Key, string>;
+type Patch = Partial<Record<Key, string | undefined>>;
 
-/** Every filter lives in the URL, so reload, back/forward and shared links keep the list. */
+const KEYS: Key[] = ['q', 'status', 'doctor', 'overdue', 'from', 'to', 'page'];
+const parseFilters = (p: URLSearchParams): Filters =>
+  Object.fromEntries(KEYS.map((k) => [k, p.get(k) ?? ''])) as Filters;
+
+/** Only complete values reach the address: a half-typed date stays in the box. */
+function serializeFilters(f: Filters): URLSearchParams {
+  const out = new URLSearchParams();
+  for (const k of KEYS) {
+    const v = f[k].trim();
+    if (v === '' || (k === 'page' && v === '1')) continue;
+    if ((k === 'from' || k === 'to') && !isIsoDate(v)) continue;
+    out.set(k, v);
+  }
+  return out;
+}
+
+/**
+ * Every filter is kept in the URL (reload, back/forward and shared links keep the list), through
+ * useUrlState so the controls answer at once and quick successive changes are never lost.
+ */
 function useCaseListParams() {
-  const [params, setParams] = useSearchParams();
-  const rawStatus = params.get('status');
-  const status = CASE_STATUSES.includes(rawStatus as CaseStatus) ? (rawStatus as CaseStatus) : undefined;
-  const doctorId = Number.parseInt(params.get('doctor') ?? '', 10);
-  const from = params.get('from') ?? '';
-  const to = params.get('to') ?? '';
+  const [f, setFilters] = useUrlState(parseFilters, serializeFilters);
+  const status = CASE_STATUSES.includes(f.status as CaseStatus) ? (f.status as CaseStatus) : undefined;
+  const doctorId = Number.parseInt(f.doctor, 10);
   const list: CaseListParams = {
-    search: params.get('q') ?? '',
+    search: f.q,
     status,
     doctorId: Number.isSafeInteger(doctorId) && doctorId > 0 ? doctorId : undefined,
-    overdue: params.get('overdue') === '1' || undefined,
-    from: isIsoDate(from) ? from : undefined,
-    to: isIsoDate(to) ? to : undefined,
-    page: Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1),
+    overdue: f.overdue === '1' || undefined,
+    from: isIsoDate(f.from) ? f.from : undefined,
+    to: isIsoDate(f.to) ? f.to : undefined,
+    page: Math.max(1, Number.parseInt(f.page || '1', 10) || 1),
   };
+  // A new filter starts again on page 1.
   const update = (patch: Patch) =>
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        for (const [k, v] of Object.entries(patch)) {
-          if (v === undefined || v === '' || (k === 'page' && v === '1')) next.delete(k);
-          else next.set(k, v);
-        }
-        if (!('page' in patch)) next.delete('page');
-        return next;
-      },
-      { replace: true },
-    );
-  return { list, from, to, update, clear: () => setParams(new URLSearchParams(), { replace: true }) };
+    setFilters((prev) => {
+      const next = { ...prev };
+      for (const [k, v] of Object.entries(patch) as [Key, string | undefined][]) next[k] = v ?? '';
+      if (!('page' in patch)) next.page = '';
+      return next;
+    });
+  const clear = () => setFilters(() => parseFilters(new URLSearchParams()));
+  return { list, from: f.from, to: f.to, update, clear };
 }
 
 const chip =
