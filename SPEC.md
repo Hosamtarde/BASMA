@@ -97,6 +97,7 @@ The owner will **install the system on the lab's computers from a single compres
 - **Lab identity = per installation:** each lab's own name and logo (entered at first run, editable in Settings) appear on its invoices, statements and receipts. **Never fall back to the Smile Artec logo on another lab's documents** — if no logo is uploaded, print the lab name only.
 - The owner's installation is simply the first customer: its lab profile is Smile Artec (name + logo from `assets/`).
 - Vendor credit «Powered by Smile Artec Dental Laboratory» may appear on the splash/login screen only (not on invoices).
+- Editions (`smile-artec` / `generic`, build-time product branding vs runtime lab branding): see `docs/editions.md` (ADR-0018).
 
 ### 2.4 Going to production later (NOT in v1 — design for it, do not build it)
 The owner plans to think about a production/commercial rollout after the system matures. Keep these doors open without building them (YAGNI):

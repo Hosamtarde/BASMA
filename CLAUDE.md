@@ -25,6 +25,8 @@ The system must ship as a **single Windows installer** that installs the API + p
 ## Distribution model (decided)
 Each customer installs the product independently on its own computer, with its own local owner account and its own data (SPEC §2.2). Single-tenant per install; nothing lab-specific hard-coded. Licensing, auto-update and cloud are **not** in v1 — keep the seams clean (SPEC §2.4) and note pre-production tasks in `docs/production-readiness.md`.
 
+Editions: one codebase ships two branded installers (`smile-artec`, `generic`) — see `docs/editions.md` (ADR-0018).
+
 ## Working agreement
 - Talk to the owner in simple Arabic (Palestinian-friendly), short and practical; he is not a programmer. Code, identifiers, comments, commits, docs: English. **Arabic is the default language and English must be switchable (SPEC §6.1):** all user-facing text lives only in the `ar.json`/`en.json` catalogs (API: `apps/api/src/shared/i18n/catalogs`, web: `apps/web/src/i18n`) — never hard-coded; every new string is added to both languages; the DB stores codes, not translated labels.
 - After every milestone: run lint + typecheck + tests + build, report **real** results (never claim tested otherwise), summarise in ≤5 Arabic lines, and wait for the go-ahead.

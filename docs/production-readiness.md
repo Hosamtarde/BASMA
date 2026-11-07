@@ -26,6 +26,15 @@ Items to decide or build before selling the product to other labs (SPEC §2.4). 
 | 20 | HTTPS / reverse proxy | The refresh cookie gets `Secure` from `req.secure`. Behind a TLS proxy (cloud, LAN #8) set Express `trust proxy`, enable HSTS (off on loopback http, ADR-0017) and review the loopback-only `API_HOST` rule |
 | 21 | Web bundle size | One chunk loaded from the local disk: 733 KB (229 KB gzip) in F0, 1,000 KB (302 KB gzip) after F2 (cases screens, cmdk, react-day-picker with date-fns; only the ar/en calendar locales are bundled), 1,030 KB (310 KB gzip) after F2b (Home, row actions; no new package). Split by route (React Router `lazy`) if start-up gets slow |
 
+## Open decisions — editions (`docs/editions.md`, ADR-0018)
+
+| # | Decision | Notes |
+|---|---|---|
+| D1 | Final product name | Name of the `generic` edition; replaces the `{{PRODUCT_NAME}}` placeholder (same item as #1) |
+| D2 | Licensing terms for resale | What a buying lab may do (installs per licence, term, support, transfer) |
+| D3 | Written ownership / resale agreement with Ibrahim Al-Tarda | Who owns the code and the `generic` edition, and the right to resell it; needed before the first sale |
+| D4 | Licence-key or activation approach | Deferred; implement behind the `LicenseService` seam (ADR-0013, same item as #3) |
+
 ## Follow-ups from the vertical slices
 
 | # | Slice | Item | Notes |
