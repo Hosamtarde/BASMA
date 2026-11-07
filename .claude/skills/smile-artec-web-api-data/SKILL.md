@@ -32,4 +32,6 @@ description: Use when the Smile Artec web app calls the API, caches server data,
 | API unreachable | full-width banner with "try again" (full page at boot) |
 Every route has `errorElement: <RouteError />`.
 
-**Money**: integer minor units only, formatted/parsed through one shared money module in `packages/shared` (half-up, no floats; it is added with the first screen that shows money, F1). Balances and totals always come from the API.
+**Money**: integer minor units only, through `packages/shared` money (`parseMoney`, `formatMoney`, `toMoneyInput`; strings and BigInt, no floats; extra decimals are an error, never rounded). Forms use `moneySchema(decimals)` + `MoneyField`; the currency comes from `useCurrency()`. Balances and totals always come from the API.
+
+**Lists and writes**: list state (search, status, page) in the URL via `useListParams` (`useLocalListParams` inside dialogs); PATCH only changed fields plus the `rowVersion` that was read; `*.name_taken` lands on the name field in the server's words; delete answers `deleted` or `deactivated` and the toast says which; after a write invalidate every family it touches (e.g. a price also invalidates `settings`, because amounts lock the currency).
