@@ -1,10 +1,12 @@
 // Web E2E only (Playwright webServer): creates (if missing) and resets a database whose name ends
 // with "_e2e", migrates it and serves the built API and the built UI on one loopback origin, like
 // the installed product (ADR-0017). With E2E_SEED_OWNER_PASSWORD it also completes first-run setup
-// through the real endpoint, so test files start signed-out with an owner. Needs `npm run build`.
-// Never point it at a real lab database.
+// through the real endpoint, so test files start signed-out with an owner. With E2E_SEED_DEMO=1 as
+// well, the fictional demo data (scripts/demo, through the real API) is added after setup. Needs
+// `npm run build`. Never point it at a real lab database.
 //
 //   E2E_DATABASE_URL=postgres://user:pass@127.0.0.1:5432/lab_e2e node apps/api/scripts/serve-e2e.cjs
+//   (+ E2E_SEED_OWNER_PASSWORD=… E2E_SEED_DEMO=1 for an installation full of demo data)
 const crypto = require('node:crypto');
 const path = require('node:path');
 const { Pool } = require('pg');
@@ -40,6 +42,17 @@ async function resetDatabase(url) {
   }
 }
 
+/** Dev-only TypeScript (scripts/demo), loaded only when asked for; never in the build. */
+async function seedDemoData(baseUrl, url, password) {
+  require('ts-node').register({ project: path.resolve(__dirname, '../tsconfig.json'), transpileOnly: true });
+  const { assertDemoDatabase } = require('./demo/guard.ts');
+  const { seedDemo } = require('./demo/seed.ts');
+  assertDemoDatabase(url);
+  const report = await seedDemo({ baseUrl, username: 'owner', password });
+  process.stdout.write(`Demo data added: ${JSON.stringify(report)}
+`);
+}
+
 async function main() {
   const url = process.env.E2E_DATABASE_URL;
   if (!url) throw new Error('E2E_DATABASE_URL is required');
@@ -63,24 +76,38 @@ async function main() {
   } finally {
     await pool.end();
   }
+  const ownerPassword = process.env.E2E_SEED_OWNER_PASSWORD;
+  const seedDemo = process.env.E2E_SEED_DEMO === '1';
+  if (seedDemo && !ownerPassword) {
+    throw new Error('E2E_SEED_DEMO=1 needs E2E_SEED_OWNER_PASSWORD (the demo data is added as the owner)');
+  }
+  if (ownerPassword) {
+    // Seed on a private, temporary port first: the real port (the one Playwright waits for) opens
+    // only when every seeded record exists, so no test ever sees a half-filled installation.
+    const seeder = await createApp(config);
+    await seeder.listen(0, config.host);
+    const baseUrl = `http://${config.host}:${seeder.getHttpServer().address().port}`;
+    try {
+      const res = await fetch(`${baseUrl}/api/v1/setup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: 'owner',
+          password: ownerPassword,
+          lab: { nameAr: 'مختبر التجارب', nameEn: 'Test Lab', phone: '02 222 3333' },
+          currency: { code: 'ILS', symbol: '₪', decimals: 2 },
+          language: 'ar',
+          timeZone: 'Asia/Hebron',
+        }),
+      });
+      if (res.status !== 201) throw new Error(`seeding the owner failed: HTTP ${res.status}`);
+      if (seedDemo) await seedDemoData(baseUrl, url, ownerPassword);
+    } finally {
+      await seeder.close();
+    }
+  }
   const app = await createApp(config);
   await app.listen(config.port, config.host);
-  const ownerPassword = process.env.E2E_SEED_OWNER_PASSWORD;
-  if (ownerPassword) {
-    const res = await fetch(`http://${config.host}:${config.port}/api/v1/setup`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: 'owner',
-        password: ownerPassword,
-        lab: { nameAr: 'مختبر التجارب', nameEn: 'Test Lab', phone: '02 222 3333' },
-        currency: { code: 'ILS', symbol: '₪', decimals: 2 },
-        language: 'ar',
-        timeZone: 'Asia/Hebron',
-      }),
-    });
-    if (res.status !== 201) throw new Error(`seeding the owner failed: HTTP ${res.status}`);
-  }
   process.stdout.write(`E2E API + UI on http://${config.host}:${config.port}\n`);
 }
 
