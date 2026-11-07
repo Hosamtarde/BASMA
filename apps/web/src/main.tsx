@@ -1,4 +1,5 @@
 import { PRODUCT_NAME } from '@app/shared';
+import './design/tokens.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 

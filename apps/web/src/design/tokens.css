@@ -1,0 +1,124 @@
+/*
+ * Design tokens — direction A «Brand gradient» (SPEC §1.1). Light theme only.
+ * Contrast rule (WCAG AA): logo cyan #03C3DB is for accents, borders and the gradient only;
+ * text uses the darker shades (cyan-ink, ink, muted). Status badges: tinted background,
+ * darker text and a dot in the exact status colour.
+ */
+@import 'tailwindcss';
+
+/* One bundled font for both languages (owner decision), imported from <repo>/assets/fonts. */
+@font-face {
+  font-family: 'Cairo';
+  src: url('../../../../assets/fonts/Cairo.ttf') format('truetype');
+  font-weight: 200 1000;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+
+  /* Brand (sampled from the logo, SPEC §1) */
+  --color-navy: #01416c;
+  --color-blue: #006ebd;
+  --color-cyan: #03c3db;
+  --color-cyan-ink: #06728a;
+
+  /* Neutrals */
+  --color-ink: #023f65;
+  --color-muted: #4f6577;
+  --color-surface: #f4f8fa;
+  --color-card: #ffffff;
+  --color-border: #dce6ec;
+  --color-control: #7f95a5;
+  --color-focus: #006ebd;
+  --color-hover: #f7fbfd;
+
+  /* Feedback */
+  --color-danger: #a92e27;
+  --color-danger-bg: #fce6e4;
+  --color-warning-ink: #755200;
+  --color-warning-bg: #fdf3d6;
+  --color-success-ink: #116443;
+  --color-success-bg: #dff3e9;
+  --color-info-bg: #e2eff9;
+
+  /* Case status (SPEC §9): dot = exact colour, ink = readable text, bg = tint */
+  --color-st-waiting: #e0a100;
+  --color-st-waiting-ink: #755200;
+  --color-st-waiting-bg: #fdf3d6;
+  --color-st-design: #7a5af8;
+  --color-st-design-ink: #5032c8;
+  --color-st-design-bg: #efebfe;
+  --color-st-in_progress: #006ebd;
+  --color-st-in_progress-ink: #00558f;
+  --color-st-in_progress-bg: #e2eff9;
+  --color-st-ready: #1e9e6a;
+  --color-st-ready-ink: #116443;
+  --color-st-ready-bg: #dff3e9;
+  --color-st-delivered: #03a9c4;
+  --color-st-delivered-ink: #05647a;
+  --color-st-delivered-bg: #dcf3f7;
+  --color-st-returned: #d6453d;
+  --color-st-returned-ink: #a12b24;
+  --color-st-returned-bg: #fce6e4;
+  --color-st-cancelled: #8a98a3;
+  --color-st-cancelled-ink: #4f5d67;
+  --color-st-cancelled-bg: #eceff2;
+
+  --radius-control: 10px;
+  --radius-card: 16px;
+  --shadow-dialog: 0 24px 60px rgb(1 65 108 / 0.28);
+}
+
+/* Gradients of the logo: sidebar, primary buttons, the thin banner rule. */
+@utility bg-sidebar {
+  background-image: linear-gradient(180deg, #01416c 0%, #024a7e 55%, #006ebd 100%);
+}
+@utility bg-brand {
+  background-image: linear-gradient(135deg, #01416c 0%, #006ebd 100%);
+}
+/* Navy at the reading start, cyan at the end, in both directions. */
+@utility bg-logo-rule {
+  background-image: linear-gradient(var(--to-end), #01416c 0%, #006ebd 55%, #03c3db 100%);
+}
+/* Numbers, phones, case numbers and tooth lists keep LTR inside Arabic text. */
+@utility num {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    --to-end: to right;
+  }
+  html[dir='rtl'] {
+    --to-end: to left;
+  }
+  body {
+    margin: 0;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+  /* Never letter-space Arabic. */
+  :lang(ar) * {
+    letter-spacing: normal !important;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+      animation: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
