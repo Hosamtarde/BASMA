@@ -1,5 +1,5 @@
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { House } from 'lucide-react';
+import { House, Settings as SettingsIcon, Stethoscope } from 'lucide-react';
 import { useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet } from 'react-router';
@@ -14,7 +14,7 @@ import { UserMenu } from './UserMenu';
 
 /**
  * Signed-in layout. Sidebar items appear only when their slice ships (no dead items, SPEC §3.2):
- * F0 has Home only; doctors and settings arrive with F1, cases with F2.
+ * F1: Home, Doctors and Settings (with the catalog lists); cases arrive with F2.
  */
 export function ShellLayout() {
   const { t } = useTranslation();
@@ -40,12 +40,19 @@ export function ShellLayout() {
     }
   }, [queryClient, settings.language?.ui]);
 
-  const nav: NavItem[] = [{ to: '/', label: t('nav.home'), icon: <House aria-hidden="true" />, end: true }];
+  const nav: NavItem[] = [
+    { to: '/', label: t('nav.home'), icon: <House aria-hidden="true" />, end: true },
+    { to: '/doctors', label: t('nav.doctors'), icon: <Stethoscope aria-hidden="true" /> },
+  ];
+  const navBottom: NavItem[] = [
+    { to: '/settings', label: t('nav.settings'), icon: <SettingsIcon aria-hidden="true" /> },
+  ];
 
   return (
     <AppShell
       brand={<LabBrand name={labNameFor(settings, lang)} logoUrl={logoUrl} logoAlt={t('shell.logoAlt')} />}
       nav={nav}
+      navBottom={navBottom}
       topBarEnd={
         <>
           <LanguageSwitch />

@@ -14,7 +14,7 @@ Every milestone ships its API **and** its screens. Load with this skill: `smile-
 5. **Navigation.** A sidebar item appears only when its screen works (no dead items, SPEC §3.2).
 6. **Tests.** Unit (pure logic) · component (form errors in Arabic, server field errors, keyboard) · Playwright flow with axe in both languages.
 7. **Run everything** and report real output: `npm run lint · typecheck · i18n:check · rtl:check · test · build`, `npm run contract:check`, `npm run test:e2e:web` (needs `E2E_DATABASE_URL` to a `*_e2e` database).
-8. **Screenshots** of each new screen in Arabic and English (`F0_SHOTS_DIR=… npm run e2e -w apps/web` pattern), summary for the owner in ≤ 5 Arabic lines, then stop.
+8. **Screenshots** of each new screen in Arabic and English (`E2E_SHOTS_DIR=… npm run e2e -w apps/web`; `shot(page, name)` in the specs), summary for the owner in ≤ 5 Arabic lines, then stop.
 
 ## Definition of done (per slice)
 Screens match SPEC · all strings in both catalogs · RTL and LTR checked · keyboard works, axe clean · unit/component/E2E green · lint, typecheck, i18n, RTL guard, build, drift check run with real results · screenshots in both languages · docs and skills updated · owner go-ahead before the next slice.
