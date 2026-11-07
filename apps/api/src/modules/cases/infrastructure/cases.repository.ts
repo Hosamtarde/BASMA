@@ -28,7 +28,7 @@ import {
 } from '../../../shared/db/schema';
 import { offsetOf } from '../../../shared/http/pagination';
 import { containsPattern } from '../../../shared/text/names';
-import type { Area, CaseStatus, PriceSource } from '../domain/case-rules';
+import type { Area, CaseStatus, PriceSource, StatusCountRow } from '../domain/case-rules';
 
 type Executor = Database | Tx;
 
@@ -73,13 +73,17 @@ export interface HistoryRow {
   userId: number | null;
 }
 
-export interface CaseListQuery {
-  status?: CaseStatus;
+/** Filters shared by the list and the per-status counts (everything except status and paging). */
+export interface CaseFilter {
   doctorId?: number;
   overdue?: boolean;
   search?: string;
   from?: string;
   to?: string;
+}
+
+export interface CaseListQuery extends CaseFilter {
+  status?: CaseStatus;
   page: number;
   pageSize: number;
 }
@@ -135,6 +139,24 @@ const asItem = (r: Record<string, unknown>) => r as unknown as CaseItemRow;
 /** Overdue = expected date before the lab's today, still in the lab (same rule as isOverdue). */
 export const overdueSql = (today: string): SQL =>
   and(lt(cases.expectedDate, today), notInArray(cases.status, ['delivered', 'cancelled'])) as SQL;
+
+/** WHERE for the shared filters (search: patient name contains, or an exact case number). */
+function filterSql(q: CaseFilter, today: string): SQL | undefined {
+  const search = q.search?.trim();
+  const searchFilter = search
+    ? /^\d{1,15}$/.test(search)
+      ? or(eq(cases.caseNo, Number(search)), ilike(cases.patientName, containsPattern(search)))
+      : ilike(cases.patientName, containsPattern(search))
+    : undefined;
+  return and(
+    q.doctorId ? eq(cases.doctorId, q.doctorId) : undefined,
+    q.overdue === true ? overdueSql(today) : undefined,
+    q.overdue === false ? sql`not (${overdueSql(today)})` : undefined,
+    q.from ? gte(cases.receivedDate, q.from) : undefined,
+    q.to ? lte(cases.receivedDate, q.to) : undefined,
+    searchFilter,
+  );
+}
 
 @Injectable()
 export class CasesRepository {
@@ -273,21 +295,7 @@ export class CasesRepository {
   }
 
   async list(db: Executor, q: CaseListQuery, today: string): Promise<{ items: CaseRow[]; total: number }> {
-    const search = q.search?.trim();
-    const searchFilter = search
-      ? /^\d{1,15}$/.test(search)
-        ? or(eq(cases.caseNo, Number(search)), ilike(cases.patientName, containsPattern(search)))
-        : ilike(cases.patientName, containsPattern(search))
-      : undefined;
-    const where = and(
-      q.status ? eq(cases.status, q.status) : undefined,
-      q.doctorId ? eq(cases.doctorId, q.doctorId) : undefined,
-      q.overdue === true ? overdueSql(today) : undefined,
-      q.overdue === false ? sql`not (${overdueSql(today)})` : undefined,
-      q.from ? gte(cases.receivedDate, q.from) : undefined,
-      q.to ? lte(cases.receivedDate, q.to) : undefined,
-      searchFilter,
-    );
+    const where = and(q.status ? eq(cases.status, q.status) : undefined, filterSql(q, today));
     const rows = await db
       .select(caseCols)
       .from(cases)
@@ -299,5 +307,22 @@ export class CasesRepository {
       .offset(offsetOf(q));
     const [row] = await db.select({ n: count() }).from(cases).where(where);
     return { items: rows.map(asCase), total: row?.n ?? 0 };
+  }
+
+  /**
+   * Cases per status and how many of them are overdue, in one statement (one snapshot), with
+   * the same filters and the same overdue rule as the list.
+   */
+  async countByStatus(db: Executor, f: CaseFilter, today: string): Promise<StatusCountRow[]> {
+    const rows = await db
+      .select({
+        status: cases.status,
+        count: count(),
+        overdue: sql<number>`count(*) filter (where ${overdueSql(today)})`.mapWith(Number),
+      })
+      .from(cases)
+      .where(filterSql(f, today))
+      .groupBy(cases.status);
+    return rows as StatusCountRow[];
   }
 }

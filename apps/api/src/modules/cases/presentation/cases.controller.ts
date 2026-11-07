@@ -30,7 +30,9 @@ import { caseActions } from '../domain/case-rules';
 import {
   AddCaseLinesRequest,
   CancelCaseRequest,
+  CaseCountsResponse,
   CaseDetailResponse,
+  CaseFilterQueryDto,
   CaseListQueryDto,
   CaseSummaryPage,
   CaseSummaryResponse,
@@ -99,6 +101,17 @@ export class CasesController {
   async list(@Query() q: CaseListQueryDto): Promise<CaseSummaryPage> {
     const page = await this.service.list(definedOnly(q));
     return { ...page, items: page.items.map(toSummary) };
+  }
+
+  // Declared before ':id' so "summary" is never read as an id.
+  @Get('summary')
+  @RequirePermission(Permission.CasesRead)
+  @ApiOperation({
+    summary: 'Cases per status and overdue, in one snapshot; same filters as the list except status',
+  })
+  @ApiOkResponse({ type: CaseCountsResponse })
+  async summary(@Query() q: CaseFilterQueryDto): Promise<CaseCountsResponse> {
+    return this.service.counts(definedOnly({ ...q }));
   }
 
   @Post()

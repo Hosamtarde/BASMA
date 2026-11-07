@@ -30,7 +30,7 @@ Items to decide or build before selling the product to other labs (SPEC §2.4). 
 
 | # | Slice | Item | Notes |
 |---|---|---|---|
-| S1 | Home | Pipeline strip (direction C) and the status donut need a count per status | Possible today without API changes: one `GET /cases?status=…&pageSize=1` per status (7 requests) and read `total`. Recommended for the Home slice: one `GET /cases/summary` (counts per status + overdue, one GROUP BY), so the numbers come from one snapshot and one request |
+| S1 | Home | Pipeline strip and status donut need a count per status | **Done (F2b):** `GET /cases/summary` returns the count per status, the total and the overdue count in one grouped statement (one snapshot), with the same filters and lab-today overdue rule as the list (except status and paging); permission `cases.read` |
 | S2 | Cases | Per-status counts on the case-list chips | Same need as S1; the chips show no counts until then |
 | S3 | Shade guide | «الأكثر استخدامًا» row (SPEC §5.5) | Needs usage counts from the API (e.g. top shades of the last N lines); not built in F2 |
 | S4 | Add case | Same tooth twice | SPEC default kept: several lines per tooth are allowed without asking (crown + abutment); a "replace or add" question can be added if the owner wants it |

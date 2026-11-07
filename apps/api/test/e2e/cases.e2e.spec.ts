@@ -106,6 +106,7 @@ describe('Cases (e2e)', () => {
   describe('authorization on every route', () => {
     const routes: [HttpMethod, string][] = [
       ['get', '/cases'],
+      ['get', '/cases/summary'],
       ['post', '/cases'],
       ['get', '/cases/1'],
       ['patch', '/cases/1'],
@@ -606,6 +607,83 @@ describe('Cases (e2e)', () => {
       expect(cancelled.body.items.every((c: { status: string }) => c.status === 'cancelled')).toBe(true);
       await get('/cases?status=invoiced').expect(400);
       await get('/cases?from=2026-13-01').expect(400);
+    });
+  });
+
+  describe('summary: counts per status and overdue (S1)', () => {
+    let d3: number;
+    type Counts = { byStatus: Record<string, number>; total: number; overdue: number };
+    const counts = async (query: string) => (await get(`/cases/summary?${query}`).expect(200)).body as Counts;
+
+    afterAll(() => clock.set(NOON));
+
+    it('counts every status of the matching cases and agrees with the list totals', async () => {
+      d3 = (await post('/doctors', { name: 'Dr Counts' }).expect(201)).body.id as number;
+      const empty = await counts(`doctorId=${d3}`);
+      expect(empty).toEqual({
+        byStatus: {
+          waiting: 0,
+          design: 0,
+          in_progress: 0,
+          ready: 0,
+          delivered: 0,
+          returned: 0,
+          cancelled: 0,
+        },
+        total: 0,
+        overdue: 0,
+      });
+
+      const make = async (status: string, expectedDate = '2026-11-15') =>
+        (await post('/cases', baseCase({ doctorId: d3, status, expectedDate })).expect(201)).body as Detail;
+      await make('waiting');
+      await make('design');
+      await make('design', TODAY);
+      await make('ready', TODAY);
+      const toDeliver = await make('in_progress', TODAY);
+      await post(`/cases/${toDeliver.id}/status`, {
+        rowVersion: toDeliver.rowVersion,
+        to: 'delivered',
+      }).expect(200);
+      const toCancel = await make('waiting', TODAY);
+      await post(`/cases/${toCancel.id}/cancel`, { rowVersion: toCancel.rowVersion }).expect(200);
+
+      const c = await counts(`doctorId=${d3}`);
+      expect(c.byStatus).toEqual({
+        waiting: 1,
+        design: 2,
+        in_progress: 0,
+        ready: 1,
+        delivered: 1,
+        returned: 0,
+        cancelled: 1,
+      });
+      expect(c.total).toBe(6);
+      expect(c.overdue).toBe(0);
+      for (const [status, n] of Object.entries(c.byStatus)) {
+        const listed = await get(`/cases?doctorId=${d3}&status=${status}&pageSize=1`).expect(200);
+        expect(listed.body.total).toBe(n);
+      }
+    });
+
+    it('overdue switches at the lab’s midnight, never for delivered or cancelled cases', async () => {
+      clock.set('2026-11-10T21:59:59Z');
+      expect((await counts(`doctorId=${d3}`)).overdue).toBe(0);
+      clock.set('2026-11-10T22:00:00Z');
+      const c = await counts(`doctorId=${d3}`);
+      // design + ready due today are overdue; the delivered and the cancelled one are not.
+      expect(c.overdue).toBe(2);
+      const listed = await get(`/cases?doctorId=${d3}&overdue=true`).expect(200);
+      expect(listed.body.total).toBe(2);
+      const onlyOverdue = await counts(`doctorId=${d3}&overdue=true`);
+      expect(onlyOverdue.total).toBe(2);
+      expect(onlyOverdue.byStatus).toMatchObject({ design: 1, ready: 1 });
+    });
+
+    it('validates the filters and does not accept list-only parameters', async () => {
+      await get('/cases/summary?from=2026-13-01').expect(400);
+      await get('/cases/summary?doctorId=0').expect(400);
+      await get('/cases/summary?status=design').expect(400);
     });
   });
 

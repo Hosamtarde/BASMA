@@ -8,6 +8,7 @@ import {
   isOverdue,
   resolvePrice,
   subtotalOf,
+  summarizeCounts,
   totalOf,
 } from './case-rules';
 
@@ -88,5 +89,33 @@ describe('overdue', () => {
     expect(isOverdue({ status: 'in_progress', expectedDate: '2026-11-11' }, today)).toBe(false);
     expect(isOverdue({ status: 'delivered', expectedDate: '2026-11-01' }, today)).toBe(false);
     expect(isOverdue({ status: 'cancelled', expectedDate: '2026-11-01' }, today)).toBe(false);
+  });
+});
+
+describe('summarizeCounts', () => {
+  it('gives every status a count (zero when absent) and sums total and overdue', () => {
+    const out = summarizeCounts([
+      { status: 'design', count: 3, overdue: 1 },
+      { status: 'delivered', count: 5, overdue: 0 },
+    ]);
+    expect(out.byStatus).toEqual({
+      waiting: 0,
+      design: 3,
+      in_progress: 0,
+      ready: 0,
+      delivered: 5,
+      returned: 0,
+      cancelled: 0,
+    });
+    expect(out.total).toBe(8);
+    expect(out.overdue).toBe(1);
+  });
+
+  it('is all zeros for no rows', () => {
+    const out = summarizeCounts([]);
+    expect(out.total).toBe(0);
+    expect(out.overdue).toBe(0);
+    expect(Object.values(out.byStatus).every((n) => n === 0)).toBe(true);
+    expect(Object.keys(out.byStatus)).toEqual([...CASE_STATUSES]);
   });
 });

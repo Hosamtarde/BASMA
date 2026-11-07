@@ -1845,23 +1845,6 @@
         "operationId": "CasesController_list",
         "parameters": [
           {
-            "name": "status",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "waiting",
-                "design",
-                "in_progress",
-                "ready",
-                "delivered",
-                "returned",
-                "cancelled"
-              ]
-            }
-          },
-          {
             "name": "doctorId",
             "required": false,
             "in": "query",
@@ -1904,6 +1887,23 @@
             "description": "Received date to (inclusive)",
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "waiting",
+                "design",
+                "in_progress",
+                "ready",
+                "delivered",
+                "returned",
+                "cancelled"
+              ]
             }
           },
           {
@@ -2001,6 +2001,79 @@
           }
         ],
         "summary": "Create a case; numbers and prices are assigned by the server",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/v1/cases/summary": {
+      "get": {
+        "operationId": "CasesController_summary",
+        "parameters": [
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "overdue",
+            "required": false,
+            "in": "query",
+            "description": "Expected date before the lab’s today and still in the lab",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Patient name (contains) or exact case number",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Received date from (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Received date to (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseCountsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cases per status and overdue, in one snapshot; same filters as the list except status",
         "tags": [
           "cases"
         ]
@@ -3598,6 +3671,62 @@
           "pageSize",
           "total",
           "items"
+        ]
+      },
+      "CaseStatusCounts": {
+        "type": "object",
+        "properties": {
+          "waiting": {
+            "type": "number"
+          },
+          "design": {
+            "type": "number"
+          },
+          "in_progress": {
+            "type": "number"
+          },
+          "ready": {
+            "type": "number"
+          },
+          "delivered": {
+            "type": "number"
+          },
+          "returned": {
+            "type": "number"
+          },
+          "cancelled": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "waiting",
+          "design",
+          "in_progress",
+          "ready",
+          "delivered",
+          "returned",
+          "cancelled"
+        ]
+      },
+      "CaseCountsResponse": {
+        "type": "object",
+        "properties": {
+          "byStatus": {
+            "$ref": "#/components/schemas/CaseStatusCounts"
+          },
+          "total": {
+            "type": "number",
+            "description": "All matching cases (sum of byStatus)"
+          },
+          "overdue": {
+            "type": "number",
+            "description": "Matching cases that are overdue (lab’s today, same rule as the list)"
+          }
+        },
+        "required": [
+          "byStatus",
+          "total",
+          "overdue"
         ]
       },
       "CaseLineInput": {

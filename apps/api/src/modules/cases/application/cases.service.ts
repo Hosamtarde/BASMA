@@ -11,6 +11,7 @@ import {
   Area,
   canCancel,
   canEdit,
+  CaseCounts,
   CaseStatus,
   checkTransition,
   DEFAULT_INITIAL_STATUS,
@@ -18,10 +19,12 @@ import {
   MAX_LINES_PER_CASE,
   resolvePrice,
   subtotalOf,
+  summarizeCounts,
   totalOf,
 } from '../domain/case-rules';
 import {
   CaseChanges,
+  CaseFilter,
   CaseItemRow,
   CaseListQuery,
   CaseRow,
@@ -95,6 +98,12 @@ export class CasesService {
       pageSize: q.pageSize,
       total,
     };
+  }
+
+  /** Cases per status and overdue, one snapshot, same filters and lab-today rule as the list. */
+  async counts(filter: CaseFilter): Promise<CaseCounts> {
+    const today = await this.calendar.today();
+    return summarizeCounts(await this.repo.countByStatus(this.db, filter, today));
   }
 
   async get(id: number): Promise<CaseDetail> {

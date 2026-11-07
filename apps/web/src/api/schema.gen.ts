@@ -447,6 +447,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cases/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cases per status and overdue, in one snapshot; same filters as the list except status */
+        get: operations["CasesController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cases/{id}": {
         parameters: {
             query?: never;
@@ -904,6 +921,22 @@ export interface components {
             pageSize: number;
             total: number;
             items: components["schemas"]["CaseSummaryResponse"][];
+        };
+        CaseStatusCounts: {
+            waiting: number;
+            design: number;
+            in_progress: number;
+            ready: number;
+            delivered: number;
+            returned: number;
+            cancelled: number;
+        };
+        CaseCountsResponse: {
+            byStatus: components["schemas"]["CaseStatusCounts"];
+            /** @description All matching cases (sum of byStatus) */
+            total: number;
+            /** @description Matching cases that are overdue (lab’s today, same rule as the list) */
+            overdue: number;
         };
         CaseLineInput: {
             /**
@@ -2339,7 +2372,6 @@ export interface operations {
     CasesController_list: {
         parameters: {
             query?: {
-                status?: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled";
                 doctorId?: number;
                 /** @description Expected date before the lab’s today and still in the lab */
                 overdue?: boolean;
@@ -2349,6 +2381,7 @@ export interface operations {
                 from?: string;
                 /** @description Received date to (inclusive) */
                 to?: string;
+                status?: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled";
                 page?: number;
                 pageSize?: number;
             };
@@ -2405,6 +2438,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    CasesController_summary: {
+        parameters: {
+            query?: {
+                doctorId?: number;
+                /** @description Expected date before the lab’s today and still in the lab */
+                overdue?: boolean;
+                /** @description Patient name (contains) or exact case number */
+                search?: string;
+                /** @description Received date from (inclusive) */
+                from?: string;
+                /** @description Received date to (inclusive) */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseCountsResponse"];
                 };
             };
         };
