@@ -3,6 +3,7 @@ import eslint from '@eslint/js';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
+import local from './eslint-rules/no-literal-text.js';
 
 export default tseslint.config(
   { ignores: ['dist/**', 'coverage/**', 'playwright-report/**', 'test-results/**', 'src/api/schema.gen.ts'] },
@@ -13,7 +14,7 @@ export default tseslint.config(
   {
     languageOptions: {
       parserOptions: {
-        projectService: { allowDefaultProject: ['eslint.config.js'] },
+        projectService: { allowDefaultProject: ['eslint.config.js', 'eslint-rules/*.js'] },
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -41,7 +42,14 @@ export default tseslint.config(
       '@typescript-eslint/unbound-method': 'off',
     },
   },
-  { files: ['eslint.config.js'], ...tseslint.configs.disableTypeChecked },
+  { files: ['eslint.config.js', 'eslint-rules/**/*.js'], ...tseslint.configs.disableTypeChecked },
+  {
+    // SPEC §6.1: every user-facing string comes from the ar/en catalogs.
+    files: ['src/**/*.tsx'],
+    ignores: ['src/**/*.test.tsx'],
+    plugins: { local },
+    rules: { 'local/no-literal-text': 'error' },
+  },
   {
     files: ['scripts/**/*.ts'],
     rules: { 'no-console': 'off' },

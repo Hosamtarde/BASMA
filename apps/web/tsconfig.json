@@ -14,10 +14,11 @@
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
+    "allowJs": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src", "e2e", "scripts", "vite.config.ts", "playwright.config.ts"]
+  "include": ["src", "e2e", "scripts", "eslint-rules", "vite.config.ts", "playwright.config.ts"]
 }

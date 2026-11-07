@@ -1,0 +1,133 @@
+{
+  "app": {
+    "vendorCredit": "Powered by Smile Artec Dental Laboratory"
+  },
+  "common": {
+    "loading": "Loading…",
+    "retry": "Try again",
+    "reload": "Reload",
+    "close": "Close",
+    "copy": "Copy",
+    "copied": "Copied",
+    "backHome": "Back to Home",
+    "optional": "Optional",
+    "requiredMark": "required",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
+  },
+  "language": {
+    "name": {
+      "ar": "العربية",
+      "en": "English"
+    },
+    "switchTo": {
+      "ar": "Change the language to Arabic",
+      "en": "Change the language to English"
+    }
+  },
+  "shell": {
+    "sidebar": "Sidebar",
+    "mainNav": "Main menu",
+    "skipToContent": "Skip to content",
+    "logoAlt": "Lab logo",
+    "userMenu": "User menu: {{name}}",
+    "changePassword": "Change password",
+    "logout": "Sign out"
+  },
+  "nav": {
+    "home": "Home"
+  },
+  "home": {
+    "title": "Home",
+    "welcome": "Welcome to {{product}}",
+    "today": "Today"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "intro": "Enter your username and password to continue.",
+      "username": "Username",
+      "password": "Password",
+      "submit": "Sign in",
+      "submitting": "Signing in…"
+    },
+    "password": {
+      "title": "Change password",
+      "forcedIntro": "For the safety of your account, choose a new password before you continue.",
+      "intro": "Saving signs out every open session of this account.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm the new password",
+      "submit": "Save password",
+      "submitting": "Saving…",
+      "done": "Your password has been changed.",
+      "hint_one": "At least {{count}} character.",
+      "hint_other": "At least {{count}} characters."
+    },
+    "sessionExpired": "Your session has ended. Please sign in again."
+  },
+  "setup": {
+    "title": "First-time setup",
+    "intro": "Enter the owner account and the lab details. You can edit the lab details later in Settings.",
+    "account": "Owner account",
+    "lab": "Lab details",
+    "currency": "Currency",
+    "preferences": "Language and time zone",
+    "username": "Username",
+    "usernameHint": "Letters, digits and . _ - only, no spaces.",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "nameAr": "Lab name in Arabic",
+    "nameEn": "Lab name in English",
+    "nameHint": "Enter the name in Arabic, in English, or both.",
+    "phone": "Phone",
+    "address": "Address",
+    "currencyCode": "Currency code",
+    "currencySymbol": "Currency symbol",
+    "decimals": "Decimal places",
+    "currencyHint": "Once any amount is recorded, the currency code and decimal places can no longer change.",
+    "language": "Language of the program and documents",
+    "timeZone": "Time zone",
+    "timeZoneHint": "Used to decide the lab's today.",
+    "submit": "Create the account and start",
+    "submitting": "Setting up…",
+    "done": "Setup is complete. Welcome!"
+  },
+  "validation": {
+    "required": "This field is required.",
+    "minLength_one": "At least {{count}} character.",
+    "minLength_other": "At least {{count}} characters.",
+    "maxLength": "The text is too long (limit {{max}}).",
+    "usernameFormat": "Letters, digits and . _ - only, no spaces.",
+    "passwordsMismatch": "The passwords do not match.",
+    "phoneFormat": "Digits, spaces and + - ( ) only.",
+    "labNameRequired": "Enter the lab name in Arabic or in English.",
+    "decimalsRange": "Choose a number from 0 to 3.",
+    "timeZone": "Enter a valid time zone, e.g. Asia/Hebron.",
+    "invalid": "This value is not valid."
+  },
+  "errors": {
+    "network": {
+      "title": "Cannot reach the program",
+      "body": "Make sure the program's service is running on this computer, then try again."
+    },
+    "forbidden": {
+      "title": "You do not have access to this page",
+      "body": "Ask the account owner to give you the right permission."
+    },
+    "notFound": {
+      "title": "Page not found",
+      "body": "It may have moved or been removed, or the link is wrong."
+    },
+    "stale": {
+      "title": "The data changed somewhere else",
+      "body": "This data was changed in another window. Reload it, then try again."
+    },
+    "route": {
+      "title": "This page could not be shown",
+      "body": "Something unexpected happened. Reload the page; if it happens again, send the reference number to support."
+    },
+    "correlation": "Reference: {{id}}",
+    "unexpected": "Something unexpected happened."
+  }
+}

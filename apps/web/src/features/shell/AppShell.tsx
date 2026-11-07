@@ -15,7 +15,7 @@ interface AppShellProps {
   nav: NavItem[];
   /** Pinned to the bottom of the sidebar (e.g. settings, once its slice ships). */
   navBottom?: NavItem[];
-  /** Right-hand items of the top bar in LTR / left-hand in RTL: language switch, user menu. */
+  /** Items at the end of the top bar: language switch, user menu. */
   topBarEnd: ReactNode;
   labels: { sidebar: string; mainNav: string; skipToContent: string };
   children: ReactNode;
