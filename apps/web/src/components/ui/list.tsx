@@ -2,37 +2,58 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router';
 import { formatNumber } from '@/i18n/format';
 import { currentLanguage } from '@/i18n/i18n';
 import { cn } from '@/lib/cn';
+import { useUrlState } from '@/lib/url-state';
 import { Button } from './button';
 
 export type StatusFilter = 'active' | 'inactive' | 'all';
 
-/** List state lives in the URL (search, status, page) so reload and back/forward keep it. */
+const STATUSES: readonly StatusFilter[] = ['active', 'inactive', 'all'];
+
+interface ListState {
+  q: string;
+  status: StatusFilter;
+  page: number;
+}
+
+function parseList(params: URLSearchParams, defaultStatus: StatusFilter): ListState {
+  const raw = params.get('status') as StatusFilter | null;
+  return {
+    q: params.get('q') ?? '',
+    status: raw && STATUSES.includes(raw) ? raw : defaultStatus,
+    page: Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1),
+  };
+}
+
+/** Only meaningful values reach the address: no empty search, no default status, no page 1. */
+function serializeList(state: ListState, defaultStatus: StatusFilter): URLSearchParams {
+  const out = new URLSearchParams();
+  if (state.q.trim() !== '') out.set('q', state.q.trim());
+  if (state.status !== defaultStatus) out.set('status', state.status);
+  if (state.page > 1) out.set('page', String(state.page));
+  return out;
+}
+
+/**
+ * List state in the URL (search, status, page) so reload, back/forward and shared links keep it,
+ * through useUrlState: the controls answer at once and quick successive changes never overwrite
+ * each other. A new search or filter starts again on page 1.
+ */
 export function useListParams(defaultStatus: StatusFilter = 'active') {
-  const [params, setParams] = useSearchParams();
-  const raw = params.get('status');
-  const status: StatusFilter = raw === 'active' || raw === 'inactive' || raw === 'all' ? raw : defaultStatus;
-  const page = Math.max(1, Number.parseInt(params.get('page') ?? '1', 10) || 1);
-  const search = params.get('q') ?? '';
+  const [state, setState] = useUrlState(
+    (p) => parseList(p, defaultStatus),
+    (s) => serializeList(s, defaultStatus),
+  );
   const update = (patch: { q?: string; status?: StatusFilter; page?: number }) =>
-    setParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        for (const [k, v] of Object.entries(patch)) {
-          if (v === undefined || v === '' || (k === 'page' && v === 1)) next.delete(k);
-          else next.set(k, String(v));
-        }
-        // A new search or filter starts again on page 1.
-        if (patch.q !== undefined || patch.status !== undefined) next.delete('page');
-        return next;
-      },
-      { replace: true },
-    );
-  const active = status === 'all' ? undefined : status === 'active';
-  return { search, status, page, active, update };
+    setState((prev) => ({
+      q: patch.q ?? prev.q,
+      status: patch.status ?? prev.status,
+      page: patch.page ?? (patch.q !== undefined || patch.status !== undefined ? 1 : prev.page),
+    }));
+  const active = state.status === 'all' ? undefined : state.status === 'active';
+  return { search: state.q, status: state.status, page: state.page, active, update };
 }
 
 /** Same API as useListParams, kept in component state (for lists inside dialogs). */
@@ -59,6 +80,12 @@ export function SearchBox({
   label: string;
 }) {
   const [text, setText] = useState(value);
+  // Follow a value changed from outside (back/forward, «clear filters»), not our own echo.
+  const [seen, setSeen] = useState(value);
+  if (value !== seen) {
+    setSeen(value);
+    if (value !== text.trim()) setText(value);
+  }
   useEffect(() => {
     const handle = setTimeout(() => {
       if (text.trim() !== value) onChange(text.trim());
