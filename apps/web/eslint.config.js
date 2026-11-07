@@ -46,7 +46,7 @@ export default tseslint.config(
   {
     // SPEC §6.1: every user-facing string comes from the ar/en catalogs.
     files: ['src/**/*.tsx'],
-    ignores: ['src/**/*.test.tsx'],
+    ignores: ['src/**/*.test.tsx', 'src/test/**'],
     plugins: { local },
     rules: { 'local/no-literal-text': 'error' },
   },

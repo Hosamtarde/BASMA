@@ -24,6 +24,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [formError, setFormError] = useState<string | null>(null);
+  const [signedInOnArrival] = useState(() => session.isAuthenticated());
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: { username: '', password: '' },
@@ -44,7 +45,8 @@ export function LoginPage() {
     },
   });
 
-  if (session.isAuthenticated()) return <Navigate to="/" replace />;
+  // Already signed in when the page opened (not the sign-in that just happened here).
+  if (signedInOnArrival) return <Navigate to="/" replace />;
 
   return (
     <AuthLayout title={t('auth.login.title')} intro={t('auth.login.intro')}>

@@ -12,7 +12,8 @@
     "test": "vitest run",
     "i18n:check": "node --disable-warning=ExperimentalWarning scripts/check-i18n.ts",
     "rtl:check": "node --disable-warning=ExperimentalWarning scripts/check-rtl.ts",
-    "api:generate": "openapi-typescript ../api/openapi.json --output src/api/schema.gen.ts"
+    "api:generate": "openapi-typescript ../api/openapi.json --output src/api/schema.gen.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@app/shared": "*",

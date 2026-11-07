@@ -20,14 +20,15 @@ const controlClass =
 function FieldShell({ id, label, hint, error, required, children }: FieldShellProps) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <label htmlFor={id} className="text-[14px] font-bold">
-        {label}
+      {/* The star sits beside the label so label text = accessible name (aria-required says it). */}
+      <div className="flex items-baseline gap-1 text-[14px] font-bold">
+        <label htmlFor={id}>{label}</label>
         {required && (
-          <span aria-hidden="true" className="ms-1 text-danger">
+          <span aria-hidden="true" className="text-danger">
             *
           </span>
         )}
-      </label>
+      </div>
       {children}
       {error ? (
         <p id={`${id}-error`} className="text-[13px] font-semibold text-danger">

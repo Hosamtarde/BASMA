@@ -26,7 +26,7 @@ export function LanguageSwitch() {
     >
       <Globe aria-hidden="true" />
       {/* WCAG 2.5.3: the accessible name starts with the visible text. */}
-      <span lang={target}>{t(`language.name.${target}`)}</span>
+      <span lang={target}>{t(`language.name.${target}`)}</span>{' '}
       <span className="sr-only">{t(`language.switchTo.${target}`)}</span>
     </Button>
   );

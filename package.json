@@ -20,6 +20,7 @@
     "test": "npm run test --workspaces --if-present",
     "test:integration": "npm run test:integration -w apps/api",
     "test:e2e": "npm run test:e2e -w apps/api",
+    "test:e2e:web": "npm run build && npm run e2e -w apps/web",
     "i18n:check": "npm run i18n:check --workspaces --if-present",
     "rtl:check": "npm run rtl:check -w apps/web",
     "openapi:export": "npm run openapi:export -w apps/api",
