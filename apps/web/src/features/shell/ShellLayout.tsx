@@ -1,5 +1,5 @@
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { House, Settings as SettingsIcon, Stethoscope } from 'lucide-react';
+import { ClipboardList, FilePlus2, House, Settings as SettingsIcon, Stethoscope } from 'lucide-react';
 import { useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet } from 'react-router';
@@ -14,7 +14,7 @@ import { UserMenu } from './UserMenu';
 
 /**
  * Signed-in layout. Sidebar items appear only when their slice ships (no dead items, SPEC §3.2):
- * F1: Home, Doctors and Settings (with the catalog lists); cases arrive with F2.
+ * F1: Home, Doctors and Settings (with the catalog lists). F2: New case and Cases.
  */
 export function ShellLayout() {
   const { t } = useTranslation();
@@ -42,6 +42,13 @@ export function ShellLayout() {
 
   const nav: NavItem[] = [
     { to: '/', label: t('nav.home'), icon: <House aria-hidden="true" />, end: true },
+    { to: '/cases/new', label: t('nav.newCase'), icon: <FilePlus2 aria-hidden="true" /> },
+    {
+      to: '/cases',
+      label: t('nav.cases'),
+      icon: <ClipboardList aria-hidden="true" />,
+      except: ['/cases/new'],
+    },
     { to: '/doctors', label: t('nav.doctors'), icon: <Stethoscope aria-hidden="true" /> },
   ];
   const navBottom: NavItem[] = [

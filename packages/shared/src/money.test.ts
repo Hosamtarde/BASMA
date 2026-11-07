@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { formatMoney, MAX_AMOUNT_MINOR, parseMoney, toMoneyInput } from './money.ts';
+import { formatMoney, MAX_AMOUNT_MINOR, parseMoney, sumMinor, toMoneyInput } from './money.ts';
 
 describe('parseMoney', () => {
   it('reads whole and decimal amounts into minor units', () => {
@@ -87,5 +87,18 @@ describe('formatMoney / toMoneyInput', () => {
   it('refuses non-integer amounts (a float slipped in somewhere)', () => {
     assert.throws(() => formatMoney(12.5, 2), RangeError);
     assert.throws(() => toMoneyInput(Number.NaN, 2), RangeError);
+  });
+});
+
+describe('sumMinor', () => {
+  it('adds and subtracts integer minor units exactly', () => {
+    assert.equal(sumMinor([]), 0);
+    assert.equal(sumMinor([10, 20, 29]), 59);
+    assert.equal(sumMinor([12000, 12000, -500]), 23500);
+  });
+
+  it('refuses fractions and out-of-range sums instead of losing precision', () => {
+    assert.throws(() => sumMinor([0.1, 0.2]), RangeError);
+    assert.throws(() => sumMinor([Number.MAX_SAFE_INTEGER, 1]), RangeError);
   });
 });

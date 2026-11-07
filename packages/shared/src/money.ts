@@ -80,3 +80,17 @@ export function toMoneyInput(minor: number, decimals: number): string {
   const { negative, whole, fraction } = split(minor, decimals);
   return `${negative ? '-' : ''}${whole.toString()}${fraction ? `.${fraction}` : ''}`;
 }
+
+/**
+ * Sum of amounts in minor units (e.g. a preview subtotal of case lines). Every term and the result
+ * must be safe integers, so the sum is exact; a subtraction is a negative term.
+ */
+export function sumMinor(values: readonly number[]): number {
+  let total = 0;
+  for (const v of values) {
+    if (!Number.isSafeInteger(v)) throw new RangeError(`money must be an integer in minor units, got ${v}`);
+    total += v;
+    if (!Number.isSafeInteger(total)) throw new RangeError('money sum is out of range');
+  }
+  return total;
+}

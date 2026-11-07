@@ -25,12 +25,15 @@ export async function expectDirection(page: Page, lang: 'ar' | 'en'): Promise<vo
   await expect(page.locator('html')).toHaveAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
 }
 
-/** Saves a full-page screenshot for the slice report when E2E_SHOTS_DIR is set (never in CI). */
-export async function shot(page: Page, name: string): Promise<void> {
+/**
+ * Saves a screenshot for the slice report when E2E_SHOTS_DIR is set (never in CI): the full page,
+ * or only the viewport for screens with sticky parts (they would land mid-page in a full capture).
+ */
+export async function shot(page: Page, name: string, opts: { fullPage?: boolean } = {}): Promise<void> {
   const dir = process.env.E2E_SHOTS_DIR;
   if (!dir) return;
   await page.waitForTimeout(250);
-  await page.screenshot({ path: `${dir}/${name}.png`, fullPage: true });
+  await page.screenshot({ path: `${dir}/${name}.png`, fullPage: opts.fullPage ?? true });
 }
 
 export const AR = { user: 'اسم المستخدم', pass: 'كلمة المرور', submit: 'دخول' };

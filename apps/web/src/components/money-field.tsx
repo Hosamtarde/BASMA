@@ -13,6 +13,9 @@ const MESSAGE: Record<MoneyParseError, (decimals: number) => string> = {
   tooLarge: () => msg('validation.moneyTooLarge'),
 };
 
+/** Catalog message (as a msg() key) for a money text that does not parse. */
+export const moneyErrorMessage = (error: MoneyParseError, decimals: number): string => MESSAGE[error](decimals);
+
 /**
  * Zod field for a money text box: valid when it parses to integer minor units for the
  * currency's decimals (packages/shared, no floats). Transforms to minor units.

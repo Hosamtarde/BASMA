@@ -16,8 +16,8 @@ interface FormDialogProps {
   title: string;
   description?: string;
   children: ReactNode;
-  /** Wider dialog (e.g. the work-types manager inside the case form, F2). */
-  wide?: boolean;
+  /** Wider dialog (e.g. the work-types manager inside the case form, F2), or almost full screen. */
+  wide?: boolean | 'full';
 }
 
 /** Modal with a title, Esc/overlay to close and focus kept inside (Radix). */
@@ -35,9 +35,21 @@ export function FormDialog({
       <Dialog.Portal>
         <Dialog.Overlay className={overlay} />
         <Dialog.Content
-          className={cn(panel, wide ? 'w-[min(960px,calc(100vw-32px))]' : 'w-[min(560px,calc(100vw-32px))]')}
+          className={cn(
+            panel,
+            wide === 'full'
+              ? 'h-[calc(100dvh-32px)] w-[calc(100vw-32px)]'
+              : wide
+                ? 'w-[min(960px,calc(100vw-32px))]'
+                : 'w-[min(560px,calc(100vw-32px))]',
+          )}
         >
-          <div className="flex items-start gap-3 border-b border-border px-6 pt-5 pb-4">
+          <div
+            className={cn(
+              'flex items-start gap-3 border-b border-border',
+              wide === 'full' ? 'px-5 pt-3 pb-2' : 'px-6 pt-5 pb-4',
+            )}
+          >
             <div className="min-w-0 flex-1">
               <Dialog.Title className="text-[19px] font-extrabold">{title}</Dialog.Title>
               {description ? (
@@ -52,7 +64,9 @@ export function FormDialog({
               </Button>
             </Dialog.Close>
           </div>
-          <div className="overflow-y-auto px-6 py-5">{children}</div>
+          <div className={cn('overflow-y-auto', wide === 'full' ? 'flex min-h-0 flex-1 flex-col px-5 py-3' : 'px-6 py-5')}>
+            {children}
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

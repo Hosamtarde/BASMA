@@ -3,6 +3,9 @@ import { createBrowserRouter } from 'react-router';
 import type { RouteObject } from 'react-router';
 import { ChangePasswordPage } from '@/features/auth/ChangePasswordPage';
 import { LoginPage } from '@/features/auth/LoginPage';
+import { CaseDetailsPage } from '@/features/cases/CaseDetailsPage';
+import { CasesPage } from '@/features/cases/CasesPage';
+import { NewCasePage } from '@/features/cases/NewCasePage';
 import { DoctorInfoTab, DoctorPage, DoctorPricesTab } from '@/features/doctors/DoctorPage';
 import { DoctorsPage } from '@/features/doctors/DoctorsPage';
 import { HomePage } from '@/features/home/HomePage';
@@ -42,6 +45,9 @@ export const routes: RouteObject[] = [
                 errorElement: <RouteError />,
                 children: [
                   { index: true, element: <HomePage />, errorElement: <RouteError /> },
+                  { path: 'cases', element: <CasesPage />, errorElement: <RouteError /> },
+                  { path: 'cases/new', element: <NewCasePage />, errorElement: <RouteError /> },
+                  { path: 'cases/:id', element: <CaseDetailsPage />, errorElement: <RouteError /> },
                   { path: 'doctors', element: <DoctorsPage />, errorElement: <RouteError /> },
                   {
                     path: 'doctors/:id',
