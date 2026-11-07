@@ -59,7 +59,9 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
   await expectLetterSpacedLatin(subtitle);
   await expect(banner(page).locator('[data-banner-mark]')).toBeVisible();
   await expect(banner(page).getByRole('img')).toHaveCount(0);
-  await expect(banner(page)).not.toContainText('DentalLab');
+  await expect(banner(page)).not.toContainText('بسمة');
+  await expect(banner(page)).not.toContainText('Basma');
+  await expect(banner(page).locator('[data-product-logo]')).toHaveCount(0);
   const heightWithoutLogo = await bannerHeight(page);
   expect(heightWithoutLogo).toBeGreaterThanOrEqual(180);
 

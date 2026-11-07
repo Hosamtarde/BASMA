@@ -4,7 +4,7 @@ Items to decide or build before selling the product to other labs (SPEC §2.4). 
 
 | # | Task | Notes |
 |---|---|---|
-| 1 | Final product name | Replace the `PRODUCT_NAME` placeholder (one constant); check trademark and domain |
+| 1 | Product name «Basma» (بسمة) | Name decided (`PRODUCT_NAME` + `app.productName`); still check trademark and domain before sale |
 | 2 | Code signing | Sign the installer and binaries (avoids SmartScreen warnings) |
 | 3 | Licensing / activation | Implement behind the `LicenseService` seam (ADR-0013); subscription model to be decided |
 | 4 | Update distribution | v1 = manual installer upgrade; later signed update packages + in-app update check |
@@ -30,7 +30,7 @@ Items to decide or build before selling the product to other labs (SPEC §2.4). 
 
 | # | Decision | Notes |
 |---|---|---|
-| D1 | Final product name | Name of the `generic` edition; replaces the `{{PRODUCT_NAME}}` placeholder (same item as #1) |
+| D1 | Final product name | Decided: «Basma» (بسمة) for the `generic` edition; trademark/domain check still open (same item as #1) |
 | D2 | Licensing terms for resale | What a buying lab may do (installs per licence, term, support, transfer) |
 | D3 | Written ownership / resale agreement with Ibrahim Al-Tarda | Who owns the code and the `generic` edition, and the right to resell it; needed before the first sale |
 | D4 | Licence-key or activation approach | Deferred; implement behind the `LicenseService` seam (ADR-0013, same item as #3) |

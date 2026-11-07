@@ -1,4 +1,4 @@
-# Dental Lab Management System (product name TBD) — by Smile Artec Dental Laboratory
+# Basma (بسمة) — dental lab management system, by Smile Artec Dental Laboratory
 
 Backend-first (NestJS + PostgreSQL), shipped as a Windows installer. Start here:
 1. `CLAUDE.md` (working rules) → 2. `ENGINEERING_STANDARDS.md` → 3. `SPEC.md` → `docs/00-assessment.md` and `docs/adr/`.

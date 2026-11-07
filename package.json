@@ -1,7 +1,7 @@
 {
   "name": "dental-lab-system",
   "private": true,
-  "description": "Dental lab management system (product name TBD) — built by Smile Artec Dental Laboratory",
+  "description": "Basma — dental lab management system, built by Smile Artec Dental Laboratory",
   "workspaces": [
     "packages/shared",
     "apps/api",

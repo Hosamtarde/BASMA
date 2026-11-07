@@ -88,7 +88,8 @@ test('Home before the first case: a friendly empty state with a button to add th
   // No logo: the brand mark holds its place; no product name in the banner.
   const banner = page.getByRole('region', { name: LAB_AR });
   await expect(banner.locator('[data-banner-mark]')).toBeVisible();
-  await expect(banner).not.toContainText('DentalLab');
+  await expect(banner).not.toContainText('بسمة');
+  await expect(banner).not.toContainText('Basma');
   // The action cards are there: two links, five «قريباً».
   const cards = page.getByRole('region', { name: 'ماذا تريد أن تسجّل؟' });
   await expect(cards.locator('a[href]')).toHaveCount(2);
