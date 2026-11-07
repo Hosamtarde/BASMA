@@ -552,12 +552,12 @@ export interface components {
         };
         SetupLabProfile: {
             /** @example مختبر الأسنان */
-            nameAr?: Record<string, never> | null;
+            nameAr?: string | null;
             /** @example Dental Lab */
-            nameEn?: Record<string, never> | null;
+            nameEn?: string | null;
             /** @example 02 222 3333 */
             phone: string;
-            address?: Record<string, never> | null;
+            address?: string | null;
         };
         CurrencyInput: {
             /**
@@ -738,9 +738,9 @@ export interface components {
         CreateDoctorRequest: {
             /** @example د. أحمد سالم */
             name: string;
-            phone?: Record<string, never> | null;
-            clinic?: Record<string, never> | null;
-            notes?: Record<string, never> | null;
+            phone?: string | null;
+            clinic?: string | null;
+            notes?: string | null;
             /**
              * @description Signed, integer minor units: > 0 the doctor owes the lab, < 0 the lab owes the doctor
              * @default 0
@@ -752,9 +752,9 @@ export interface components {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
             rowVersion: number;
             name?: string;
-            phone?: Record<string, never> | null;
-            clinic?: Record<string, never> | null;
-            notes?: Record<string, never> | null;
+            phone?: string | null;
+            clinic?: string | null;
+            notes?: string | null;
             /**
              * @description Signed, integer minor units: > 0 the doctor owes the lab, < 0 the lab owes the doctor
              * @example 0
@@ -842,11 +842,11 @@ export interface components {
         };
         UpdateLabProfileRequest: {
             /** @example مختبر الأسنان */
-            nameAr?: Record<string, never> | null;
+            nameAr?: string | null;
             /** @example Dental Lab */
-            nameEn?: Record<string, never> | null;
-            phone?: Record<string, never> | null;
-            address?: Record<string, never> | null;
+            nameEn?: string | null;
+            phone?: string | null;
+            address?: string | null;
             rowVersion: number;
             /** @example Asia/Hebron */
             timeZone?: string;
@@ -918,15 +918,15 @@ export interface components {
             area?: "upper_arch" | "lower_arch" | "both_arches" | "none";
             workTypeId: number;
             /** @example A2 */
-            shade?: Record<string, never> | null;
+            shade?: string | null;
             /** @description Manual price override; omit to use special/general price */
             unitPrice?: number;
-            note?: Record<string, never> | null;
+            note?: string | null;
         };
         CreateCaseRequest: {
             doctorId: number;
             patientName: string;
-            technicianId?: Record<string, never> | null;
+            technicianId?: number | null;
             /**
              * @description Default: today (lab time zone); never in the future
              * @example 2026-11-06
@@ -944,7 +944,7 @@ export interface components {
              * @default 0
              */
             discount: number;
-            notes?: Record<string, never> | null;
+            notes?: string | null;
             lines: components["schemas"]["CaseLineInput"][];
         };
         CaseLineResponse: {
@@ -1006,12 +1006,12 @@ export interface components {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
             rowVersion: number;
             patientName?: string;
-            technicianId?: Record<string, never> | null;
+            technicianId?: number | null;
             receivedDate?: string;
             expectedDate?: string;
             /** @description Integer minor units */
             discount?: number;
-            notes?: Record<string, never> | null;
+            notes?: string | null;
         };
         AddCaseLinesRequest: {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
@@ -1023,8 +1023,8 @@ export interface components {
             rowVersion: number;
             /** @description Sets a manual price (price source becomes manual) */
             unitPrice?: number;
-            shade?: Record<string, never> | null;
-            note?: Record<string, never> | null;
+            shade?: string | null;
+            note?: string | null;
         };
         ChangeCaseStatusRequest: {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
@@ -1034,14 +1034,14 @@ export interface components {
              * @enum {string}
              */
             to: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned";
-            note?: Record<string, never> | null;
+            note?: string | null;
             /** @description Only with to=delivered; default today; ≥ received, ≤ today */
             deliveredDate?: string;
         };
         CancelCaseRequest: {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
             rowVersion: number;
-            reason?: Record<string, never> | null;
+            reason?: string | null;
         };
         FieldError: {
             /**
