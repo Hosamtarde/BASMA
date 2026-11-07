@@ -265,7 +265,7 @@ export function NewCasePage() {
       onArchWork={addForArea}
       onExpand={!expanded && short ? () => setExpandOpen(true) : undefined}
       expanded={expanded}
-      className="h-full"
+      className={expanded ? 'h-full min-h-0 flex-1 border-0 p-0' : 'h-full'}
     />
   );
 

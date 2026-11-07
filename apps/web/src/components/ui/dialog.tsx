@@ -44,7 +44,12 @@ export function FormDialog({
                 : 'w-[min(560px,calc(100vw-32px))]',
           )}
         >
-          <div className="flex items-start gap-3 border-b border-border px-6 pt-5 pb-4">
+          <div
+            className={cn(
+              'flex items-start gap-3 border-b border-border',
+              wide === 'full' ? 'px-5 pt-3 pb-2' : 'px-6 pt-5 pb-4',
+            )}
+          >
             <div className="min-w-0 flex-1">
               <Dialog.Title className="text-[19px] font-extrabold">{title}</Dialog.Title>
               {description ? (
@@ -59,7 +64,7 @@ export function FormDialog({
               </Button>
             </Dialog.Close>
           </div>
-          <div className={cn('overflow-y-auto px-6 py-5', wide === 'full' && 'flex min-h-0 flex-1 flex-col')}>
+          <div className={cn('overflow-y-auto', wide === 'full' ? 'flex min-h-0 flex-1 flex-col px-5 py-3' : 'px-6 py-5')}>
             {children}
           </div>
         </Dialog.Content>

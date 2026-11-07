@@ -249,14 +249,16 @@ export function ToothChartSvg({ view, selection, onToggle, work, disabledTeeth, 
   );
 }
 
-function ToolGroup({ title, children }: { title: string; children: ReactNode }) {
+const COLS = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3' } as const;
+
+function ToolGroup({ title, children, cols = 2 }: { title: string; children: ReactNode; cols?: 1 | 2 | 3 }) {
   const id = useId();
   return (
     <div role="group" aria-labelledby={id} className="flex flex-col gap-1.5">
       <span id={id} className="text-[12.5px] font-bold text-muted">
         {title}
       </span>
-      <div className="grid grid-cols-2 gap-1.5">{children}</div>
+      <div className={cn('grid gap-1.5', COLS[cols])}>{children}</div>
     </div>
   );
 }
@@ -308,8 +310,8 @@ export function ToothChartPanel({
   }, [chipFocus, selection]);
 
   const tools = (
-    <div className={cn('flex gap-3', view === 'mouth' ? 'flex-col' : 'flex-row flex-wrap items-start')}>
-      <ToolGroup title={t('chart.selection')}>
+    <div className={cn('flex gap-3', view === 'mouth' ? 'flex-col' : 'flex-row flex-wrap items-start gap-x-4 gap-y-2')}>
+      <ToolGroup title={t('chart.selection')} cols={view === 'mouth' ? 2 : 1}>
         <Button variant="secondary" className={toolButton} onClick={() => dispatch({ type: 'all' })}>
           {t('chart.selectAll')}
         </Button>
@@ -331,7 +333,7 @@ export function ToothChartPanel({
         ))}
       </ToolGroup>
       {onArchWork && (
-        <ToolGroup title={t('chart.wholeArch')}>
+        <ToolGroup title={t('chart.wholeArch')} cols={view === 'mouth' ? 2 : 3}>
           {CASE_AREAS.map((area) => (
             <Button
               key={area}
@@ -420,7 +422,7 @@ export function ToothChartPanel({
       data-testid="tooth-chart-panel"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <h2 id={titleId} className="text-[17px] font-extrabold">
+        <h2 id={titleId} className={cn('text-[17px] font-extrabold', expanded && 'sr-only')}>
           {t('chart.title')}
         </h2>
         <span className="flex-1" />
@@ -457,8 +459,8 @@ export function ToothChartPanel({
         </div>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <div className="min-h-[140px] flex-1">{chart}</div>
-          <div className="flex max-h-[45%] flex-col gap-2 overflow-y-auto">
+          <div className="min-h-[120px] flex-1">{chart}</div>
+          <div className="flex max-h-[38%] shrink-0 flex-col gap-2 overflow-y-auto">
             {tools}
             {chips}
           </div>

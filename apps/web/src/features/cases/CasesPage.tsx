@@ -187,7 +187,7 @@ export function CasesPage() {
               <td className="py-2!">
                 <StatusBadge status={c.status} />
               </td>
-              <td className={cn('num py-2! text-end font-bold', c.status === 'cancelled' && 'text-muted line-through')}>
+              <td className={cn('num py-2! text-end font-bold whitespace-nowrap', c.status === 'cancelled' && 'text-muted line-through')}>
                 {currency.format(c.total)} {currency.symbol}
               </td>
             </tr>

@@ -50,7 +50,6 @@ export function DraftLinesTable({
         <>
           <th scope="col">{t('newCase.position')}</th>
           <th scope="col">{t('newCase.workType')}</th>
-          <th scope="col">{t('shade.field')}</th>
           <th scope="col">{t('newCase.price')}</th>
           <th scope="col">{t('newCase.manualPrice')}</th>
           <th scope="col" className="w-0">
@@ -79,12 +78,17 @@ export function DraftLinesTable({
                 )}
               </span>
             </td>
-            <td dir="auto">{l.workTypeName}</td>
             <td>
-              <span className="inline-flex items-center gap-1.5">
-                {l.shade && <ShadeSwatch color={shadeColor(l.shade)} className="h-5 w-4" />}
-                <span className="num">{l.shade ?? '—'}</span>
+              <span dir="auto" className="block">
+                {l.workTypeName}
               </span>
+              {l.shade && (
+                <span className="inline-flex items-center gap-1 text-[12.5px] text-muted">
+                  <ShadeSwatch color={shadeColor(l.shade)} className="h-4 w-3" />
+                  <span className="sr-only">{t('shade.field')}</span>
+                  <span className="num">{l.shade}</span>
+                </span>
+              )}
             </td>
             <td className="whitespace-nowrap">
               {p.ok ? (
@@ -105,7 +109,7 @@ export function DraftLinesTable({
                 <span className="text-muted">—</span>
               )}
             </td>
-            <td className="min-w-[120px]">
+            <td>
               <input
                 type="text"
                 inputMode="decimal"
@@ -116,7 +120,7 @@ export function DraftLinesTable({
                 aria-invalid={err ? true : undefined}
                 aria-describedby={err ? `price-error-${l.key}` : undefined}
                 onChange={(e) => onManualPrice(l.key, e.target.value)}
-                className="num h-9 w-full rounded-lg border border-control bg-card px-2.5 text-start outline-none focus-visible:outline-2 focus-visible:outline-focus aria-[invalid=true]:border-danger"
+                className="num h-9 w-24 rounded-lg border border-control bg-card px-2.5 text-start outline-none focus-visible:outline-2 focus-visible:outline-focus aria-[invalid=true]:border-danger"
               />
               {err && (
                 <p id={`price-error-${l.key}`} className="mt-1 text-[12.5px] font-semibold text-danger">

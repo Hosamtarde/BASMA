@@ -398,6 +398,10 @@ function mouthLayout(): ChartLayout {
 // ───────────────────────────── rows view ─────────────────────────────
 
 const ROW_GAP = 0.5;
+/** Roots drawn shorter than life so the two rows stay low and the chart can be drawn larger. */
+const ROOT_SCALE = 0.62;
+/** Badges tuck slightly over the incisal edge, as in the approved mockup. */
+const ROWS_BADGE_GAP = -1.1;
 
 /** Labial crown outline, local frame: origin at the cervical centre, +y towards the incisal edge. */
 function labialCrown(kind: ToothKind, w: number, h: number): Cmd[] {
@@ -462,11 +466,11 @@ function rootsPath(no: number, w: number, len: number): Cmd[] {
 
 function rowsLayout(): ChartLayout {
   const maxR = 3.2;
-  const upperRoot = Math.max(...DIMS.upper.map((d) => d.root));
+  const upperRoot = Math.max(...DIMS.upper.map((d) => d.root)) * ROOT_SCALE;
   const upperH = Math.max(...DIMS.upper.map((d) => d.h));
   const lowerH = Math.max(...DIMS.lower.map((d) => d.h));
   const g1 = 0; // upper gum line
-  const mid = g1 + upperH + BADGE_GAP + 2 * maxR + 1.6 + 2 * maxR + BADGE_GAP;
+  const mid = g1 + upperH + ROWS_BADGE_GAP + 2 * maxR + 1.6 + 2 * maxR + ROWS_BADGE_GAP;
   const g2 = mid + lowerH; // lower gum line
   const teeth: ToothShape[] = [];
   let gumUpper = { min: 0, max: 0 };
@@ -487,7 +491,7 @@ function rowsLayout(): ChartLayout {
       const cx = x + dim.w / 2;
       const frame = { o: { x: cx, y: gumY }, u: { x: 1, y: 0 }, v: { x: 0, y: s } };
       const crown = path(frame, labialCrown(info.kind, dim.w, dim.h));
-      const roots = path(frame, rootsPath(no, dim.w, dim.root));
+      const roots = path(frame, rootsPath(no, dim.w, dim.root * ROOT_SCALE));
       teeth.push({
         no,
         arch,
@@ -496,7 +500,7 @@ function rowsLayout(): ChartLayout {
         details: path(frame, labialDetails(info.kind, dim.w, dim.h)),
         hit: `${crown} ${roots}`,
         center: { x: r2(cx), y: r2(gumY + (s * dim.h) / 2) },
-        badgeAnchor: { x: cx, y: gumY + s * (dim.h + BADGE_GAP) },
+        badgeAnchor: { x: cx, y: gumY + s * (dim.h + ROWS_BADGE_GAP) },
         badgeDir: { x: 0, y: s },
       });
       x += dim.w + ROW_GAP;
@@ -509,7 +513,7 @@ function rowsLayout(): ChartLayout {
   const band = (y0: number, y1: number, span: { min: number; max: number }) =>
     `M${r2(span.min)},${r2(y0)} H${r2(span.max)} V${r2(y1)} H${r2(span.min)} Z`;
   const maxBadgeR = Math.min(maxRadius(teeth, maxR), maxR);
-  const lowerRoot = Math.max(...DIMS.lower.map((d) => d.root));
+  const lowerRoot = Math.max(...DIMS.lower.map((d) => d.root)) * ROOT_SCALE;
   const labelSize = 3.8;
   const minX = Math.min(gumUpper.min, gumLower.min);
   const maxX = Math.max(gumUpper.max, gumLower.max);
