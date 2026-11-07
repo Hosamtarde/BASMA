@@ -146,7 +146,10 @@ class NumberingView {
 }
 
 class LogoView {
-  @ApiProperty({ description: 'false = clients use the bundled default logo' }) present!: boolean;
+  @ApiProperty({
+    description: 'false = no logo: clients show the lab name only (SPEC §2.3, no Smile Artec fallback)',
+  })
+  present!: boolean;
   @ApiProperty({ type: String, nullable: true, enum: ['image/png', 'image/jpeg'] }) mimeType!: string | null;
   @ApiProperty({ type: Number, nullable: true }) sizeBytes!: number | null;
   @ApiProperty({ type: String, nullable: true, description: 'SHA-256; changes when the logo changes' })

@@ -1528,7 +1528,7 @@
             "bearer": []
           }
         ],
-        "summary": "The stored lab logo (404 = use the bundled default)",
+        "summary": "The stored lab logo (404 = no logo: show the lab name only, never a vendor logo)",
         "tags": [
           "settings"
         ]
@@ -1611,7 +1611,7 @@
             "bearer": []
           }
         ],
-        "summary": "Remove the stored logo (back to the bundled default)",
+        "summary": "Remove the stored logo (documents and screens then show the lab name only)",
         "tags": [
           "settings"
         ]
@@ -3154,7 +3154,7 @@
         "properties": {
           "present": {
             "type": "boolean",
-            "description": "false = clients use the bundled default logo"
+            "description": "false = no logo: clients show the lab name only (SPEC §2.3, no Smile Artec fallback)"
           },
           "mimeType": {
             "type": "string",

@@ -312,7 +312,7 @@ Bell shows the count; panel groups by type.
 Single box; matches doctor name, patient name or case number as you type (debounce 150 ms); grouped results (doctors / cases); no exact match → show closest matches.
 
 ### 5.18 Settings «الإعدادات»
-- Lab profile: name AR/EN, phone, address, logo (file picker, default bundled logo).
+- Lab profile: name AR/EN, phone, address, logo (file picker; no default logo — without one, the lab name is shown, §2.3).
 - Currency: symbol/code (free text, e.g. ₪ / JOD / $), decimals (0–3). **Changing it after data exists is blocked** (show why) — v1 is single-currency, amounts are not converted.
 - Language: UI language (Arabic default / English) and, separately, the language of printed documents (§6.1).
 - Data & backup: data folder shown; «أخذ نسخة احتياطية الآن» (save a copy of the DB file to a chosen folder), «استرجاع نسخة» (validate it is a Smile Artec DB with a compatible schema version, back up the current one first, then replace and restart), **automatic backup on app close** keeping the last N (default 10) copies in a chosen folder.
