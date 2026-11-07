@@ -9,3 +9,8 @@ coverage/
 *.db
 backups/
 .DS_Store
+
+# Web (Playwright)
+playwright-report/
+test-results/
+blob-report/
