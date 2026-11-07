@@ -162,6 +162,8 @@ test('the add-case screen in English (direction, chart labels, axe)', async ({ p
   await page.getByRole('button', { name: /^Shade/ }).click();
   await expectAccessible(page);
   await shot(page, 'shade-classic-en', VIEWPORT);
+  await page.getByRole('dialog', { name: 'Choose a shade' }).getByRole('tab', { name: '3D-Master' }).click();
+  await shot(page, 'shade-3d-en', VIEWPORT);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Mouth view' }).click();
   await setLanguage(page, 'ar');
