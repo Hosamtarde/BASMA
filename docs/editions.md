@@ -1,6 +1,6 @@
 # Product editions
 
-One codebase ships two branded editions of the same app. Decision record: [ADR-0018](adr/ADR-0018-product-editions.md).
+One codebase ships two branded editions of the same app. Decision record: [ADR-0018](adr/0018-product-editions.md).
 
 | Edition id | Who it is for | Product name shown |
 |---|---|---|

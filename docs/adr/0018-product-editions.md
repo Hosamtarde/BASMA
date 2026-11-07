@@ -1,6 +1,8 @@
 # ADR-0018 — Product editions: one codebase, two branded builds
 
-Status: Accepted (documentation only; implementation is slice E1, see `docs/editions.md`) · 2026-11-07
+Status: Accepted, implementation deferred (slice E1) · 2026-11-07
+
+The product name is now "Basma" (بسمة); until a second edition is actually needed, a single central product-name constant is enough (see `chore/product-name-basma`).
 
 ## Context
 
