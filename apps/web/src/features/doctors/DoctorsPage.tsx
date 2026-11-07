@@ -16,6 +16,7 @@ import {
   StatusSelect,
   useListParams,
 } from '@/components/ui/list';
+import { Td, Th } from '@/components/ui/table';
 import { doctorApi, doctorKeys, doctorsQuery } from './api';
 import type { Doctor } from './api';
 import { DoctorFormDialog } from './DoctorFormDialog';
@@ -74,65 +75,63 @@ export function DoctorsPage() {
           emptyText={list.search ? t('list.noResults') : t('doctors.empty')}
           head={
             <>
-              <th scope="col">{t('doctors.name')}</th>
-              <th scope="col">{t('doctors.clinic')}</th>
-              <th scope="col">{t('doctors.phone')}</th>
-              <th scope="col">{t('list.status')}</th>
-              <th scope="col" className="w-0">
+              <Th>{t('doctors.name')}</Th>
+              <Th>{t('doctors.clinic')}</Th>
+              <Th kind="number">{t('doctors.phone')}</Th>
+              <Th>{t('list.status')}</Th>
+              <Th kind="actions">
                 <span className="sr-only">{t('list.actions')}</span>
-              </th>
+              </Th>
             </>
           }
         >
           {data?.items.map((d) => (
             <tr key={d.id}>
-              <td dir="auto">
+              <Td autoDir>
                 <Link
                   to={`/doctors/${d.id}`}
                   className="font-bold text-ink underline-offset-4 hover:underline"
                 >
                   {d.name}
                 </Link>
-              </td>
-              <td dir="auto">{d.clinic}</td>
-              <td className="num">{d.phone}</td>
-              <td>
+              </Td>
+              <Td autoDir>{d.clinic}</Td>
+              <Td kind="number">{d.phone}</Td>
+              <Td>
                 <ActiveBadge active={d.active} />
-              </td>
-              <td className="whitespace-nowrap">
-                <div className="flex justify-end gap-1">
+              </Td>
+              <Td kind="actions">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`${t('common.edit')}: ${d.name}`}
+                  onClick={() => {
+                    setEditing(d);
+                    setDialogOpen(true);
+                  }}
+                >
+                  <Pencil aria-hidden="true" />
+                </Button>
+                {d.active ? (
                   <Button
                     variant="ghost"
                     size="sm"
-                    aria-label={`${t('common.edit')}: ${d.name}`}
-                    onClick={() => {
-                      setEditing(d);
-                      setDialogOpen(true);
-                    }}
+                    aria-label={`${t('common.delete')}: ${d.name}`}
+                    onClick={() => setDeleting(d)}
                   >
-                    <Pencil aria-hidden="true" />
+                    <Trash2 aria-hidden="true" />
                   </Button>
-                  {d.active ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`${t('common.delete')}: ${d.name}`}
-                      onClick={() => setDeleting(d)}
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`${t('list.reactivate')}: ${d.name}`}
-                      onClick={() => reactivate.mutate(d)}
-                    >
-                      <RotateCcw aria-hidden="true" />
-                    </Button>
-                  )}
-                </div>
-              </td>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`${t('list.reactivate')}: ${d.name}`}
+                    onClick={() => reactivate.mutate(d)}
+                  >
+                    <RotateCcw aria-hidden="true" />
+                  </Button>
+                )}
+              </Td>
             </tr>
           ))}
         </DataTable>

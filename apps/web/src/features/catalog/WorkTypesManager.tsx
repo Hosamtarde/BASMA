@@ -21,6 +21,7 @@ import {
   useListParams,
   useLocalListParams,
 } from '@/components/ui/list';
+import { Td, Th } from '@/components/ui/table';
 import { useCurrency } from '@/features/shell/currency';
 import { applyServerErrors, msg, renderMessage } from '@/lib/form-messages';
 import { catalogKeys, workTypeApi, workTypesQuery } from './api';
@@ -212,60 +213,58 @@ export function WorkTypesManager({ inDialog = false }: { inDialog?: boolean }) {
         emptyText={list.search ? t('list.noResults') : t('workTypes.empty')}
         head={
           <>
-            <th scope="col">{t('workTypes.name')}</th>
-            <th scope="col">{t('workTypes.unitPriceWithSymbol', { symbol: currency.symbol })}</th>
-            <th scope="col">{t('workTypes.sortOrder')}</th>
-            <th scope="col">{t('list.status')}</th>
-            <th scope="col" className="w-0">
+            <Th>{t('workTypes.name')}</Th>
+            <Th kind="money">{t('workTypes.unitPriceWithSymbol', { symbol: currency.symbol })}</Th>
+            <Th kind="number">{t('workTypes.sortOrder')}</Th>
+            <Th>{t('list.status')}</Th>
+            <Th kind="actions">
               <span className="sr-only">{t('list.actions')}</span>
-            </th>
+            </Th>
           </>
         }
       >
         {data?.items.map((w) => (
           <tr key={w.id}>
-            <td dir="auto" className="font-bold">
-              {w.name}
-            </td>
-            <td className="num">{currency.format(w.unitPrice)}</td>
-            <td className="num">{w.sortOrder}</td>
-            <td>
+            <Td className="font-bold">
+              <span dir="auto">{w.name}</span>
+            </Td>
+            <Td kind="money">{currency.format(w.unitPrice)}</Td>
+            <Td kind="number">{w.sortOrder}</Td>
+            <Td>
               <ActiveBadge active={w.active} />
-            </td>
-            <td className="whitespace-nowrap">
-              <div className="flex justify-end gap-1">
+            </Td>
+            <Td kind="actions">
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`${t('common.edit')}: ${w.name}`}
+                onClick={() => {
+                  setEditing(w);
+                  setDialogOpen(true);
+                }}
+              >
+                <Pencil aria-hidden="true" />
+              </Button>
+              {w.active ? (
                 <Button
                   variant="ghost"
                   size="sm"
-                  aria-label={`${t('common.edit')}: ${w.name}`}
-                  onClick={() => {
-                    setEditing(w);
-                    setDialogOpen(true);
-                  }}
+                  aria-label={`${t('common.delete')}: ${w.name}`}
+                  onClick={() => setDeleting(w)}
                 >
-                  <Pencil aria-hidden="true" />
+                  <Trash2 aria-hidden="true" />
                 </Button>
-                {w.active ? (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`${t('common.delete')}: ${w.name}`}
-                    onClick={() => setDeleting(w)}
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </Button>
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`${t('list.reactivate')}: ${w.name}`}
-                    onClick={() => reactivate.mutate(w)}
-                  >
-                    <RotateCcw aria-hidden="true" />
-                  </Button>
-                )}
-              </div>
-            </td>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`${t('list.reactivate')}: ${w.name}`}
+                  onClick={() => reactivate.mutate(w)}
+                >
+                  <RotateCcw aria-hidden="true" />
+                </Button>
+              )}
+            </Td>
           </tr>
         ))}
       </DataTable>

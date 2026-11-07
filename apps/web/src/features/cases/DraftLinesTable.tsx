@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { moneyErrorMessage } from '@/components/money-field';
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/list';
+import { Money, Td, Th } from '@/components/ui/table';
 import { useCurrency } from '@/features/shell/currency';
 import { cn } from '@/lib/cn';
 import { renderMessage } from '@/lib/form-messages';
@@ -48,13 +49,13 @@ export function DraftLinesTable({
       emptyText={t('newCase.linesEmpty')}
       head={
         <>
-          <th scope="col">{t('newCase.position')}</th>
-          <th scope="col">{t('newCase.workType')}</th>
-          <th scope="col">{t('newCase.price')}</th>
-          <th scope="col">{t('newCase.manualPrice')}</th>
-          <th scope="col" className="w-0">
+          <Th>{t('newCase.position')}</Th>
+          <Th>{t('newCase.workType')}</Th>
+          <Th kind="money">{t('newCase.price')}</Th>
+          <Th>{t('newCase.manualPrice')}</Th>
+          <Th kind="actions">
             <span className="sr-only">{t('list.actions')}</span>
-          </th>
+          </Th>
         </>
       }
     >
@@ -64,7 +65,7 @@ export function DraftLinesTable({
         const lineName = name(l);
         return (
           <tr key={l.key}>
-            <td className="whitespace-nowrap">
+            <Td className="whitespace-nowrap">
               <span className="inline-flex items-center gap-2">
                 <i
                   aria-hidden="true"
@@ -77,8 +78,8 @@ export function DraftLinesTable({
                   <span className="font-bold">{t(`caseArea.${l.area ?? 'none'}`)}</span>
                 )}
               </span>
-            </td>
-            <td>
+            </Td>
+            <Td>
               <span dir="auto" className="block">
                 {l.workTypeName}
               </span>
@@ -89,12 +90,12 @@ export function DraftLinesTable({
                   <span className="num">{l.shade}</span>
                 </span>
               )}
-            </td>
-            <td className="whitespace-nowrap">
+            </Td>
+            <Td kind="money">
               {p.ok ? (
-                <span className="flex flex-col leading-tight">
-                  <span className="num font-bold">
-                    {currency.format(p.minor)} {currency.symbol}
+                <span className="flex flex-col items-end leading-tight">
+                  <span className="font-bold">
+                    <Money value={currency.format(p.minor)} symbol={currency.symbol} />
                   </span>
                   <span
                     className={cn(
@@ -108,8 +109,8 @@ export function DraftLinesTable({
               ) : (
                 <span className="text-muted">—</span>
               )}
-            </td>
-            <td>
+            </Td>
+            <Td>
               <input
                 type="text"
                 inputMode="decimal"
@@ -127,8 +128,8 @@ export function DraftLinesTable({
                   {renderMessage(t, moneyErrorMessage(err, currency.decimals))}
                 </p>
               )}
-            </td>
-            <td>
+            </Td>
+            <Td kind="actions">
               <Button
                 variant="ghost"
                 size="sm"
@@ -137,7 +138,7 @@ export function DraftLinesTable({
               >
                 <Trash2 aria-hidden="true" />
               </Button>
-            </td>
+            </Td>
           </tr>
         );
       })}

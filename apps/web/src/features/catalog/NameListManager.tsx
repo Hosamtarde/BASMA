@@ -12,6 +12,7 @@ import { CheckboxField } from '@/components/ui/checkbox-field';
 import { ConfirmDialog, FormDialog } from '@/components/ui/dialog';
 import { FormAlert, TextField } from '@/components/ui/field';
 import { ActiveBadge, DataTable, Pager, SearchBox, StatusSelect, useListParams } from '@/components/ui/list';
+import { Td, Th } from '@/components/ui/table';
 import { applyServerErrors, msg, renderMessage } from '@/lib/form-messages';
 import type { DeleteOutcome, ListParams } from './api';
 
@@ -201,62 +202,60 @@ export function NameListManager<T extends NamedItem>(props: NameListManagerProps
         emptyText={labels.empty}
         head={
           <>
-            <th scope="col">{labels.name}</th>
-            <th scope="col">{t('list.status')}</th>
-            <th scope="col" className="w-0">
+            <Th>{labels.name}</Th>
+            <Th>{t('list.status')}</Th>
+            <Th kind="actions">
               <span className="sr-only">{t('list.actions')}</span>
-            </th>
+            </Th>
           </>
         }
       >
         {data?.items.map((item) => (
           <tr key={item.id}>
-            <td dir="auto" className="font-bold">
-              {item.name}
+            <Td className="font-bold">
+              <span dir="auto">{item.name}</span>
               {item.isDoctor && labels.system && (
                 <span className="ms-2 rounded-md bg-info-bg px-2 py-0.5 text-[12px] font-bold text-ink">
                   {labels.system}
                 </span>
               )}
-            </td>
-            <td>
+            </Td>
+            <Td>
               <ActiveBadge active={item.active} />
-            </td>
-            <td className="whitespace-nowrap">
-              <div className="flex justify-end gap-1">
+            </Td>
+            <Td kind="actions">
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`${t('common.edit')}: ${item.name}`}
+                onClick={() => {
+                  setEditing(item);
+                  setDialogOpen(true);
+                }}
+              >
+                <Pencil aria-hidden="true" />
+              </Button>
+              {!item.active && (
                 <Button
                   variant="ghost"
                   size="sm"
-                  aria-label={`${t('common.edit')}: ${item.name}`}
-                  onClick={() => {
-                    setEditing(item);
-                    setDialogOpen(true);
-                  }}
+                  aria-label={`${t('list.reactivate')}: ${item.name}`}
+                  onClick={() => reactivate.mutate(item)}
                 >
-                  <Pencil aria-hidden="true" />
+                  <RotateCcw aria-hidden="true" />
                 </Button>
-                {!item.active && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`${t('list.reactivate')}: ${item.name}`}
-                    onClick={() => reactivate.mutate(item)}
-                  >
-                    <RotateCcw aria-hidden="true" />
-                  </Button>
-                )}
-                {item.active && !item.isDoctor && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`${t('common.delete')}: ${item.name}`}
-                    onClick={() => setDeleting(item)}
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </Button>
-                )}
-              </div>
-            </td>
+              )}
+              {item.active && !item.isDoctor && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`${t('common.delete')}: ${item.name}`}
+                  onClick={() => setDeleting(item)}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+              )}
+            </Td>
           </tr>
         ))}
       </DataTable>

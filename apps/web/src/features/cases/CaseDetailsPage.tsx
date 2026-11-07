@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/field';
 import { Card, DataTable } from '@/components/ui/list';
+import { Money, Td, Th } from '@/components/ui/table';
 import { useCurrency } from '@/features/shell/currency';
 import { settingsQuery } from '@/features/shell/settings';
 import { formatDateTimeIn, todayIn } from '@/i18n/format';
@@ -60,7 +61,9 @@ export function CaseDetailsPage() {
         {t('caseDetails.back')}
       </Link>
       <div className="mt-2 mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="text-[24px] leading-tight font-extrabold">{t('caseDetails.title', { no: detail.caseNo })}</h1>
+        <h1 className="text-[24px] leading-tight font-extrabold">
+          {t('caseDetails.title', { no: detail.caseNo })}
+        </h1>
         <StatusBadge status={detail.status} />
         {detail.overdue && <OverdueMarker />}
         <span className="flex-1" />
@@ -86,7 +89,10 @@ export function CaseDetailsPage() {
         </div>
       </div>
       {detail.status === 'cancelled' && (
-        <p role="note" className="mb-4 rounded-lg bg-st-cancelled-bg px-4 py-2.5 font-semibold text-st-cancelled-ink">
+        <p
+          role="note"
+          className="mb-4 rounded-lg bg-st-cancelled-bg px-4 py-2.5 font-semibold text-st-cancelled-ink"
+        >
           {t('caseDetails.cancelledNote')}
         </p>
       )}
@@ -97,7 +103,11 @@ export function CaseDetailsPage() {
             <h2 className="sr-only">{t('caseDetails.header')}</h2>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3">
               <Info label={t('caseDetails.doctor')}>
-                <Link to={`/doctors/${detail.doctor.id}`} dir="auto" className="text-ink underline-offset-4 hover:underline">
+                <Link
+                  to={`/doctors/${detail.doctor.id}`}
+                  dir="auto"
+                  className="text-ink underline-offset-4 hover:underline"
+                >
                   {detail.doctor.name}
                 </Link>
               </Info>
@@ -158,7 +168,6 @@ function LinesCard({ detail, onAdd }: { detail: CaseDetail; onAdd: () => void })
       setRemoving(null);
     },
   });
-  const money = (minor: number) => `${currency.format(minor)} ${currency.symbol}`;
 
   return (
     <Card>
@@ -178,89 +187,94 @@ function LinesCard({ detail, onAdd }: { detail: CaseDetail; onAdd: () => void })
         emptyText={t('newCase.linesEmpty')}
         head={
           <>
-            <th scope="col">{t('newCase.position')}</th>
-            <th scope="col">{t('newCase.workType')}</th>
-            <th scope="col">{t('shade.field')}</th>
-            <th scope="col">{t('caseDetails.lineNote')}</th>
-            <th scope="col" className="text-end!">
-              {t('newCase.price')}
-            </th>
+            <Th>{t('newCase.position')}</Th>
+            <Th>{t('newCase.workType')}</Th>
+            <Th>{t('shade.field')}</Th>
+            <Th>{t('caseDetails.lineNote')}</Th>
+            <Th kind="money">{t('newCase.price')}</Th>
             {detail.canEdit && (
-              <th scope="col" className="w-0">
+              <Th kind="actions">
                 <span className="sr-only">{t('list.actions')}</span>
-              </th>
+              </Th>
             )}
           </>
         }
       >
         {detail.lines.map((l) => (
           <tr key={l.id}>
-            <td className="whitespace-nowrap">
+            <Td className="whitespace-nowrap">
               {l.toothNo !== null ? (
                 <span className="num font-extrabold">{l.toothNo}</span>
               ) : (
                 <span className="font-bold">{t(`caseArea.${l.area ?? 'none'}`)}</span>
               )}
-            </td>
-            <td dir="auto">{l.workTypeName}</td>
-            <td>
+            </Td>
+            <Td autoDir>{l.workTypeName}</Td>
+            <Td>
               <span className="inline-flex items-center gap-1.5">
                 {l.shade && <ShadeSwatch color={shadeColor(l.shade)} className="h-5 w-4" />}
                 <span className="num">{l.shade ?? '—'}</span>
               </span>
-            </td>
-            <td dir="auto" className="text-muted">
+            </Td>
+            <Td autoDir className="text-muted">
               {l.note ?? ''}
-            </td>
-            <td className="text-end whitespace-nowrap">
+            </Td>
+            <Td kind="money">
               <span className="flex flex-col items-end leading-tight">
-                <span className="num font-bold">{money(l.unitPrice)}</span>
+                <span className="font-bold">
+                  <Money value={currency.format(l.unitPrice)} symbol={currency.symbol} />
+                </span>
                 <span
-                  className={cn('text-[12px]', l.priceSource === 'special' ? 'font-bold text-warning-ink' : 'text-muted')}
+                  className={cn(
+                    'text-[12px]',
+                    l.priceSource === 'special' ? 'font-bold text-warning-ink' : 'text-muted',
+                  )}
                 >
                   {t(`priceSource.${l.priceSource}`)}
                 </span>
               </span>
-            </td>
+            </Td>
             {detail.canEdit && (
-              <td className="whitespace-nowrap">
-                <div className="flex justify-end gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={t('caseDetails.editLine', { line: name(l) })}
-                    onClick={() => setEditing(l)}
-                  >
-                    <Pencil aria-hidden="true" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label={t('caseDetails.deleteLine', { line: name(l) })}
-                    onClick={() => setRemoving(l)}
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </Button>
-                </div>
-              </td>
+              <Td kind="actions">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={t('caseDetails.editLine', { line: name(l) })}
+                  onClick={() => setEditing(l)}
+                >
+                  <Pencil aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label={t('caseDetails.deleteLine', { line: name(l) })}
+                  onClick={() => setRemoving(l)}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+              </Td>
             )}
           </tr>
         ))}
       </DataTable>
       <dl className="ms-auto mt-3 grid max-w-xs grid-cols-[1fr_auto] gap-x-6 gap-y-1.5 text-[14.5px]">
         <dt className="text-muted">{t('caseDetails.subtotal')}</dt>
-        <dd className="num text-end font-bold">{money(detail.subtotal)}</dd>
+        <dd className="text-end font-bold">
+          <Money value={currency.format(detail.subtotal)} symbol={currency.symbol} />
+        </dd>
         <dt className="text-muted">{t('caseDetails.discount')}</dt>
-        <dd className="num text-end font-bold">{money(detail.discount)}</dd>
+        <dd className="text-end font-bold">
+          <Money value={currency.format(detail.discount)} symbol={currency.symbol} />
+        </dd>
         <dt className="text-[16px] font-extrabold">{t('caseDetails.total')}</dt>
         <dd
           className={cn(
-            'num text-end text-[17px] font-extrabold',
+            'text-end text-[17px] font-extrabold',
             detail.status === 'cancelled' && 'text-muted line-through',
           )}
           data-testid="case-total"
         >
-          {money(detail.total)}
+          <Money value={currency.format(detail.total)} symbol={currency.symbol} />
         </dd>
       </dl>
       <p className="mt-2 text-[13px] text-muted">{t('caseDetails.paymentsLater')}</p>
@@ -308,7 +322,9 @@ function History({ detail, timeZone }: { detail: CaseDetail; timeZone: string })
               </span>
               <span className="num text-[13px] text-muted">{formatDateTimeIn(h.at, timeZone)}</span>
               {h.deliveredDate && (
-                <span className="text-[13px]">{t('caseDetails.historyDelivered', { date: h.deliveredDate })}</span>
+                <span className="text-[13px]">
+                  {t('caseDetails.historyDelivered', { date: h.deliveredDate })}
+                </span>
               )}
               {h.note && (
                 <span dir="auto" className="text-[13.5px] whitespace-pre-wrap">

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/field';
 import { ActiveBadge, Card, DataTable } from '@/components/ui/list';
+import { Money, Td, Th } from '@/components/ui/table';
 import { useCurrency } from '@/features/shell/currency';
 import { currentLanguage } from '@/i18n/i18n';
 import { cn } from '@/lib/cn';
@@ -207,16 +208,16 @@ function PriceRow({ doctorId, row }: { doctorId: number; row: DoctorPrice }) {
   const dirty = text.trim() !== initial;
   return (
     <tr>
-      <td dir="auto" className="font-bold">
-        {row.workTypeName}
+      <Td className="font-bold">
+        <span dir="auto">{row.workTypeName}</span>
         {!row.workTypeActive && (
           <span className="ms-2 text-[12.5px] font-semibold text-muted">{t('prices.inactiveType')}</span>
         )}
-      </td>
-      <td className="num">
-        {currency.format(row.generalPrice)} {currency.symbol}
-      </td>
-      <td>
+      </Td>
+      <Td kind="money">
+        <Money value={currency.format(row.generalPrice)} symbol={currency.symbol} />
+      </Td>
+      <Td>
         <form
           className="flex flex-wrap items-start gap-2"
           onSubmit={(e) => {
@@ -257,8 +258,8 @@ function PriceRow({ doctorId, row }: { doctorId: number; row: DoctorPrice }) {
             {t('common.save')}
           </Button>
         </form>
-      </td>
-      <td>
+      </Td>
+      <Td>
         {row.specialPrice !== null ? (
           <span className="inline-flex items-center gap-1 rounded-md bg-warning-bg px-2 py-0.5 text-[12.5px] font-bold whitespace-nowrap text-warning-ink">
             <Star aria-hidden="true" className="size-3.5" />
@@ -267,8 +268,8 @@ function PriceRow({ doctorId, row }: { doctorId: number; row: DoctorPrice }) {
         ) : (
           <span className="text-[13px] whitespace-nowrap text-muted">{t('prices.usesGeneral')}</span>
         )}
-      </td>
-      <td className="w-0 whitespace-nowrap">
+      </Td>
+      <Td kind="actions">
         {row.specialPrice !== null && (
           <Button
             variant="ghost"
@@ -279,7 +280,7 @@ function PriceRow({ doctorId, row }: { doctorId: number; row: DoctorPrice }) {
             <Undo2 aria-hidden="true" />
           </Button>
         )}
-      </td>
+      </Td>
     </tr>
   );
 }
@@ -300,13 +301,13 @@ export function DoctorPricesTab() {
         emptyText={t('prices.noWorkTypes')}
         head={
           <>
-            <th scope="col">{t('workTypes.name')}</th>
-            <th scope="col">{t('prices.general')}</th>
-            <th scope="col">{t('prices.specialWithSymbol', { symbol: currency.symbol })}</th>
-            <th scope="col">{t('prices.applies')}</th>
-            <th scope="col" className="w-0">
+            <Th>{t('workTypes.name')}</Th>
+            <Th kind="money">{t('prices.general')}</Th>
+            <Th>{t('prices.specialWithSymbol', { symbol: currency.symbol })}</Th>
+            <Th>{t('prices.applies')}</Th>
+            <Th kind="actions">
               <span className="sr-only">{t('list.actions')}</span>
-            </th>
+            </Th>
           </>
         }
       >

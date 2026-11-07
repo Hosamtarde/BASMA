@@ -223,11 +223,11 @@ export function DataTable({
       <table className="w-full border-collapse text-[14.5px]">
         <caption className="sr-only">{caption}</caption>
         <thead>
-          <tr className="border-b border-border text-[13px] text-muted [&_th]:px-3 [&_th]:py-2.5 [&_th]:text-start [&_th]:font-bold [&_th]:whitespace-nowrap">
+          <tr className="border-b border-border text-[13px] text-muted [&_th]:px-3 [&_th]:py-2.5 [&_th]:font-bold [&_th]:whitespace-nowrap">
             {head}
           </tr>
         </thead>
-        <tbody className="[&_td]:border-b [&_td]:border-border [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-middle [&_tr:hover]:bg-hover">
+        <tbody className="[&_td]:border-b [&_td]:border-b-border [&_td]:px-3 [&_td]:py-2.5 [&_td]:align-middle [&_tr:hover]:bg-hover">
           {empty ? (
             <tr>
               <td colSpan={99} className="py-8! text-center text-muted">
