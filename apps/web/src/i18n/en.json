@@ -32,7 +32,8 @@
     "logoAlt": "Lab logo",
     "userMenu": "User menu: {{name}}",
     "changePassword": "Change password",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "notifications": "Notifications"
   },
   "nav": {
     "home": "Home"
@@ -128,6 +129,7 @@
       "body": "Something unexpected happened. Reload the page; if it happens again, send the reference number to support."
     },
     "correlation": "Reference: {{id}}",
-    "unexpected": "Something unexpected happened."
+    "unexpected": "Something unexpected happened.",
+    "reference": "Reference"
   }
 }
