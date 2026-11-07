@@ -58,24 +58,6 @@ export function StatusDonut({ counts }: { counts: CaseCounts }) {
             />
           ))}
         </g>
-        <text
-          x={SIZE / 2}
-          y={SIZE / 2 - 6}
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="fill-ink text-[22px] font-extrabold"
-        >
-          {formatNumber(counts.total, lang)}
-        </text>
-        <text
-          x={SIZE / 2}
-          y={SIZE / 2 + 16}
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="fill-muted text-[11.5px] font-semibold"
-        >
-          {t('home.donut.total')}
-        </text>
       </svg>
       <ul className="m-0 min-w-40 flex-1 list-none p-0 text-[13.5px]">
         {CASE_STATUSES.map((s) => (

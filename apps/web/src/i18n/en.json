@@ -93,8 +93,7 @@
     },
     "donut": {
       "title": "Overview of all cases",
-      "label": "Cases by status, {{total}} in total",
-      "total": "Total"
+      "label": "Cases by status, {{total}} in total"
     },
     "latest": {
       "title": "Latest cases",
