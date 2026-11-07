@@ -34,11 +34,21 @@ import {
 
 /** First-run lab details (SPEC §5.18): a name in Arabic or English, and a phone, are required. */
 export class SetupLabProfile {
-  @ApiPropertyOptional({ maxLength: LAB_NAME_MAX_LENGTH, nullable: true, example: 'مختبر الأسنان' })
+  @ApiPropertyOptional({
+    type: String,
+    maxLength: LAB_NAME_MAX_LENGTH,
+    nullable: true,
+    example: 'مختبر الأسنان',
+  })
   @OptionalText(LAB_NAME_MAX_LENGTH)
   nameAr?: string | null;
 
-  @ApiPropertyOptional({ maxLength: LAB_NAME_MAX_LENGTH, nullable: true, example: 'Dental Lab' })
+  @ApiPropertyOptional({
+    type: String,
+    maxLength: LAB_NAME_MAX_LENGTH,
+    nullable: true,
+    example: 'Dental Lab',
+  })
   @OptionalText(LAB_NAME_MAX_LENGTH)
   nameEn?: string | null;
 
@@ -49,7 +59,7 @@ export class SetupLabProfile {
   @Matches(PHONE_PATTERN)
   phone!: string;
 
-  @ApiPropertyOptional({ maxLength: ADDRESS_MAX_LENGTH, nullable: true })
+  @ApiPropertyOptional({ type: String, maxLength: ADDRESS_MAX_LENGTH, nullable: true })
   @OptionalText(ADDRESS_MAX_LENGTH)
   address?: string | null;
 }
@@ -109,14 +119,6 @@ export class LoginRequest {
   password!: string;
 }
 
-export class RefreshTokenRequest {
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
-  refreshToken!: string;
-}
-
 export class ChangePasswordRequest {
   @ApiProperty({ format: 'password' })
   @IsString()
@@ -145,8 +147,8 @@ export class SetupResponse {
 export class TokenResponse {
   @ApiProperty() accessToken!: string;
   @ApiProperty({ description: 'Seconds' }) accessTokenExpiresIn!: number;
-  @ApiProperty() refreshToken!: string;
-  @ApiProperty({ type: String, format: 'date-time' }) refreshTokenExpiresAt!: string;
+  @ApiProperty({ type: String, format: 'date-time', description: 'Expiry of the refresh cookie' })
+  refreshTokenExpiresAt!: string;
   @ApiProperty() mustChangePassword!: boolean;
 }
 

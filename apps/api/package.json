@@ -13,10 +13,12 @@
     "test:integration": "node --experimental-vm-modules --disable-warning=ExperimentalWarning scripts/jest.cjs --selectProjects integration --runInBand",
     "test:e2e": "node --experimental-vm-modules --disable-warning=ExperimentalWarning scripts/jest.cjs --selectProjects e2e --runInBand",
     "i18n:check": "node -r ts-node/register scripts/check-i18n.ts",
+    "openapi:export": "node -r ts-node/register scripts/export-openapi.ts",
     "migrate": "node --env-file-if-exists=../../.env -r ts-node/register scripts/migrate.ts",
     "db:generate": "drizzle-kit generate"
   },
   "dependencies": {
+    "@app/shared": "*",
     "@nestjs/common": "^12.4.0",
     "@nestjs/core": "^12.4.0",
     "@nestjs/jwt": "^12.0.4",

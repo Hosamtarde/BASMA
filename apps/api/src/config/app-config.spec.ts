@@ -1,3 +1,6 @@
+import { mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { ConfigError, loadConfig } from './app-config';
 
 const STRONG_SECRET = 'q7Z-pL2vX9rT4mK8wB1nC6yH3jF5dG0s_aE';
@@ -72,5 +75,21 @@ describe('loadConfig', () => {
       return undefined;
     })();
     expect(err?.message).not.toContain(secret);
+  });
+
+  it('only listens on loopback (one computer per installation)', () => {
+    expect(loadConfig({ ...base, API_HOST: '::1' }).host).toBe('::1');
+    expect(problemsOf({ ...base, API_HOST: '0.0.0.0' })[0]).toMatch(/API_HOST/);
+    expect(problemsOf({ ...base, API_HOST: '192.168.1.10' })[0]).toMatch(/API_HOST/);
+  });
+
+  it('serves no UI by default and accepts a WEB_DIST_DIR that holds index.html', () => {
+    expect(loadConfig(base).webDistDir).toBeNull();
+    const dir = mkdtempSync(path.join(tmpdir(), 'web-dist-'));
+    expect(problemsOf({ ...base, WEB_DIST_DIR: dir })).toEqual([
+      'WEB_DIST_DIR must be a folder that contains index.html (build the web app first)',
+    ]);
+    writeFileSync(path.join(dir, 'index.html'), '<!doctype html>');
+    expect(loadConfig({ ...base, WEB_DIST_DIR: dir }).webDistDir).toBe(path.resolve(dir));
   });
 });

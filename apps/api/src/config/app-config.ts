@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 import { isValidTimeZone } from '../shared/time/time-zone';
@@ -6,11 +7,14 @@ const MIN_SECRET_LENGTH = 32;
 const MIN_DISTINCT_SECRET_CHARS = 16;
 const PLACEHOLDER_WORDS = ['change', 'example', 'secret', 'password', 'replace', 'todo', 'xxx'];
 
+const LOOPBACK_HOSTS = ['127.0.0.1', '::1'] as const;
+
 const booleanFromString = z.enum(['true', 'false']).transform((v) => v === 'true');
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  API_HOST: z.string().min(1).default('127.0.0.1'),
+  // One computer per installation (owner decision): the API only ever listens on loopback.
+  API_HOST: z.enum(LOOPBACK_HOSTS).default('127.0.0.1'),
   API_PORT: z.coerce.number().int().min(1).max(65535).default(4310),
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   JWT_ACCESS_SECRET: z.string(),
@@ -19,6 +23,8 @@ const envSchema = z.object({
   AUTH_RATE_LIMIT_PER_MINUTE: z.coerce.number().int().min(1).max(1000).default(10),
   MIGRATE_ON_START: booleanFromString.default(true),
   MIGRATIONS_DIR: z.string().min(1).optional(),
+  // Built web UI (apps/web/dist) served by this process; unset = API only (development uses Vite).
+  WEB_DIST_DIR: z.string().min(1).optional(),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   // Initial lab time zone for first-run setup; the installer sets it from Windows (B7).
   // Neutral code default; the lab's own value lives in .env / the installer, not in code.
@@ -40,6 +46,8 @@ export interface AppConfig {
   migrateOnStart: boolean;
   migrationsDir: string;
   logLevel: string;
+  /** Absolute folder of the built web UI, or null when the API serves no UI. */
+  webDistDir: string | null;
   /** Used by first-run setup when the request names no time zone. */
   defaultTimeZone: string;
   /** Pretty logs and OpenAPI UI are development conveniences only. */
@@ -83,6 +91,10 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
   const e = parsed.data;
   const isProduction = e.NODE_ENV === 'production';
   const problems = secretProblems(e.JWT_ACCESS_SECRET, isProduction);
+  const webDistDir = e.WEB_DIST_DIR === undefined ? null : path.resolve(e.WEB_DIST_DIR);
+  if (webDistDir !== null && !existsSync(path.join(webDistDir, 'index.html'))) {
+    problems.push('WEB_DIST_DIR must be a folder that contains index.html (build the web app first)');
+  }
   if (problems.length > 0) throw new ConfigError(problems);
 
   return {
@@ -96,6 +108,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): AppConfig {
     migrateOnStart: e.MIGRATE_ON_START,
     migrationsDir: e.MIGRATIONS_DIR ?? DEFAULT_MIGRATIONS_DIR,
     logLevel: e.LOG_LEVEL,
+    webDistDir,
     defaultTimeZone: e.DEFAULT_TIME_ZONE,
     isProduction,
   };

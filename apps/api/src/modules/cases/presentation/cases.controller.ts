@@ -26,6 +26,7 @@ import { Permission } from '../../identity/domain/permissions';
 import { CurrentUser, RequirePermission } from '../../identity/presentation/auth.decorators';
 import type { AuthUser } from '../../identity/presentation/auth.decorators';
 import { CaseDetail, CasesService, CaseSummary } from '../application/cases.service';
+import { caseActions } from '../domain/case-rules';
 import {
   AddCaseLinesRequest,
   CancelCaseRequest,
@@ -77,6 +78,7 @@ const toDetail = (c: CaseDetail): CaseDetailResponse => ({
     note: h.note,
     deliveredDate: h.deliveredDate,
   })),
+  ...caseActions(c.status),
 });
 
 const definedOnly = <T extends object>(o: T): T =>

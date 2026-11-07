@@ -53,8 +53,9 @@ export class CaseLineInput {
 
   @ApiProperty() @IsInt() @Min(1) workTypeId!: number;
 
-  @ApiPropertyOptional({ maxLength: 20, nullable: true, example: 'A2' }) @OptionalText(20) shade?:
-    string | null;
+  @ApiPropertyOptional({ type: String, maxLength: 20, nullable: true, example: 'A2' })
+  @OptionalText(20)
+  shade?: string | null;
 
   @ApiPropertyOptional({
     ...amountDoc,
@@ -64,7 +65,8 @@ export class CaseLineInput {
   @IsAmount()
   unitPrice?: number;
 
-  @ApiPropertyOptional({ maxLength: 200, nullable: true }) @OptionalText(200) note?: string | null;
+  @ApiPropertyOptional({ type: String, maxLength: 200, nullable: true }) @OptionalText(200) note?:
+    string | null;
 }
 
 const Lines = () =>
@@ -79,7 +81,8 @@ const Lines = () =>
 export class CreateCaseRequest {
   @ApiProperty() @IsInt() @Min(1) doctorId!: number;
   @ApiProperty({ maxLength: 100 }) @IsName(100) patientName!: string;
-  @ApiPropertyOptional({ nullable: true }) @IsOptional() @IsInt() @Min(1) technicianId?: number | null;
+  @ApiPropertyOptional({ type: 'integer', nullable: true }) @IsOptional() @IsInt() @Min(1) technicianId?:
+    number | null;
   @ApiPropertyOptional({
     example: '2026-11-06',
     description: 'Default: today (lab time zone); never in the future',
@@ -93,7 +96,8 @@ export class CreateCaseRequest {
   @IsIn(PRE_DELIVERY)
   status?: CaseStatus;
   @ApiPropertyOptional({ ...amountDoc, default: 0 }) @IsOptionalNonNull() @IsAmount() discount?: number;
-  @ApiPropertyOptional({ maxLength: 2000, nullable: true }) @OptionalText(2000) notes?: string | null;
+  @ApiPropertyOptional({ type: String, maxLength: 2000, nullable: true }) @OptionalText(2000) notes?:
+    string | null;
   @ApiProperty({ type: [CaseLineInput], minItems: 1, maxItems: MAX_LINES_PER_CASE })
   @Lines()
   lines!: CaseLineInput[];
@@ -102,11 +106,13 @@ export class CreateCaseRequest {
 /** No doctorId: the doctor never changes after creation (owner decision B2). */
 export class UpdateCaseRequest extends VersionedPatch {
   @ApiPropertyOptional({ maxLength: 100 }) @IsOptionalNonNull() @IsName(100) patientName?: string;
-  @ApiPropertyOptional({ nullable: true }) @IsOptional() @IsInt() @Min(1) technicianId?: number | null;
+  @ApiPropertyOptional({ type: 'integer', nullable: true }) @IsOptional() @IsInt() @Min(1) technicianId?:
+    number | null;
   @ApiPropertyOptional() @IsOptionalNonNull() @IsDateOnly() receivedDate?: string;
   @ApiPropertyOptional() @IsOptionalNonNull() @IsDateOnly() expectedDate?: string;
   @ApiPropertyOptional(amountDoc) @IsOptionalNonNull() @IsAmount() discount?: number;
-  @ApiPropertyOptional({ maxLength: 2000, nullable: true }) @OptionalText(2000) notes?: string | null;
+  @ApiPropertyOptional({ type: String, maxLength: 2000, nullable: true }) @OptionalText(2000) notes?:
+    string | null;
 }
 
 export class AddCaseLinesRequest extends VersionedPatch {
@@ -118,15 +124,18 @@ export class UpdateCaseLineRequest extends VersionedPatch {
   @IsOptionalNonNull()
   @IsAmount()
   unitPrice?: number;
-  @ApiPropertyOptional({ maxLength: 20, nullable: true }) @OptionalText(20) shade?: string | null;
-  @ApiPropertyOptional({ maxLength: 200, nullable: true }) @OptionalText(200) note?: string | null;
+  @ApiPropertyOptional({ type: String, maxLength: 20, nullable: true }) @OptionalText(20) shade?:
+    string | null;
+  @ApiPropertyOptional({ type: String, maxLength: 200, nullable: true }) @OptionalText(200) note?:
+    string | null;
 }
 
 export class ChangeCaseStatusRequest extends VersionedPatch {
   @ApiProperty({ enum: STATUS_TARGETS, description: 'Cancel uses POST /cases/{id}/cancel' })
   @IsIn(STATUS_TARGETS)
   to!: CaseStatus;
-  @ApiPropertyOptional({ maxLength: 500, nullable: true }) @OptionalText(500) note?: string | null;
+  @ApiPropertyOptional({ type: String, maxLength: 500, nullable: true }) @OptionalText(500) note?:
+    string | null;
   @ApiPropertyOptional({ description: 'Only with to=delivered; default today; ≥ received, ≤ today' })
   @IsOptionalNonNull()
   @IsDateOnly()
@@ -134,7 +143,8 @@ export class ChangeCaseStatusRequest extends VersionedPatch {
 }
 
 export class CancelCaseRequest extends VersionedPatch {
-  @ApiPropertyOptional({ maxLength: 500, nullable: true }) @OptionalText(500) reason?: string | null;
+  @ApiPropertyOptional({ type: String, maxLength: 500, nullable: true }) @OptionalText(500) reason?:
+    string | null;
 }
 
 export class CaseListQueryDto {
@@ -231,4 +241,12 @@ export class CaseDetailResponse extends CaseSummaryResponse {
   @ApiProperty({ type: String, nullable: true }) notes!: string | null;
   @ApiProperty({ type: [CaseLineResponse] }) lines!: CaseLineResponse[];
   @ApiProperty({ type: [CaseHistoryResponse] }) history!: CaseHistoryResponse[];
+  @ApiProperty({
+    enum: CASE_STATUSES,
+    isArray: true,
+    description: 'Statuses this case may move to now (POST /cases/{id}/status); empty when none',
+  })
+  allowedStatuses!: CaseStatus[];
+  @ApiProperty({ description: 'true when POST /cases/{id}/cancel is allowed now' }) canCancel!: boolean;
+  @ApiProperty({ description: 'true when header and lines may be edited (not cancelled)' }) canEdit!: boolean;
 }

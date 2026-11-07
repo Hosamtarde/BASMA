@@ -3,22 +3,35 @@
   "private": true,
   "description": "Dental lab management system (product name TBD) — built by Smile Artec Dental Laboratory",
   "workspaces": [
-    "apps/api"
+    "packages/shared",
+    "apps/api",
+    "apps/web"
   ],
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
+    "prepare": "npm run build -w packages/shared",
     "dev": "npm run dev -w apps/api",
-    "build": "npm run build -w apps/api",
-    "lint": "npm run lint -w apps/api",
-    "typecheck": "npm run typecheck -w apps/api",
-    "test": "npm run test -w apps/api",
+    "dev:web": "npm run dev -w apps/web",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "test:integration": "npm run test:integration -w apps/api",
     "test:e2e": "npm run test:e2e -w apps/api",
-    "i18n:check": "npm run i18n:check -w apps/api",
+    "test:e2e:web": "npm run build && npm run e2e -w apps/web",
+    "i18n:check": "npm run i18n:check --workspaces --if-present",
+    "rtl:check": "npm run rtl:check -w apps/web",
+    "openapi:export": "npm run openapi:export -w apps/api",
+    "api:generate": "npm run api:generate -w apps/web",
+    "contract:check": "npm run openapi:export && npm run api:generate && git diff --exit-code -- apps/api/openapi.json apps/web/src/api/schema.gen.ts",
     "migrate": "npm run migrate -w apps/api",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down"
+  },
+  "overrides": {
+    "typescript": "~6.0.3",
+    "eslint": "^10.14.0"
   }
 }

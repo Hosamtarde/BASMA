@@ -8,7 +8,7 @@
 Precedence: **business scope → SPEC.md wins** (the standards list *possible* modules; we build only SPEC §3.1). **Engineering quality → the standards win.**
 
 ## The plan in one paragraph
-We build the **whole backend first** (Phase 1, milestones B0–B8), get the owner's sign-off, **and only then** start the frontend (Phase 2). Do not scaffold, design or discuss UI in Phase 1. When Phase 2 starts, the first step is agreeing the look (colours, layout) with the owner — use the `frontend-design` skill (enable Anthropic's frontend-design skill/plugin if it is not active), propose 2–3 directions, let the owner choose.
+B0–B2 were built backend-first. The look is agreed (direction A, SPEC §1.1, `docs/design-directions/`). **From F0 on we work in vertical slices: every milestone delivers its backend and its screens together** (SPEC §11): F0 web foundation, F1 screens for B1, F2 screens for B2, then B3–B8 each with their UI. Each slice gets its own branch and stops for the owner's go-ahead. Frontend stack: ADR-0016; how the UI ships inside the installer: ADR-0017. Load the `smile-artec-web-*` skills for frontend work and `frontend-design` for visual work.
 
 ## Your first task — Phase 0 only (no feature code)
 1. Inspect the repo as it is now (it may be nearly empty — say so).
@@ -17,7 +17,7 @@ We build the **whole backend first** (Phase 1, milestones B0–B8), get the owne
 4. Stop and wait for approval. Then start B0.
 
 ## References
-`docs/reference/invoice-sample.{html,pdf,png}` — approved starting look of the printed invoice (Phase 2); Phase 1 must produce snapshot data that supports it (SPEC §5.14). Font: `assets/fonts/Cairo.ttf` (OFL).
+`docs/reference/invoice-sample.{html,pdf,png}` — approved starting look of the printed invoice (built in B6); the backend must produce snapshot data that supports it (SPEC §5.14). Font: `assets/fonts/Cairo.ttf` (OFL).
 
 ## Delivery requirement
 The system must ship as a **single Windows installer** that installs the API + portable PostgreSQL as Windows services (SPEC §2.1). Docker is for development only. Keep every design choice compatible with this from day one (config, paths, ports, secrets, backups, migrations).
@@ -26,7 +26,7 @@ The system must ship as a **single Windows installer** that installs the API + p
 Each customer installs the product independently on its own computer, with its own local owner account and its own data (SPEC §2.2). Single-tenant per install; nothing lab-specific hard-coded. Licensing, auto-update and cloud are **not** in v1 — keep the seams clean (SPEC §2.4) and note pre-production tasks in `docs/production-readiness.md`.
 
 ## Working agreement
-- Talk to the owner in simple Arabic (Palestinian-friendly), short and practical; he is not a programmer. Code, identifiers, comments, commits, docs: English. **Arabic is the default language and English must be switchable (SPEC §6.1):** all user-facing text lives only in the `ar.json`/`en.json` catalogs (API now, frontend later) — never hard-coded; every new string is added to both languages; the DB stores codes, not translated labels.
+- Talk to the owner in simple Arabic (Palestinian-friendly), short and practical; he is not a programmer. Code, identifiers, comments, commits, docs: English. **Arabic is the default language and English must be switchable (SPEC §6.1):** all user-facing text lives only in the `ar.json`/`en.json` catalogs (API: `apps/api/src/shared/i18n/catalogs`, web: `apps/web/src/i18n`) — never hard-coded; every new string is added to both languages; the DB stores codes, not translated labels.
 - After every milestone: run lint + typecheck + tests + build, report **real** results (never claim tested otherwise), summarise in ≤5 Arabic lines, and wait for the go-ahead.
 - No features outside SPEC §3.1. No dead endpoints for §3.2. When you must assume something, take the SPEC §12 default, say so in one line, keep it easy to change.
 - One logical change per commit (conventional commits). Don't modify unrelated modules; don't rewrite working code without a reason.
@@ -42,7 +42,7 @@ Each customer installs the product independently on its own computer, with its o
 - No entities in API responses; no secrets in code or logs; no stack traces to clients.
 - This product is a **behavioural** re-implementation of workflows the owner knows from another dental program. Do not look for, copy or reuse that product's code, images, icons or texts. Original code and original assets only. Brand assets of the owner's lab (Smile Artec — the vendor / main lab, **not** the product name) are in `assets/` (transparent PNG logos from a high-resolution source — never enlarge past native size; the logo path is a setting). The product name is still being chosen by the owner: use one `PRODUCT_NAME` constant everywhere (SPEC §2.3); the repo/folder name `smile-artec` is temporary.
 
-## Commands (run from the repo root; Node 24, Docker for the dev DB and for integration/e2e tests)
+## Commands (run from the repo root; Node 24, Docker for the dev DB and for integration/e2e tests; `npm install` also builds packages/shared)
 ```
 cp .env.example .env        # then fill POSTGRES_PASSWORD, DATABASE_URL, JWT_ACCESS_SECRET (random values)
 npm run db:up               # PostgreSQL 16 in Docker (development only)
@@ -50,4 +50,8 @@ npm run dev                 # API on http://127.0.0.1:4310 (migrates on start); 
 npm run lint · typecheck · i18n:check · test · test:integration · test:e2e · build
 npm run migrate             # apply migrations explicitly (installer path: MIGRATE_ON_START=false)
 npm run db:generate -w apps/api -- --name <name>   # new migration from the Drizzle schema; review the SQL
+npm run dev:web             # web UI on http://127.0.0.1:5173 (proxies /api to the API)
+npm run rtl:check           # web: logical CSS only (i18n:check covers both API and web catalogs)
+npm run contract:check      # export openapi.json + regenerate the web client; fails on drift
+npm run test:e2e:web        # build all, then Playwright + axe; needs E2E_DATABASE_URL to a *_e2e database
 ```

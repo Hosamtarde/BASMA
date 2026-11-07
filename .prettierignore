@@ -1,0 +1,3 @@
+apps/api/openapi.json
+apps/web/src/api/schema.gen.ts
+apps/web/dist/

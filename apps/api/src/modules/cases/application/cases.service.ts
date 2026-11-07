@@ -10,6 +10,7 @@ import { LabCalendar } from '../../settings/application/lab-calendar.service';
 import {
   Area,
   canCancel,
+  canEdit,
   CaseStatus,
   checkTransition,
   DEFAULT_INITIAL_STATUS,
@@ -382,7 +383,7 @@ export class CasesService {
   // ---- helpers ----
 
   private editable(current: CaseRow): CaseRow {
-    if (current.status === 'cancelled') throw err('error.case.cancelled', HttpStatus.CONFLICT);
+    if (!canEdit(current.status)) throw err('error.case.cancelled', HttpStatus.CONFLICT);
     return current;
   }
 

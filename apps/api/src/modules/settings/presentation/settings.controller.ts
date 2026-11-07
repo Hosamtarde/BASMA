@@ -91,7 +91,9 @@ export class SettingsController {
 
   @Get('logo')
   @RequirePermission(Permission.SettingsRead)
-  @ApiOperation({ summary: 'The stored lab logo (404 = use the bundled default)' })
+  @ApiOperation({
+    summary: 'The stored lab logo (404 = no logo: show the lab name only, never a vendor logo)',
+  })
   @ApiProduces('image/png', 'image/jpeg')
   @ApiOkResponse({ description: 'Image bytes' })
   @ApiNotFoundResponse({ description: 'error.not_found' })
@@ -123,7 +125,7 @@ export class SettingsController {
   @Delete('logo')
   @RequirePermission(Permission.SettingsWrite)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Remove the stored logo (back to the bundled default)' })
+  @ApiOperation({ summary: 'Remove the stored logo (documents and screens then show the lab name only)' })
   @ApiNoContentResponse()
   async removeLogo(@CurrentUser() user: AuthUser): Promise<void> {
     await this.logos.remove(user.id);

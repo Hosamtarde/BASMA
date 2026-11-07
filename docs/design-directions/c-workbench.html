@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>اتجاه التصميم ج: منصّة العمل</title>
+<!-- Design direction mockup (static, sample data only). Original artwork and icons; nothing from any other program. -->
+<style>
+@font-face{font-family:"Cairo";src:url("../../assets/fonts/Cairo.ttf") format("truetype");font-weight:200 1000;font-display:block}
+:root{
+  --navy:#01416C;--blue:#006EBD;--cyan:#03C3DB;--cyan-ink:#06728A;--ink:#023F65;--muted:#4F6577;
+  --surface:#F4F8FA;--card:#FFFFFF;--border:#DCE6EC;--control:#7F95A5;--focus:#006EBD;--danger:#A92E27;
+  --grad:linear-gradient(135deg,#01416C 0%,#006EBD 100%);
+  --logo-grad:linear-gradient(270deg,#01416C 0%,#006EBD 55%,#03C3DB 100%);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:"Cairo","Segoe UI",Tahoma,sans-serif;color:var(--ink);background:var(--surface);font-size:15px;line-height:1.65}
+h1,h2,h3,p{margin:0}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.ic{width:20px;height:20px;flex:none}
+.n{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+.app{display:grid;grid-template-columns:var(--side-w,248px) minmax(0,1fr);min-height:100vh}
+.side{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;overflow-y:auto}
+.side nav{display:flex;flex-direction:column;gap:2px}
+.side .push{margin-top:auto}
+.nav{display:flex;align-items:center;gap:12px;text-decoration:none;position:relative;cursor:pointer}
+.main{min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:12px 28px;position:sticky;top:0;z-index:5}
+.search{flex:1;max-width:460px;display:flex;align-items:center;gap:8px;border-radius:10px;padding:0 12px;height:40px}
+.search input{border:0;background:transparent;outline:0;flex:1;min-width:0}
+.top .spacer{flex:1}
+.iconbtn{position:relative;display:inline-grid;place-items:center;width:40px;height:40px;border-radius:10px;border:0;background:transparent;cursor:pointer}
+.count{position:absolute;inset-block-start:4px;inset-inline-end:2px;min-width:18px;height:18px;border-radius:9px;background:#C0392B;color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;padding:0 4px;line-height:1}
+.chipbtn{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:10px;border:0;background:transparent;cursor:pointer;font-weight:600}
+.screen{display:none;padding:8px 28px 96px;scroll-margin-top:120px}
+.screen:target{display:block}
+body:not(:has(.screen:target)) #home{display:block}
+body:not(:has(.screen:target)) .nav[href="#home"],
+body:has(#home:target) .nav[href="#home"],
+body:has(#cases:target) .nav[href="#cases"],
+body:has(#new-case:target) .nav[href="#new-case"]{--active:1}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:16px 0 18px}
+.page-head h1{font-size:25px;font-weight:800;line-height:1.3}
+.page-head p{color:var(--muted);font-size:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;border-radius:10px;padding:0 16px;height:40px;border:1px solid var(--control);background:#fff;color:var(--ink);cursor:pointer;text-decoration:none;white-space:nowrap}
+.btn .ic{width:18px;height:18px}
+.btn-primary{background:var(--grad);color:#fff;border-color:transparent}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{border-color:transparent;background:transparent}
+.btn-sm{height:32px;padding:0 10px;font-size:13.5px;border-radius:8px}
+.link{border:0;background:none;color:var(--cyan-ink);font-weight:700;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:4px;font-size:13.5px;text-decoration:none}
+.link .ic{width:16px;height:16px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:1px 10px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;color:var(--stc-ink);background:var(--stc-bg)}
+.badge i{width:8px;height:8px;border-radius:50%;background:var(--stc)}
+.st-waiting{--stc:#E0A100;--stc-ink:#755200;--stc-bg:#FDF3D6}
+.st-design{--stc:#7A5AF8;--stc-ink:#5032C8;--stc-bg:#EFEBFE}
+.st-in_progress{--stc:#006EBD;--stc-ink:#00558F;--stc-bg:#E2EFFA}
+.st-ready{--stc:#1E9E6A;--stc-ink:#116443;--stc-bg:#DFF3E9}
+.st-delivered{--stc:#03A9C4;--stc-ink:#05647A;--stc-bg:#DCF3F7}
+.st-returned{--stc:#D6453D;--stc-ink:#A12B24;--stc-bg:#FCE6E4}
+.st-cancelled{--stc:#8A98A3;--stc-ink:#4F5D67;--stc-bg:#ECEFF2}
+.overdue{display:inline-flex;align-items:center;gap:4px;color:var(--danger);background:#FCE6E4;font-size:12.5px;font-weight:700;padding:0 8px;border-radius:6px;white-space:nowrap}
+.overdue .ic{width:14px;height:14px}
+.card{background:var(--card);border:1px solid var(--border)}
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.tbl th{text-align:start;font-weight:700;color:var(--muted);font-size:13px;padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:11px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.tbl tbody tr{cursor:pointer}
+.tbl tbody tr:hover{background:#F7FBFD}
+.tbl .end{text-align:end}
+.tbl tr.is-cancelled td{color:var(--muted)}
+.tbl tr.is-cancelled .money{text-decoration:line-through}
+.muted{color:var(--muted)}
+.pager{display:flex;align-items:center;justify-content:space-between;padding:12px 4px 0;font-size:13.5px;color:var(--muted)}
+.pager .pages{display:flex;gap:4px}
+.pager button{min-width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:700}
+.pager button[aria-current]{background:var(--ink);border-color:var(--ink);color:#fff}
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.control{display:flex;align-items:center;gap:8px;min-height:40px;padding:0 12px;border:1px solid var(--control);border-radius:8px;background:#fff;color:var(--ink)}
+.control input,.control select{border:0;outline:0;background:transparent;min-width:0;flex:1}
+.control .ic{width:18px;height:18px;color:var(--muted)}
+.control:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--border);background:#fff;font-size:13.5px;font-weight:700;cursor:pointer;color:var(--ink)}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--stc)}
+.chip .n{color:var(--muted);font-weight:600}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip[aria-pressed="true"] .n{color:#CFE0EC}
+.toggle{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;cursor:pointer}
+.toggle input{width:18px;height:18px;accent-color:var(--blue)}
+/* form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+.field{display:flex;flex-direction:column;gap:5px}
+.field.wide{grid-column:1/-1}
+.field>label,.field>.lab{font-size:13.5px;font-weight:700}
+.req{color:var(--danger)}
+.field .hint{font-size:12.5px;color:var(--muted)}
+.field .row{display:flex;justify-content:space-between;align-items:center}
+textarea.control{padding:10px 12px;min-height:72px;resize:vertical;width:100%}
+.swatch{width:22px;height:22px;border-radius:6px 6px 10px 10px;border:1px solid #BFA77F;background:linear-gradient(180deg,#F2E6CC,#E3CDA0)}
+.apply{width:100%;height:44px}
+fieldset{border:0;padding:0;margin:0}
+legend{font-weight:800;font-size:15px;padding:0;margin-bottom:10px}
+/* tooth chart */
+.chart{direction:ltr;display:block;width:100%;height:auto;user-select:none;font-family:"Cairo",sans-serif}
+.chart-arch{max-height:min(64vh,600px)}
+.chart .tooth{cursor:pointer;outline:none}
+.chart .enamel{stroke:#8FA1AD;stroke-width:1px;vector-effect:non-scaling-stroke}
+.chart .detail{fill:none;stroke:#A7B6C0;stroke-width:.9px;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.chart .pit{fill:#B5C3CC}
+.chart .root{stroke:#B49F7F;stroke-width:.9px;vector-effect:non-scaling-stroke}
+.chart .shine{fill:none;stroke:#fff;stroke-width:1.6px;stroke-linecap:round;opacity:.85;vector-effect:non-scaling-stroke}
+.chart .hot{fill:transparent;stroke:transparent;stroke-width:2px;vector-effect:non-scaling-stroke;transition:fill .12s,stroke .12s}
+.chart .tooth:hover .hot{fill:rgba(3,195,219,.16);stroke:#03A9C4}
+.chart .tooth.work .hot{fill:var(--wc);fill-opacity:.34;stroke:var(--wc)}
+.chart .tooth.sel .hot{fill:#006EBD;fill-opacity:.32;stroke:#006EBD;stroke-width:2.6px}
+.chart .tooth:focus-visible .hot{stroke:#01416C;stroke-width:3px;stroke-dasharray:4 3}
+.chart .lbl rect{fill:transparent}
+.chart .lbl text{font-size:3.1px;font-weight:700;text-anchor:middle;dominant-baseline:central;fill:#4F6577}
+.chart .lbl.work rect{fill:var(--wc)}
+.chart .lbl.work text,.chart .lbl.sel text{fill:#fff}
+.chart .lbl.sel rect{fill:#006EBD}
+.chart .side{font-size:3px;fill:#6B7F8C;font-weight:600}
+.chart .arch-name{font-size:3.3px;fill:#8395A2;text-anchor:middle;font-weight:600}
+.chart .midline{stroke:#C9D5DC;stroke-width:.3;stroke-dasharray:1 1.2}
+.chart-tools{display:flex;flex-wrap:wrap;gap:6px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);align-items:center}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:4px;background:var(--c)}
+.selchips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:32px}
+.selchips .t{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 8px 0 10px;border-radius:8px;background:#E2EFFA;color:#00558F;font-weight:800;font-size:13.5px}
+.selchips .t button{border:0;background:transparent;color:inherit;cursor:pointer;display:grid;place-items:center;padding:0}
+.selchips .t .ic{width:14px;height:14px}
+.view-both .chart-rows{display:none}
+.view-both.show-rows .chart-rows{display:block}
+.view-both.show-rows .chart-arch{display:none}
+/* lines */
+.price{display:inline-flex;align-items:center;gap:8px}
+.price .control{min-height:34px;width:110px;padding:0 10px}
+.special{display:inline-flex;align-items:center;gap:3px;color:#7A5200;background:#FDF3D6;border-radius:6px;padding:0 6px;font-size:12px;font-weight:800;white-space:nowrap}
+.special .ic{width:13px;height:13px}
+.totals{display:grid;grid-template-columns:auto auto;gap:6px 24px;justify-content:end;font-size:14.5px;padding:14px 12px 0}
+.totals dt{color:var(--muted)}
+.totals dd{margin:0;text-align:end;font-weight:700}
+.totals .grand{font-size:19px;font-weight:800;color:var(--navy)}
+.savebar{position:sticky;bottom:0;display:flex;justify-content:flex-end;gap:10px;padding:14px 0;margin-top:18px;background:linear-gradient(transparent,var(--surface) 30%)}
+/* mockup chrome */
+.mock{position:fixed;inset-block-end:14px;inset-inline-end:14px;z-index:50;display:flex;align-items:center;gap:6px;padding:6px;border-radius:14px;background:#01416C;color:#fff;font-size:13px;box-shadow:0 8px 24px rgba(1,65,108,.28)}
+.mock span{padding:0 8px;color:#CFE3F1}
+.mock a{color:#fff;text-decoration:none;padding:4px 10px;border-radius:9px;font-weight:700}
+.mock a[aria-current]{background:#fff;color:#01416C}
+.toast{position:fixed;inset-block-start:18px;inset-inline-start:50%;translate:50% 0;z-index:60;background:#fff;border:1px solid var(--border);border-inline-start:4px solid var(--blue);border-radius:10px;padding:10px 16px;font-weight:700;box-shadow:0 10px 30px rgba(2,63,101,.16);opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+@media (max-width:980px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto}
+  .side nav{flex-direction:row;flex-wrap:wrap}
+  .screen{padding-inline:16px}
+  .top{padding-inline:16px}
+  .split,.home-grid,.groups,.tabs,.tiles,.pipe{grid-template-columns:1fr!important}
+  .tbl-wrap{overflow-x:auto}
+}
+
+.app{--side-w:98px}
+body{font-size:14px}
+.side{background:#01416C;color:#fff;padding:10px 6px;gap:2px}
+.brand{background:#fff;border-radius:12px;padding:6px 5px;margin:2px 3px 10px}
+.brand img{width:100%;height:auto;display:block}
+.brand .lab{display:none}
+.nav{flex-direction:column;gap:3px;padding:7px 2px;border-radius:10px;color:#D3E5F1;font-size:11.5px;line-height:1.3;text-align:center;font-weight:600}
+.nav .ic{width:21px;height:21px}
+.nav:hover{background:rgba(255,255,255,.09)}
+body:not(:has(.screen:target)) .nav[href="#home"],body:has(#home:target) .nav[href="#home"],body:has(#cases:target) .nav[href="#cases"],body:has(#new-case:target) .nav[href="#new-case"]{background:#006EBD;color:#fff;font-weight:800}
+.top{background:linear-gradient(270deg,#01416C 0%,#006EBD 100%);color:#fff;padding:10px 22px}
+.search{background:#fff;color:var(--ink);max-width:520px}
+.top .iconbtn,.top .chipbtn{color:#fff}
+.top .iconbtn:hover,.top .chipbtn:hover{background:rgba(255,255,255,.12)}
+.screen{padding-inline:22px}
+.page-head{margin:14px 0 14px}
+.page-head h1{font-size:22px}
+.btn{height:36px;border-radius:8px}
+.strip{display:flex;align-items:center;gap:18px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 18px;margin-top:14px}
+.strip img{height:56px;width:auto}
+.strip h1{font-size:20px;font-weight:800;line-height:1.3}
+.strip .tag{font-size:11.5px;letter-spacing:.26em;color:var(--cyan-ink);font-weight:700}
+.strip .today{margin-inline-start:auto;color:var(--muted);font-size:13px;text-align:end}
+.strip .today b{display:block;color:var(--ink);font-size:16px}
+.pipe-head{display:flex;justify-content:space-between;align-items:baseline;margin:20px 0 8px}
+.pipe-head h2{font-size:15px;font-weight:800}
+.pipe{display:grid;grid-template-columns:repeat(5,minmax(0,1fr)) 150px;gap:4px}
+.seg{position:relative;display:flex;flex-direction:column;justify-content:center;min-height:86px;padding:10px 26px 10px 18px;background:var(--stc-bg);color:var(--stc-ink);text-decoration:none;clip-path:polygon(0 50%,14px 0,100% 0,calc(100% - 14px) 50%,100% 100%,14px 100%)}
+.seg:first-child{clip-path:polygon(0 50%,14px 0,100% 0,100% 100%,14px 100%);border-start-start-radius:10px;border-end-start-radius:10px;padding-inline-start:18px}
+.seg b{font-size:26px;font-weight:800;line-height:1.1;color:var(--ink)}
+.seg span{font-size:13px;font-weight:700}
+.seg:hover{filter:brightness(.97)}
+.seg.hot b{color:var(--stc-ink)}
+.aside-seg{display:flex;flex-direction:column;gap:4px}
+.aside-seg a{flex:1;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-radius:8px;background:var(--stc-bg);color:var(--stc-ink);font-weight:700;font-size:13px;text-decoration:none}
+.aside-seg b{color:var(--ink);font-size:16px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}
+.tile{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:center;padding:12px 14px;background:#fff;border:1px solid var(--border);border-radius:10px;text-decoration:none;color:var(--ink)}
+.tile:hover{border-color:var(--blue)}
+.tile .sq{grid-row:span 2;width:40px;height:40px;border-radius:9px;display:grid;place-items:center;background:#E2EFFA;color:var(--blue)}
+.tile.primary{background:var(--grad);color:#fff;border-color:transparent}
+.tile.primary .sq{background:rgba(255,255,255,.16);color:#fff}
+.tile.primary small{color:#DCEBF6}
+.tile h3{font-size:14.5px;font-weight:800;line-height:1.3}
+.tile small{font-size:12px;color:var(--muted)}
+.tile small b{font-weight:800;color:inherit}
+.tile.primary small b{color:#fff}
+.tile:not(.primary) small b{color:var(--ink)}
+.home-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:12px;margin-top:12px}
+.panel{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.panel h2{font-size:14.5px;font-weight:800;margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats a{display:flex;flex-direction:column;padding:8px 10px;background:var(--surface);border-radius:8px;text-decoration:none}
+.stats a span{font-size:12px;color:var(--muted)}
+.stats a b{font-size:16px;font-weight:800}
+.recent{list-style:none;margin:0;padding:0;position:relative}
+.recent li{position:relative;display:grid;grid-template-columns:72px 1fr;gap:10px;padding:5px 0;font-size:13px}
+.recent li::before{content:"";position:absolute;inset-inline-start:76px;top:13px;width:7px;height:7px;border-radius:50%;background:var(--cyan);outline:3px solid #fff}
+.recent li span{padding-inline-start:14px}
+.recent time{color:var(--muted);font-size:12px}
+.list-card{background:#fff;border:1px solid var(--border);border-radius:10px;padding:4px 12px 12px}
+.filters-card{display:flex;flex-direction:column;gap:10px;margin-bottom:10px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px}
+.tbl{font-size:13.5px}
+.tbl td{padding:7px 10px}
+.tbl th{padding:8px 10px}
+.tbl tbody td:first-child{border-inline-start:4px solid var(--stc)}
+.tbl .caseno{font-weight:800}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:12px;align-items:start}
+.pane{background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.pane h2{font-size:15px;font-weight:800;margin-bottom:12px}
+.form-grid{gap:10px 12px}
+.control{min-height:36px}
+.chart-pane{display:flex;flex-direction:column;gap:10px}
+.seg-toggle{display:inline-flex;border:1px solid var(--control);border-radius:8px;overflow:hidden}
+.seg-toggle button{border:0;background:#fff;padding:0 14px;height:32px;font-weight:700;cursor:pointer;font-size:13px}
+.seg-toggle button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.lines{margin-top:12px}
+</style>
+</head>
+<body class="dir-c">
+<div class="app">
+
+<aside class="side" aria-label="القائمة الجانبية">
+  <div class="brand"><img src="../../assets/logo-small.png" alt="شعار المختبر"><div class="lab">مختبر سمايل آرتك لتقنية الأسنان</div></div>
+  <nav aria-label="القائمة الرئيسية">
+    <a class="nav" href="#home"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11 12 4l8.5 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5.5h4V20"/></svg><span>الرئيسية</span></a>
+    <a class="nav" href="#new-case"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 3.5C4.8 3.5 3.5 5.4 3.5 7.6c0 2.9 1.4 4.3 1.9 7.2.4 2.5 1 5.7 2.4 5.7 1.5 0 1.6-3.6 2.4-5.5.4-1 1.2-1 1.6 0 .8 1.9.9 5.5 2.4 5.5 1.4 0 2-3.2 2.4-5.7.5-2.9 1.9-4.3 1.9-7.2 0-2.2-1.3-4.1-3.7-4.1-1.9 0-2.9.9-4.8.9s-2.9-.9-4.8-.9Z"/></svg><span>إضافة حالة جديدة</span></a>
+    <a class="nav" href="#cases"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.8h6V4M8.5 10h7M8.5 14h7M8.5 18h4"/></svg><span>الحالات</span></a>
+    <a class="nav" href="#" data-soon><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.3"/><path d="M3.5 20c.6-3.4 2.8-5.2 5.5-5.2s4.9 1.8 5.5 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M16.2 14.3c2.3.1 3.9 1.7 4.3 4.7"/></svg><span>الأطباء</span></a>
+    <a class="nav" href="#" data-soon><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M7.5 9.5 12 14l4.5-4.5"/><path d="M4 15.5V20h16v-4.5"/></svg><span>دفعة واردة</span></a>
+    <a class="nav" href="#" data-soon><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14V3M7.5 7.5 12 3l4.5 4.5"/><path d="M4 15.5V20h16v-4.5"/></svg><span>إنشاء دفعة صادرة</span></a>
+    <a class="nav" href="#" data-soon><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m9 9 6 6M15 9l-6 6"/></svg><span>إلغاء دفعة</span></a>
+    <a class="nav" href="#" data-soon><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M7.5 20h9M5 7h14"/><path d="m5 7-2.6 6a2.8 2.8 0 0 0 5.2 0Z"/><path d="m19 7-2.6 6a2.8 2.8 0 0 0 5.2 0Z"/></svg><span>الديون</span></a>
+    <a class="nav" href="#" data-soon><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 14h6M6.5 10.5h3M15 14h2.5"/></svg><span>سجل الشيكات</span></a>
+    <a class="nav" href="#" data-soon><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8.5L19 7.5V21H6Z"/><path d="M14.5 3v4.5H19M9 12h7M9 16h7M9 8.5h3"/></svg><span>إنشاء فاتورة</span></a>
+    <a class="nav" href="#" data-soon><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M3.5 9h17M9 9v11.5"/></svg><span>مظهر الفاتورة</span></a>
+  </nav>
+  <a class="nav push" href="#" data-soon><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/><circle cx="12" cy="12" r="6.6"/></svg><span>الإعدادات</span></a>
+</aside>
+<div class="main">
+
+<header class="top">
+  <label class="search"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input type="search" placeholder="ابحث عن طبيب أو حالة..." aria-label="بحث"></label>
+  <span class="spacer"></span>
+  <button class="chipbtn" type="button" data-soon title="Switch to English"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg><span>English</span></button>
+  <button class="iconbtn" type="button" data-soon aria-label="الإشعارات، 3 غير مقروءة"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 2h-15Z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg><span class="count n">3</span></button>
+  <button class="chipbtn" type="button" data-soon><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4.5 4-6.5 8-6.5s7 2 8 6.5"/></svg><span>المالك</span></button>
+</header>
+<main>
+
+<section id="home" class="screen" aria-labelledby="home-title">
+  <div class="strip"><img src="../../assets/logo-small.png" alt="شعار مختبر سمايل آرتك"><div><h1 id="home-title">مختبر سمايل آرتك لتقنية الأسنان</h1><p class="tag">ART MEETS TECHNOLOGY</p></div><p class="today">السبت<b class="n">2026-11-07</b></p></div>
+  <div class="pipe-head"><h2>مسار الحالات</h2><a class="link" href="#cases">كل الحالات (312)</a></div>
+  <div class="pipe">
+    <a class="seg st-waiting" href="#cases"><b class="n">6</b><span>بالانتظار</span></a><a class="seg st-design" href="#cases"><b class="n">9</b><span>قيد التصميم</span></a><a class="seg st-in_progress" href="#cases"><b class="n">14</b><span>قيد التنفيذ</span></a><a class="seg st-ready hot" href="#cases"><b class="n">7</b><span>جاهزة للتسليم</span></a><a class="seg st-delivered" href="#cases"><b class="n">268</b><span>تم التسليم</span></a>
+    <div class="aside-seg"><a href="#cases" class="st-returned">مرتجعة للتعديل<b class="n">2</b></a><a href="#cases" class="st-cancelled">ملغاة<b class="n">6</b></a></div>
+  </div>
+  <div class="tiles"><a class="tile primary" href="#new-case"><span class="sq"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.2 3.5C4.8 3.5 3.5 5.4 3.5 7.6c0 2.9 1.4 4.3 1.9 7.2.4 2.5 1 5.7 2.4 5.7 1.5 0 1.6-3.6 2.4-5.5.4-1 1.2-1 1.6 0 .8 1.9.9 5.5 2.4 5.5 1.4 0 2-3.2 2.4-5.7.5-2.9 1.9-4.3 1.9-7.2 0-2.2-1.3-4.1-3.7-4.1-1.9 0-2.9.9-4.8.9s-2.9-.9-4.8-.9Z"/></svg></span><h3>إضافة حالة جديدة</h3><small><b class="n">7</b> حالات جاهزة للتسليم</small></a><a class="tile" href="#" data-soon><span class="sq"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M7.5 9.5 12 14l4.5-4.5"/><path d="M4 15.5V20h16v-4.5"/></svg></span><h3>دفعة واردة</h3><small><b class="n">12,450.00 ₪</b> وارد هذا الشهر</small></a><a class="tile" href="#" data-soon><span class="sq"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14V3M7.5 7.5 12 3l4.5 4.5"/><path d="M4 15.5V20h16v-4.5"/></svg></span><h3>دفعة صادرة</h3><small><b class="n">3,180.00 ₪</b> صادر هذا الشهر</small></a><a class="tile" href="#" data-soon><span class="sq"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M7.5 20h9M5 7h14"/><path d="m5 7-2.6 6a2.8 2.8 0 0 0 5.2 0Z"/><path d="m19 7-2.6 6a2.8 2.8 0 0 0 5.2 0Z"/></svg></span><h3>الديون</h3><small><b class="n">28,940.00 ₪</b> مستحق للمختبر</small></a><a class="tile" href="#" data-soon><span class="sq"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 14h6M6.5 10.5h3M15 14h2.5"/></svg></span><h3>سجل الشيكات</h3><small><b class="n">3</b> تستحق خلال 7 أيام</small></a><a class="tile" href="#" data-soon><span class="sq"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8.5L19 7.5V21H6Z"/><path d="M14.5 3v4.5H19M9 12h7M9 16h7M9 8.5h3"/></svg></span><h3>إنشاء فاتورة</h3><small><b class="n">5</b> حالات بانتظار الفوترة</small></a><a class="tile" href="#" data-soon><span class="sq"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.3"/><path d="M3.5 20c.6-3.4 2.8-5.2 5.5-5.2s4.9 1.8 5.5 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M16.2 14.3c2.3.1 3.9 1.7 4.3 4.7"/></svg></span><h3>الأطباء</h3><small><b class="n">18</b> طبيبًا نشطًا</small></a></div>
+  <div class="home-grid">
+    <section class="panel"><h2>الأرقام الرئيسية</h2><div class="stats"><a href="#cases"><span>الأطباء</span><b class="n">18</b></a><a href="#cases"><span>الحالات</span><b class="n">306</b></a><a href="#cases"><span>الدخل</span><b class="n">186,420.00 ₪</b></a><a href="#cases"><span>المبالغ المستحقة</span><b class="n">28,940.00 ₪</b></a><a href="#cases"><span>المصاريف</span><b class="n">41,760.00 ₪</b></a><a href="#cases"><span>الفواتير</span><b class="n">96</b></a></div></section>
+    <section class="panel"><h2>آخر العمليات</h2><ol class="recent"><li><time>10:42</time><span>إنشاء حالة رقم 1287 للدكتور أحمد سالم</span></li><li><time>10:15</time><span>دفعة واردة IN-000412 من د. ريم الخطيب بقيمة 1,200.00 ₪</span></li><li><time>09:58</time><span>تغيير حالة الحالة 1283 إلى «جاهزة للتسليم»</span></li><li><time>09:30</time><span>إنشاء فاتورة رقم 96 للدكتور محمد عودة</span></li><li><time>أمس 17:05</time><span>تسليم الحالة 1281 للدكتورة ليلى منصور</span></li><li><time>أمس 16:20</time><span>صرف الشيك رقم 30021487 من د. خالد البرغوثي</span></li></ol></section>
+  </div>
+</section>
+
+<section id="cases" class="screen" aria-labelledby="cases-title">
+  <div class="page-head"><div><h1 id="cases-title">الحالات</h1><p>كل الحالات المسجّلة، الأحدث أولًا.</p></div><a class="btn btn-primary" href="#new-case"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>حالة جديدة</a></div>
+  <div class="filters-card">
+    <div class="filters">
+      <label class="control" style="flex:1;min-width:240px"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input type="search" placeholder="ابحث باسم المريض أو رقم الحالة" aria-label="بحث في الحالات"></label>
+      <label class="control"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.3"/><path d="M3.5 20c.6-3.4 2.8-5.2 5.5-5.2s4.9 1.8 5.5 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M16.2 14.3c2.3.1 3.9 1.7 4.3 4.7"/></svg><select aria-label="الطبيب"><option>كل الأطباء</option><option>د. أحمد سالم</option></select></label>
+      <span class="control"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span class="n">2026-10-01</span><span class="muted">إلى</span><span class="n">2026-11-07</span></span>
+      <label class="toggle"><input type="checkbox"> المتأخرة فقط <span class="n muted">(3)</span></label>
+    </div>
+    <div class="chips" role="group" aria-label="تصفية حسب الحالة">
+      <button class="chip" aria-pressed="true">الكل <span class="n">312</span></button>
+      <button class="chip st-waiting" aria-pressed="false"><i></i>بالانتظار <span class="n">6</span></button><button class="chip st-design" aria-pressed="false"><i></i>قيد التصميم <span class="n">9</span></button><button class="chip st-in_progress" aria-pressed="false"><i></i>قيد التنفيذ <span class="n">14</span></button><button class="chip st-ready" aria-pressed="false"><i></i>جاهزة للتسليم <span class="n">7</span></button><button class="chip st-delivered" aria-pressed="false"><i></i>تم التسليم <span class="n">268</span></button><button class="chip st-returned" aria-pressed="false"><i></i>مرتجعة للتعديل <span class="n">2</span></button><button class="chip st-cancelled" aria-pressed="false"><i></i>ملغاة <span class="n">6</span></button>
+    </div>
+  </div>
+  <div class="list-card"><div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>رقم الحالة</th><th>الطبيب</th><th>المريض</th><th>الفني</th><th>تاريخ الاستلام</th><th>التسليم المتوقع</th><th>الحالة</th><th class="end">الإجمالي</th></tr></thead>
+      <tbody>
+      <tr class="st-design" tabindex="0">
+        <td><span class="caseno n">1287</span></td>
+        <td>د. أحمد سالم</td><td dir="auto">ليلى حداد</td><td>فادي</td>
+        <td class="n">2026-11-07</td>
+        <td><span class="n">2026-11-12</span></td>
+        <td><span class="badge st-design"><i></i>قيد التصميم</span></td>
+        <td class="end"><span class="money n">950.00 ₪</span></td>
+      </tr>
+      <tr class="st-in_progress" tabindex="0">
+        <td><span class="caseno n">1286</span></td>
+        <td>د. ريم الخطيب</td><td dir="auto">محمود ناصر</td><td>سامر</td>
+        <td class="n">2026-11-06</td>
+        <td><span class="n">2026-11-10</span></td>
+        <td><span class="badge st-in_progress"><i></i>قيد التنفيذ</span></td>
+        <td class="end"><span class="money n">440.00 ₪</span></td>
+      </tr>
+      <tr class="st-waiting" tabindex="0">
+        <td><span class="caseno n">1285</span></td>
+        <td>د. محمد عودة</td><td dir="auto">رنا يوسف</td><td><span class="muted">—</span></td>
+        <td class="n">2026-11-05</td>
+        <td><span class="n">2026-11-09</span></td>
+        <td><span class="badge st-waiting"><i></i>بالانتظار</span></td>
+        <td class="end"><span class="money n">600.00 ₪</span></td>
+      </tr>
+      <tr class="st-in_progress" tabindex="0">
+        <td><span class="caseno n">1284</span></td>
+        <td>د. سناء حمدان</td><td dir="auto">سامي قاسم</td><td>رامي</td>
+        <td class="n">2026-11-03</td>
+        <td><span class="n">2026-11-06</span> <span class="overdue"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21.5 20h-19Z"/><path d="M12 10v4.5M12 17.4v.2"/></svg>متأخرة</span></td>
+        <td><span class="badge st-in_progress"><i></i>قيد التنفيذ</span></td>
+        <td class="end"><span class="money n">1,050.00 ₪</span></td>
+      </tr>
+      <tr class="st-ready" tabindex="0">
+        <td><span class="caseno n">1283</span></td>
+        <td>د. خالد البرغوثي</td><td dir="auto">هبة عيسى</td><td>فادي</td>
+        <td class="n">2026-11-02</td>
+        <td><span class="n">2026-11-07</span></td>
+        <td><span class="badge st-ready"><i></i>جاهزة للتسليم</span></td>
+        <td class="end"><span class="money n">180.00 ₪</span></td>
+      </tr>
+      <tr class="st-ready" tabindex="0">
+        <td><span class="caseno n">1282</span></td>
+        <td>د. أحمد سالم</td><td dir="auto">يوسف عمرو</td><td>سامر</td>
+        <td class="n">2026-11-01</td>
+        <td><span class="n">2026-11-05</span> <span class="overdue"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21.5 20h-19Z"/><path d="M12 10v4.5M12 17.4v.2"/></svg>متأخرة</span></td>
+        <td><span class="badge st-ready"><i></i>جاهزة للتسليم</span></td>
+        <td class="end"><span class="money n">900.00 ₪</span></td>
+      </tr>
+      <tr class="st-delivered" tabindex="0">
+        <td><span class="caseno n">1281</span></td>
+        <td>د. ليلى منصور</td><td dir="auto">نور الهدى شاهين</td><td>رامي</td>
+        <td class="n">2026-10-30</td>
+        <td><span class="n">2026-11-04</span></td>
+        <td><span class="badge st-delivered"><i></i>تم التسليم</span></td>
+        <td class="end"><span class="money n">2,400.00 ₪</span></td>
+      </tr>
+      <tr class="st-returned" tabindex="0">
+        <td><span class="caseno n">1280</span></td>
+        <td>د. ريم الخطيب</td><td dir="auto">إياد جرادات</td><td>فادي</td>
+        <td class="n">2026-10-29</td>
+        <td><span class="n">2026-11-03</span> <span class="overdue"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4 21.5 20h-19Z"/><path d="M12 10v4.5M12 17.4v.2"/></svg>متأخرة</span></td>
+        <td><span class="badge st-returned"><i></i>مرتجعة للتعديل</span></td>
+        <td class="end"><span class="money n">220.00 ₪</span></td>
+      </tr>
+      <tr class="st-delivered" tabindex="0">
+        <td><span class="caseno n">1279</span></td>
+        <td>د. محمد عودة</td><td dir="auto">ماجد السعدي</td><td>سامر</td>
+        <td class="n">2026-10-28</td>
+        <td><span class="n">2026-11-02</span></td>
+        <td><span class="badge st-delivered"><i></i>تم التسليم</span></td>
+        <td class="end"><span class="money n">1,320.00 ₪</span></td>
+      </tr>
+      <tr class="st-cancelled is-cancelled" tabindex="0">
+        <td><span class="caseno n">1278</span></td>
+        <td>د. سناء حمدان</td><td dir="auto">دانا الأحمد</td><td><span class="muted">—</span></td>
+        <td class="n">2026-10-27</td>
+        <td><span class="n">2026-11-01</span></td>
+        <td><span class="badge st-cancelled"><i></i>ملغاة</span></td>
+        <td class="end"><span class="money n">450.00 ₪</span></td>
+      </tr></tbody>
+    </table></div>
+    <div class="pager"><span>عرض <span class="n">1–10</span> من <span class="n">312</span></span><div class="pages"><button aria-current="page" class="n">1</button><button class="n">2</button><button class="n">3</button><button>…</button><button class="n">31</button></div></div>
+  </div>
+</section>
+
+<section id="new-case" class="screen" aria-labelledby="nc-title">
+  <div class="page-head"><div><h1 id="nc-title">إضافة حالة جديدة</h1><p>حدّد الأسنان على المخطط ثم اختر نوع العمل واضغط «إضافة حالة العمل».</p></div></div>
+  <div class="split">
+    <form class="pane" onsubmit="return false" aria-labelledby="form-title">
+      <h2 id="form-title">بيانات الحالة</h2>
+      <div class="form-grid">
+        <div class="field wide"><div class="row"><label for="f-doc">الطبيب <span class="req">*</span></label><button class="link" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>أضف طبيبًا آخر</button></div>
+          <span class="control"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input id="f-doc" value="د. أحمد سالم"></span></div>
+        <div class="field"><label for="f-pat">اسم المريض <span class="req">*</span></label><span class="control"><input id="f-pat" value="ليلى حداد"></span></div>
+        <div class="field"><div class="row"><label for="f-tech">الفني</label><button class="link" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>أضف فنيًا</button></div><span class="control"><select id="f-tech"><option>فادي</option><option>سامر</option><option>رامي</option></select></span></div>
+        <div class="field"><div class="row"><label for="f-wt">نوع العمل</label><button class="link" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/><circle cx="12" cy="12" r="6.6"/></svg>أنواع العمل</button></div><span class="control"><select id="f-wt"><option>زيركون</option><option>إي-ماكس</option><option>خزف على معدن</option><option>تاج مؤقت</option></select></span></div>
+        <div class="field"><span class="lab">اللون</span><button class="control" type="button" style="cursor:pointer"><span class="swatch"></span><span class="n" style="font-weight:800">A2</span><span class="muted" style="margin-inline-start:auto;font-size:13px">تغيير</span></button></div>
+        <div class="field wide"><button class="btn btn-primary apply" type="button" id="apply"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg><span>إضافة حالة العمل للأسنان المحددة</span><span class="n" id="apply-count">(2)</span></button></div>
+      </div>
+      <fieldset style="margin-top:18px"><legend>التواريخ والحالة</legend>
+        <div class="form-grid">
+          <div class="field"><label>تاريخ الاستلام <span class="req">*</span></label><span class="control"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span class="n">2026-11-07</span></span></div>
+          <div class="field"><label>التسليم المتوقع <span class="req">*</span></label><span class="control"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span class="n">2026-11-12</span></span></div>
+          <div class="field"><label for="f-st">الحالة</label><span class="control"><select id="f-st"><option>قيد التصميم</option><option>بالانتظار</option><option>قيد التنفيذ</option><option>جاهزة للتسليم</option></select></span></div>
+          <div class="field"><label for="f-adv">الدفعة المقدمة</label><span class="control"><input id="f-adv" class="n" placeholder="0.00"><span class="muted">₪</span></span><span class="hint">اختياري، تُسجَّل كدفعة واردة نقدًا</span></div>
+          <div class="field wide"><label for="f-notes">ملاحظات</label><textarea id="f-notes" class="control" placeholder="أي ملاحظات إضافية على الحالة..."></textarea></div>
+        </div>
+      </fieldset>
+    </form>
+    <section class="pane chart-pane view-both" aria-labelledby="chart-title">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 id="chart-title" style="margin:0;padding:0;border:0">تحديد الأسنان</h2><div class="seg-toggle" role="group" aria-label="شكل المخطط"><button type="button" data-view="arch" aria-pressed="true">قوس</button><button type="button" data-view="rows" aria-pressed="false">صفّان</button></div></div>
+      <div class="chart-tools">
+        <button class="btn btn-sm" type="button" data-act="all">تحديد الكل</button>
+        <button class="btn btn-sm" type="button" data-act="clear">مسح التحديد</button>
+        <button class="btn btn-sm" type="button" data-act="q1">علوي يمين</button>
+        <button class="btn btn-sm" type="button" data-act="q2">علوي يسار</button>
+        <button class="btn btn-sm" type="button" data-act="q4">سفلي يمين</button>
+        <button class="btn btn-sm" type="button" data-act="q3">سفلي يسار</button>
+      </div>
+      <div class="chart-frame"><svg class="chart chart-arch" viewBox="0 0 104 166" role="group" aria-label="مخطط الأسنان: الفك العلوي والسفلي" dir="ltr">
+  <defs>
+    <radialGradient id="ca-enamel" cx="42%" cy="38%" r="68%"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#F2F5F6"/><stop offset="1" stop-color="#CFD9DF"/></radialGradient>
+  </defs>
+  <text class="side" x="3" y="84">يمين المريض</text><text class="side" x="101" y="84" text-anchor="end">يسار المريض</text>
+  <text class="arch-name" x="52" y="58">الفك العلوي</text><text class="arch-name" x="52" y="112">الفك السفلي</text>
+  <line class="midline" x1="52" y1="66" x2="52" y2="102"/>
+  <g class="tooth work" data-t="11" style="--wc:#B4690E" transform="translate(47.58,13.98) rotate(-23.85)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 11، قاطع علوي يمين"><path class="enamel" d="M-4.3,-1.22 C-4.3,-3.85 4.3,-3.85 4.3,-1.22 C4.3,1.22 1.72,3.5 0,3.5 C-1.72,3.5 -4.3,1.22 -4.3,-1.22 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-3.1,-1.75 Q0,-2.45 3.1,-1.75 M-1.29,1.75 Q0,0.88 1.29,1.75"/><path class="hot" d="M-4.3,-1.22 C-4.3,-3.85 4.3,-3.85 4.3,-1.22 C4.3,1.22 1.72,3.5 0,3.5 C-1.72,3.5 -4.3,1.22 -4.3,-1.22 Z"/></g><g class="tooth work" data-t="21" style="--wc:#B4690E" transform="translate(56.42,13.98) rotate(23.85)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 21، قاطع علوي يسار"><path class="enamel" d="M-4.3,-1.22 C-4.3,-3.85 4.3,-3.85 4.3,-1.22 C4.3,1.22 1.72,3.5 0,3.5 C-1.72,3.5 -4.3,1.22 -4.3,-1.22 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-3.1,-1.75 Q0,-2.45 3.1,-1.75 M-1.29,1.75 Q0,0.88 1.29,1.75"/><path class="hot" d="M-4.3,-1.22 C-4.3,-3.85 4.3,-3.85 4.3,-1.22 C4.3,1.22 1.72,3.5 0,3.5 C-1.72,3.5 -4.3,1.22 -4.3,-1.22 Z"/></g><g class="tooth work" data-t="12" style="--wc:#B4690E" transform="translate(41.18,18.85) rotate(-47.26)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 12، قاطع علوي يمين"><path class="enamel" d="M-3.3,-1.08 C-3.3,-3.41 3.3,-3.41 3.3,-1.08 C3.3,1.09 1.32,3.1 0,3.1 C-1.32,3.1 -3.3,1.09 -3.3,-1.08 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.38,-1.55 Q0,-2.17 2.38,-1.55 M-0.99,1.55 Q0,0.78 0.99,1.55"/><path class="hot" d="M-3.3,-1.08 C-3.3,-3.41 3.3,-3.41 3.3,-1.08 C3.3,1.09 1.32,3.1 0,3.1 C-1.32,3.1 -3.3,1.09 -3.3,-1.08 Z"/></g><g class="tooth work" data-t="22" style="--wc:#B4690E" transform="translate(62.82,18.85) rotate(47.26)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 22، قاطع علوي يسار"><path class="enamel" d="M-3.3,-1.08 C-3.3,-3.41 3.3,-3.41 3.3,-1.08 C3.3,1.09 1.32,3.1 0,3.1 C-1.32,3.1 -3.3,1.09 -3.3,-1.08 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.38,-1.55 Q0,-2.17 2.38,-1.55 M-0.99,1.55 Q0,0.78 0.99,1.55"/><path class="hot" d="M-3.3,-1.08 C-3.3,-3.41 3.3,-3.41 3.3,-1.08 C3.3,1.09 1.32,3.1 0,3.1 C-1.32,3.1 -3.3,1.09 -3.3,-1.08 Z"/></g><g class="tooth sel" data-t="13" transform="translate(36.58,24.89) rotate(-57.04)" tabindex="0" role="checkbox" aria-checked="true" aria-label="سن 13، ناب علوي يمين"><path class="enamel" d="M-3.8,-0.4 C-3.23,-3.4 -0.95,-4 0,-4 C0.95,-4 3.23,-3.4 3.8,-0.4 C3.42,2.4 1.33,4 0,4 C-1.33,4 -3.42,2.4 -3.8,-0.4 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.85,-0.4 L0,-1.8 L2.85,-0.4 M0,-1.8 L0,2.2"/><path class="hot" d="M-3.8,-0.4 C-3.23,-3.4 -0.95,-4 0,-4 C0.95,-4 3.23,-3.4 3.8,-0.4 C3.42,2.4 1.33,4 0,4 C-1.33,4 -3.42,2.4 -3.8,-0.4 Z"/></g><g class="tooth sel" data-t="23" transform="translate(67.42,24.89) rotate(57.04)" tabindex="0" role="checkbox" aria-checked="true" aria-label="سن 23، ناب علوي يسار"><path class="enamel" d="M-3.8,-0.4 C-3.23,-3.4 -0.95,-4 0,-4 C0.95,-4 3.23,-3.4 3.8,-0.4 C3.42,2.4 1.33,4 0,4 C-1.33,4 -3.42,2.4 -3.8,-0.4 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.85,-0.4 L0,-1.8 L2.85,-0.4 M0,-1.8 L0,2.2"/><path class="hot" d="M-3.8,-0.4 C-3.23,-3.4 -0.95,-4 0,-4 C0.95,-4 3.23,-3.4 3.8,-0.4 C3.42,2.4 1.33,4 0,4 C-1.33,4 -3.42,2.4 -3.8,-0.4 Z"/></g><g class="tooth" data-t="14" transform="translate(32.69,31.64) rotate(-62.62)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 14، ضاحك علوي يمين"><path class="enamel" d="M-3.5,0 C-3.5,-3.82 -1.75,-4.5 0,-4.5 C1.75,-4.5 3.5,-3.82 3.5,0 C3.5,3.83 1.75,4.5 0,4.5 C-1.75,4.5 -3.5,3.83 -3.5,0 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.17,-0.22 Q0,0.81 2.17,-0.22"/><circle class="pit" cx="-1.57" cy="0" r="0.45"/><circle class="pit" cx="1.58" cy="0" r="0.45"/><path class="hot" d="M-3.5,0 C-3.5,-3.82 -1.75,-4.5 0,-4.5 C1.75,-4.5 3.5,-3.82 3.5,0 C3.5,3.83 1.75,4.5 0,4.5 C-1.75,4.5 -3.5,3.83 -3.5,0 Z"/></g><g class="tooth" data-t="24" transform="translate(71.31,31.64) rotate(62.62)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 24، ضاحك علوي يسار"><path class="enamel" d="M-3.5,0 C-3.5,-3.82 -1.75,-4.5 0,-4.5 C1.75,-4.5 3.5,-3.82 3.5,0 C3.5,3.83 1.75,4.5 0,4.5 C-1.75,4.5 -3.5,3.83 -3.5,0 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.17,-0.22 Q0,0.81 2.17,-0.22"/><circle class="pit" cx="-1.57" cy="0" r="0.45"/><circle class="pit" cx="1.58" cy="0" r="0.45"/><path class="hot" d="M-3.5,0 C-3.5,-3.82 -1.75,-4.5 0,-4.5 C1.75,-4.5 3.5,-3.82 3.5,0 C3.5,3.83 1.75,4.5 0,4.5 C-1.75,4.5 -3.5,3.83 -3.5,0 Z"/></g><g class="tooth" data-t="15" transform="translate(29.54,38.22) rotate(-66)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 15، ضاحك علوي يمين"><path class="enamel" d="M-3.3,0 C-3.3,-3.82 -1.65,-4.5 0,-4.5 C1.65,-4.5 3.3,-3.82 3.3,0 C3.3,3.83 1.65,4.5 0,4.5 C-1.65,4.5 -3.3,3.83 -3.3,0 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.05,-0.22 Q0,0.81 2.05,-0.22"/><circle class="pit" cx="-1.48" cy="0" r="0.45"/><circle class="pit" cx="1.49" cy="0" r="0.45"/><path class="hot" d="M-3.3,0 C-3.3,-3.82 -1.65,-4.5 0,-4.5 C1.65,-4.5 3.3,-3.82 3.3,0 C3.3,3.83 1.65,4.5 0,4.5 C-1.65,4.5 -3.3,3.83 -3.3,0 Z"/></g><g class="tooth" data-t="25" transform="translate(74.46,38.22) rotate(66)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 25، ضاحك علوي يسار"><path class="enamel" d="M-3.3,0 C-3.3,-3.82 -1.65,-4.5 0,-4.5 C1.65,-4.5 3.3,-3.82 3.3,0 C3.3,3.83 1.65,4.5 0,4.5 C-1.65,4.5 -3.3,3.83 -3.3,0 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.05,-0.22 Q0,0.81 2.05,-0.22"/><circle class="pit" cx="-1.48" cy="0" r="0.45"/><circle class="pit" cx="1.49" cy="0" r="0.45"/><path class="hot" d="M-3.3,0 C-3.3,-3.82 -1.65,-4.5 0,-4.5 C1.65,-4.5 3.3,-3.82 3.3,0 C3.3,3.83 1.65,4.5 0,4.5 C-1.65,4.5 -3.3,3.83 -3.3,0 Z"/></g><g class="tooth" data-t="16" transform="translate(26.13,46.46) rotate(-68.87)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 16، طاحن علوي يمين"><path class="enamel" d="M-5.1,-1.1 C-5.2,-4.95 -3.06,-5.5 -1.02,-5.28 Q0,-4.84 1.02,-5.33 C3.06,-5.5 5.2,-4.95 5.1,-1.1 C5.25,2.75 3.83,5.5 1.02,5.28 Q0,4.95 -1.02,5.28 C-3.82,5.5 -5.25,2.75 -5.1,-1.1 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.96,-0.66 L-0.25,0.11 L2.96,-0.99 M-0.25,0.11 L-0.61,3.41 M-0.25,0.11 L0.51,-3.3"/><circle class="pit" cx="-0.25" cy="0.11" r="0.45"/><path class="hot" d="M-5.1,-1.1 C-5.2,-4.95 -3.06,-5.5 -1.02,-5.28 Q0,-4.84 1.02,-5.33 C3.06,-5.5 5.2,-4.95 5.1,-1.1 C5.25,2.75 3.83,5.5 1.02,5.28 Q0,4.95 -1.02,5.28 C-3.82,5.5 -5.25,2.75 -5.1,-1.1 Z"/></g><g class="tooth" data-t="26" transform="translate(77.87,46.46) rotate(68.87)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 26، طاحن علوي يسار"><path class="enamel" d="M-5.1,-1.1 C-5.2,-4.95 -3.06,-5.5 -1.02,-5.28 Q0,-4.84 1.02,-5.33 C3.06,-5.5 5.2,-4.95 5.1,-1.1 C5.25,2.75 3.83,5.5 1.02,5.28 Q0,4.95 -1.02,5.28 C-3.82,5.5 -5.25,2.75 -5.1,-1.1 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.96,-0.66 L-0.25,0.11 L2.96,-0.99 M-0.25,0.11 L-0.61,3.41 M-0.25,0.11 L0.51,-3.3"/><circle class="pit" cx="-0.25" cy="0.11" r="0.45"/><path class="hot" d="M-5.1,-1.1 C-5.2,-4.95 -3.06,-5.5 -1.02,-5.28 Q0,-4.84 1.02,-5.33 C3.06,-5.5 5.2,-4.95 5.1,-1.1 C5.25,2.75 3.83,5.5 1.02,5.28 Q0,4.95 -1.02,5.28 C-3.82,5.5 -5.25,2.75 -5.1,-1.1 Z"/></g><g class="tooth" data-t="17" transform="translate(22.66,56.04) rotate(-71.18)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 17، طاحن علوي يمين"><path class="enamel" d="M-4.6,-1.05 C-4.69,-4.73 -2.76,-5.25 -0.92,-5.04 Q0,-4.62 0.92,-5.09 C2.76,-5.25 4.69,-4.73 4.6,-1.05 C4.74,2.63 3.45,5.25 0.92,5.04 Q0,4.73 -0.92,5.04 C-3.45,5.25 -4.74,2.63 -4.6,-1.05 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.67,-0.63 L-0.23,0.11 L2.67,-0.94 M-0.23,0.11 L-0.55,3.26 M-0.23,0.11 L0.46,-3.15"/><circle class="pit" cx="-0.23" cy="0.11" r="0.45"/><path class="hot" d="M-4.6,-1.05 C-4.69,-4.73 -2.76,-5.25 -0.92,-5.04 Q0,-4.62 0.92,-5.09 C2.76,-5.25 4.69,-4.73 4.6,-1.05 C4.74,2.63 3.45,5.25 0.92,5.04 Q0,4.73 -0.92,5.04 C-3.45,5.25 -4.74,2.63 -4.6,-1.05 Z"/></g><g class="tooth" data-t="27" transform="translate(81.34,56.04) rotate(71.18)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 27، طاحن علوي يسار"><path class="enamel" d="M-4.6,-1.05 C-4.69,-4.73 -2.76,-5.25 -0.92,-5.04 Q0,-4.62 0.92,-5.09 C2.76,-5.25 4.69,-4.73 4.6,-1.05 C4.74,2.63 3.45,5.25 0.92,5.04 Q0,4.73 -0.92,5.04 C-3.45,5.25 -4.74,2.63 -4.6,-1.05 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.67,-0.63 L-0.23,0.11 L2.67,-0.94 M-0.23,0.11 L-0.55,3.26 M-0.23,0.11 L0.46,-3.15"/><circle class="pit" cx="-0.23" cy="0.11" r="0.45"/><path class="hot" d="M-4.6,-1.05 C-4.69,-4.73 -2.76,-5.25 -0.92,-5.04 Q0,-4.62 0.92,-5.09 C2.76,-5.25 4.69,-4.73 4.6,-1.05 C4.74,2.63 3.45,5.25 0.92,5.04 Q0,4.73 -0.92,5.04 C-3.45,5.25 -4.74,2.63 -4.6,-1.05 Z"/></g><g class="tooth" data-t="18" transform="translate(19.75,65) rotate(-72.77)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 18، طاحن علوي يمين"><path class="enamel" d="M-4.3,-1 C-4.39,-4.5 -2.58,-5 -0.86,-4.8 Q0,-4.4 0.86,-4.85 C2.58,-5 4.39,-4.5 4.3,-1 C4.43,2.5 3.22,5 0.86,4.8 Q0,4.5 -0.86,4.8 C-3.22,5 -4.43,2.5 -4.3,-1 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.49,-0.6 L-0.21,0.1 L2.49,-0.9 M-0.21,0.1 L-0.52,3.1 M-0.21,0.1 L0.43,-3"/><circle class="pit" cx="-0.21" cy="0.1" r="0.45"/><path class="hot" d="M-4.3,-1 C-4.39,-4.5 -2.58,-5 -0.86,-4.8 Q0,-4.4 0.86,-4.85 C2.58,-5 4.39,-4.5 4.3,-1 C4.43,2.5 3.22,5 0.86,4.8 Q0,4.5 -0.86,4.8 C-3.22,5 -4.43,2.5 -4.3,-1 Z"/></g><g class="tooth" data-t="28" transform="translate(84.25,65) rotate(72.77)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 28، طاحن علوي يسار"><path class="enamel" d="M-4.3,-1 C-4.39,-4.5 -2.58,-5 -0.86,-4.8 Q0,-4.4 0.86,-4.85 C2.58,-5 4.39,-4.5 4.3,-1 C4.43,2.5 3.22,5 0.86,4.8 Q0,4.5 -0.86,4.8 C-3.22,5 -4.43,2.5 -4.3,-1 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.49,-0.6 L-0.21,0.1 L2.49,-0.9 M-0.21,0.1 L-0.52,3.1 M-0.21,0.1 L0.43,-3"/><circle class="pit" cx="-0.21" cy="0.1" r="0.45"/><path class="hot" d="M-4.3,-1 C-4.39,-4.5 -2.58,-5 -0.86,-4.8 Q0,-4.4 0.86,-4.85 C2.58,-5 4.39,-4.5 4.3,-1 C4.43,2.5 3.22,5 0.86,4.8 Q0,4.5 -0.86,4.8 C-3.22,5 -4.43,2.5 -4.3,-1 Z"/></g><g class="tooth" data-t="41" transform="translate(49.1,150.51) rotate(18.59) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 41، قاطع سفلي يمين"><path class="enamel" d="M-2.7,-1.05 C-2.7,-3.3 2.7,-3.3 2.7,-1.05 C2.7,1.05 1.08,3 0,3 C-1.08,3 -2.7,1.05 -2.7,-1.05 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-1.94,-1.5 Q0,-2.1 1.94,-1.5 M-0.81,1.5 Q0,0.75 0.81,1.5"/><path class="hot" d="M-2.7,-1.05 C-2.7,-3.3 2.7,-3.3 2.7,-1.05 C2.7,1.05 1.08,3 0,3 C-1.08,3 -2.7,1.05 -2.7,-1.05 Z"/></g><g class="tooth" data-t="31" transform="translate(54.9,150.51) rotate(-18.59) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 31، قاطع سفلي يسار"><path class="enamel" d="M-2.7,-1.05 C-2.7,-3.3 2.7,-3.3 2.7,-1.05 C2.7,1.05 1.08,3 0,3 C-1.08,3 -2.7,1.05 -2.7,-1.05 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-1.94,-1.5 Q0,-2.1 1.94,-1.5 M-0.81,1.5 Q0,0.75 0.81,1.5"/><path class="hot" d="M-2.7,-1.05 C-2.7,-3.3 2.7,-3.3 2.7,-1.05 C2.7,1.05 1.08,3 0,3 C-1.08,3 -2.7,1.05 -2.7,-1.05 Z"/></g><g class="tooth" data-t="42" transform="translate(43.95,147.24) rotate(43.04) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 42، قاطع سفلي يمين"><path class="enamel" d="M-2.95,-1.08 C-2.95,-3.41 2.95,-3.41 2.95,-1.08 C2.95,1.09 1.18,3.1 0,3.1 C-1.18,3.1 -2.95,1.09 -2.95,-1.08 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.12,-1.55 Q0,-2.17 2.12,-1.55 M-0.88,1.55 Q0,0.78 0.89,1.55"/><path class="hot" d="M-2.95,-1.08 C-2.95,-3.41 2.95,-3.41 2.95,-1.08 C2.95,1.09 1.18,3.1 0,3.1 C-1.18,3.1 -2.95,1.09 -2.95,-1.08 Z"/></g><g class="tooth" data-t="32" transform="translate(60.05,147.24) rotate(-43.04) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 32، قاطع سفلي يسار"><path class="enamel" d="M-2.95,-1.08 C-2.95,-3.41 2.95,-3.41 2.95,-1.08 C2.95,1.09 1.18,3.1 0,3.1 C-1.18,3.1 -2.95,1.09 -2.95,-1.08 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.12,-1.55 Q0,-2.17 2.12,-1.55 M-0.88,1.55 Q0,0.78 0.89,1.55"/><path class="hot" d="M-2.95,-1.08 C-2.95,-3.41 2.95,-3.41 2.95,-1.08 C2.95,1.09 1.18,3.1 0,3.1 C-1.18,3.1 -2.95,1.09 -2.95,-1.08 Z"/></g><g class="tooth" data-t="43" transform="translate(39.52,141.97) rotate(55.36) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 43، ناب سفلي يمين"><path class="enamel" d="M-3.45,-0.37 C-2.93,-3.19 -0.86,-3.75 0,-3.75 C0.86,-3.75 2.93,-3.19 3.45,-0.37 C3.11,2.25 1.21,3.75 0,3.75 C-1.21,3.75 -3.11,2.25 -3.45,-0.37 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.59,-0.37 L0,-1.69 L2.59,-0.37 M0,-1.69 L0,2.06"/><path class="hot" d="M-3.45,-0.37 C-2.93,-3.19 -0.86,-3.75 0,-3.75 C0.86,-3.75 2.93,-3.19 3.45,-0.37 C3.11,2.25 1.21,3.75 0,3.75 C-1.21,3.75 -3.11,2.25 -3.45,-0.37 Z"/></g><g class="tooth" data-t="33" transform="translate(64.48,141.97) rotate(-55.36) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 33، ناب سفلي يسار"><path class="enamel" d="M-3.45,-0.37 C-2.93,-3.19 -0.86,-3.75 0,-3.75 C0.86,-3.75 2.93,-3.19 3.45,-0.37 C3.11,2.25 1.21,3.75 0,3.75 C-1.21,3.75 -3.11,2.25 -3.45,-0.37 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.59,-0.37 L0,-1.69 L2.59,-0.37 M0,-1.69 L0,2.06"/><path class="hot" d="M-3.45,-0.37 C-2.93,-3.19 -0.86,-3.75 0,-3.75 C0.86,-3.75 2.93,-3.19 3.45,-0.37 C3.11,2.25 1.21,3.75 0,3.75 C-1.21,3.75 -3.11,2.25 -3.45,-0.37 Z"/></g><g class="tooth" data-t="44" transform="translate(35.69,135.57) rotate(62.14) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 44، ضاحك سفلي يمين"><path class="enamel" d="M-3.5,0 C-3.5,-3.31 -1.75,-3.9 0,-3.9 C1.75,-3.9 3.5,-3.31 3.5,0 C3.5,3.32 1.75,3.9 0,3.9 C-1.75,3.9 -3.5,3.32 -3.5,0 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.17,-0.19 Q0,0.7 2.17,-0.19"/><circle class="pit" cx="-1.57" cy="0" r="0.45"/><circle class="pit" cx="1.58" cy="0" r="0.45"/><path class="hot" d="M-3.5,0 C-3.5,-3.31 -1.75,-3.9 0,-3.9 C1.75,-3.9 3.5,-3.31 3.5,0 C3.5,3.32 1.75,3.9 0,3.9 C-1.75,3.9 -3.5,3.32 -3.5,0 Z"/></g><g class="tooth" data-t="34" transform="translate(68.31,135.57) rotate(-62.14) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 34، ضاحك سفلي يسار"><path class="enamel" d="M-3.5,0 C-3.5,-3.31 -1.75,-3.9 0,-3.9 C1.75,-3.9 3.5,-3.31 3.5,0 C3.5,3.32 1.75,3.9 0,3.9 C-1.75,3.9 -3.5,3.32 -3.5,0 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.17,-0.19 Q0,0.7 2.17,-0.19"/><circle class="pit" cx="-1.57" cy="0" r="0.45"/><circle class="pit" cx="1.58" cy="0" r="0.45"/><path class="hot" d="M-3.5,0 C-3.5,-3.31 -1.75,-3.9 0,-3.9 C1.75,-3.9 3.5,-3.31 3.5,0 C3.5,3.32 1.75,3.9 0,3.9 C-1.75,3.9 -3.5,3.32 -3.5,0 Z"/></g><g class="tooth" data-t="45" transform="translate(32.42,128.76) rotate(66.24) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 45، ضاحك سفلي يمين"><path class="enamel" d="M-3.55,0 C-3.55,-3.48 -1.77,-4.1 0,-4.1 C1.78,-4.1 3.55,-3.48 3.55,0 C3.55,3.48 1.78,4.1 0,4.1 C-1.77,4.1 -3.55,3.48 -3.55,0 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.2,-0.2 Q0,0.74 2.2,-0.2"/><circle class="pit" cx="-1.6" cy="0" r="0.45"/><circle class="pit" cx="1.6" cy="0" r="0.45"/><path class="hot" d="M-3.55,0 C-3.55,-3.48 -1.77,-4.1 0,-4.1 C1.78,-4.1 3.55,-3.48 3.55,0 C3.55,3.48 1.78,4.1 0,4.1 C-1.77,4.1 -3.55,3.48 -3.55,0 Z"/></g><g class="tooth" data-t="35" transform="translate(71.58,128.76) rotate(-66.24) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 35، ضاحك سفلي يسار"><path class="enamel" d="M-3.55,0 C-3.55,-3.48 -1.77,-4.1 0,-4.1 C1.78,-4.1 3.55,-3.48 3.55,0 C3.55,3.48 1.78,4.1 0,4.1 C-1.77,4.1 -3.55,3.48 -3.55,0 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.2,-0.2 Q0,0.74 2.2,-0.2"/><circle class="pit" cx="-1.6" cy="0" r="0.45"/><circle class="pit" cx="1.6" cy="0" r="0.45"/><path class="hot" d="M-3.55,0 C-3.55,-3.48 -1.77,-4.1 0,-4.1 C1.78,-4.1 3.55,-3.48 3.55,0 C3.55,3.48 1.78,4.1 0,4.1 C-1.77,4.1 -3.55,3.48 -3.55,0 Z"/></g><g class="tooth" data-t="46" transform="translate(28.81,119.81) rotate(69.61) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 46، طاحن سفلي يمين"><path class="enamel" d="M-5.6,-1.04 C-5.71,-4.68 -3.36,-5.2 -1.12,-4.99 Q0,-4.58 1.12,-5.04 C3.36,-5.2 5.71,-4.68 5.6,-1.04 C5.77,2.6 4.2,5.2 1.12,4.99 Q0,4.68 -1.12,4.99 C-4.2,5.2 -5.77,2.6 -5.6,-1.04 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-3.25,-0.62 L-0.28,0.1 L3.25,-0.94 M-0.28,0.1 L-0.67,3.22 M-0.28,0.1 L0.56,-3.12"/><circle class="pit" cx="-0.28" cy="0.1" r="0.45"/><path class="hot" d="M-5.6,-1.04 C-5.71,-4.68 -3.36,-5.2 -1.12,-4.99 Q0,-4.58 1.12,-5.04 C3.36,-5.2 5.71,-4.68 5.6,-1.04 C5.77,2.6 4.2,5.2 1.12,4.99 Q0,4.68 -1.12,4.99 C-4.2,5.2 -5.77,2.6 -5.6,-1.04 Z"/></g><g class="tooth work" data-t="36" style="--wc:#6A4BD8" transform="translate(75.19,119.81) rotate(-69.61) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 36، طاحن سفلي يسار"><path class="enamel" d="M-5.6,-1.04 C-5.71,-4.68 -3.36,-5.2 -1.12,-4.99 Q0,-4.58 1.12,-5.04 C3.36,-5.2 5.71,-4.68 5.6,-1.04 C5.77,2.6 4.2,5.2 1.12,4.99 Q0,4.68 -1.12,4.99 C-4.2,5.2 -5.77,2.6 -5.6,-1.04 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-3.25,-0.62 L-0.28,0.1 L3.25,-0.94 M-0.28,0.1 L-0.67,3.22 M-0.28,0.1 L0.56,-3.12"/><circle class="pit" cx="-0.28" cy="0.1" r="0.45"/><path class="hot" d="M-5.6,-1.04 C-5.71,-4.68 -3.36,-5.2 -1.12,-4.99 Q0,-4.58 1.12,-5.04 C3.36,-5.2 5.71,-4.68 5.6,-1.04 C5.77,2.6 4.2,5.2 1.12,4.99 Q0,4.68 -1.12,4.99 C-4.2,5.2 -5.77,2.6 -5.6,-1.04 Z"/></g><g class="tooth" data-t="47" transform="translate(25.12,109.09) rotate(72.22) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 47، طاحن سفلي يمين"><path class="enamel" d="M-5.25,-1 C-5.35,-4.5 -3.15,-5 -1.05,-4.8 Q0,-4.4 1.05,-4.85 C3.15,-5 5.36,-4.5 5.25,-1 C5.41,2.5 3.94,5 1.05,4.8 Q0,4.5 -1.05,4.8 C-3.94,5 -5.41,2.5 -5.25,-1 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-3.04,-0.6 L-0.26,0.1 L3.05,-0.9 M-0.26,0.1 L-0.63,3.1 M-0.26,0.1 L0.53,-3"/><circle class="pit" cx="-0.26" cy="0.1" r="0.45"/><path class="hot" d="M-5.25,-1 C-5.35,-4.5 -3.15,-5 -1.05,-4.8 Q0,-4.4 1.05,-4.85 C3.15,-5 5.36,-4.5 5.25,-1 C5.41,2.5 3.94,5 1.05,4.8 Q0,4.5 -1.05,4.8 C-3.94,5 -5.41,2.5 -5.25,-1 Z"/></g><g class="tooth work" data-t="37" style="--wc:#6A4BD8" transform="translate(78.88,109.09) rotate(-72.22) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 37، طاحن سفلي يسار"><path class="enamel" d="M-5.25,-1 C-5.35,-4.5 -3.15,-5 -1.05,-4.8 Q0,-4.4 1.05,-4.85 C3.15,-5 5.36,-4.5 5.25,-1 C5.41,2.5 3.94,5 1.05,4.8 Q0,4.5 -1.05,4.8 C-3.94,5 -5.41,2.5 -5.25,-1 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-3.04,-0.6 L-0.26,0.1 L3.05,-0.9 M-0.26,0.1 L-0.63,3.1 M-0.26,0.1 L0.53,-3"/><circle class="pit" cx="-0.26" cy="0.1" r="0.45"/><path class="hot" d="M-5.25,-1 C-5.35,-4.5 -3.15,-5 -1.05,-4.8 Q0,-4.4 1.05,-4.85 C3.15,-5 5.36,-4.5 5.25,-1 C5.41,2.5 3.94,5 1.05,4.8 Q0,4.5 -1.05,4.8 C-3.94,5 -5.41,2.5 -5.25,-1 Z"/></g><g class="tooth" data-t="48" transform="translate(22,98.8) rotate(73.97) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 48، طاحن سفلي يمين"><path class="enamel" d="M-5,-0.96 C-5.1,-4.32 -3,-4.8 -1,-4.61 Q0,-4.22 1,-4.66 C3,-4.8 5.1,-4.32 5,-0.96 C5.15,2.4 3.75,4.8 1,4.61 Q0,4.32 -1,4.61 C-3.75,4.8 -5.15,2.4 -5,-0.96 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.9,-0.58 L-0.25,0.1 L2.9,-0.86 M-0.25,0.1 L-0.6,2.98 M-0.25,0.1 L0.5,-2.88"/><circle class="pit" cx="-0.25" cy="0.1" r="0.45"/><path class="hot" d="M-5,-0.96 C-5.1,-4.32 -3,-4.8 -1,-4.61 Q0,-4.22 1,-4.66 C3,-4.8 5.1,-4.32 5,-0.96 C5.15,2.4 3.75,4.8 1,4.61 Q0,4.32 -1,4.61 C-3.75,4.8 -5.15,2.4 -5,-0.96 Z"/></g><g class="tooth" data-t="38" transform="translate(82,98.8) rotate(-73.97) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 38، طاحن سفلي يسار"><path class="enamel" d="M-5,-0.96 C-5.1,-4.32 -3,-4.8 -1,-4.61 Q0,-4.22 1,-4.66 C3,-4.8 5.1,-4.32 5,-0.96 C5.15,2.4 3.75,4.8 1,4.61 Q0,4.32 -1,4.61 C-3.75,4.8 -5.15,2.4 -5,-0.96 Z" fill="url(#ca-enamel)"/><path class="detail" d="M-2.9,-0.58 L-0.25,0.1 L2.9,-0.86 M-0.25,0.1 L-0.6,2.98 M-0.25,0.1 L0.5,-2.88"/><circle class="pit" cx="-0.25" cy="0.1" r="0.45"/><path class="hot" d="M-5,-0.96 C-5.1,-4.32 -3,-4.8 -1,-4.61 Q0,-4.22 1,-4.66 C3,-4.8 5.1,-4.32 5,-0.96 C5.15,2.4 3.75,4.8 1,4.61 Q0,4.32 -1,4.61 C-3.75,4.8 -5.15,2.4 -5,-0.96 Z"/></g><g class="lbl work" data-l="11" style="--wc:#B4690E"><rect x="41.37" y="4.68" width="6.2" height="4.5" rx="2.25"/><text x="44.47" y="6.98">11</text></g><g class="lbl work" data-l="21" style="--wc:#B4690E"><rect x="56.43" y="4.68" width="6.2" height="4.5" rx="2.25"/><text x="59.53" y="6.98">21</text></g><g class="lbl work" data-l="12" style="--wc:#B4690E"><rect x="32.72" y="11.65" width="6.2" height="4.5" rx="2.25"/><text x="35.82" y="13.95">12</text></g><g class="lbl work" data-l="22" style="--wc:#B4690E"><rect x="65.08" y="11.65" width="6.2" height="4.5" rx="2.25"/><text x="68.18" y="13.95">22</text></g><g class="lbl sel" data-l="13"><rect x="26.6" y="18.18" width="6.2" height="4.5" rx="2.25"/><text x="29.7" y="20.48">13</text></g><g class="lbl sel" data-l="23"><rect x="71.2" y="18.18" width="6.2" height="4.5" rx="2.25"/><text x="74.3" y="20.48">23</text></g><g class="lbl" data-l="14"><rect x="21.86" y="25.39" width="6.2" height="4.5" rx="2.25"/><text x="24.96" y="27.69">14</text></g><g class="lbl" data-l="24"><rect x="75.94" y="25.39" width="6.2" height="4.5" rx="2.25"/><text x="79.04" y="27.69">24</text></g><g class="lbl" data-l="15"><rect x="18.49" y="32.43" width="6.2" height="4.5" rx="2.25"/><text x="21.59" y="34.73">15</text></g><g class="lbl" data-l="25"><rect x="79.31" y="32.43" width="6.2" height="4.5" rx="2.25"/><text x="82.41" y="34.73">25</text></g><g class="lbl" data-l="16"><rect x="13.98" y="40.72" width="6.2" height="4.5" rx="2.25"/><text x="17.08" y="43.02">16</text></g><g class="lbl" data-l="26"><rect x="83.82" y="40.72" width="6.2" height="4.5" rx="2.25"/><text x="86.92" y="43.02">26</text></g><g class="lbl" data-l="17"><rect x="10.62" y="50.74" width="6.2" height="4.5" rx="2.25"/><text x="13.72" y="53.04">17</text></g><g class="lbl" data-l="27"><rect x="87.18" y="50.74" width="6.2" height="4.5" rx="2.25"/><text x="90.28" y="53.04">27</text></g><g class="lbl" data-l="18"><rect x="7.86" y="60.03" width="6.2" height="4.5" rx="2.25"/><text x="10.96" y="62.33">18</text></g><g class="lbl" data-l="28"><rect x="89.94" y="60.03" width="6.2" height="4.5" rx="2.25"/><text x="93.04" y="62.33">28</text></g><g class="lbl" data-l="41"><rect x="43.7" y="155.09" width="6.2" height="4.5" rx="2.25"/><text x="46.8" y="157.39">41</text></g><g class="lbl" data-l="31"><rect x="54.1" y="155.09" width="6.2" height="4.5" rx="2.25"/><text x="57.2" y="157.39">31</text></g><g class="lbl" data-l="42"><rect x="35.87" y="150.33" width="6.2" height="4.5" rx="2.25"/><text x="38.97" y="152.63">42</text></g><g class="lbl" data-l="32"><rect x="61.93" y="150.33" width="6.2" height="4.5" rx="2.25"/><text x="65.03" y="152.63">32</text></g><g class="lbl" data-l="43"><rect x="29.88" y="144.23" width="6.2" height="4.5" rx="2.25"/><text x="32.98" y="146.53">43</text></g><g class="lbl" data-l="33"><rect x="67.92" y="144.23" width="6.2" height="4.5" rx="2.25"/><text x="71.02" y="146.53">33</text></g><g class="lbl" data-l="44"><rect x="25.43" y="137.11" width="6.2" height="4.5" rx="2.25"/><text x="28.53" y="139.41">44</text></g><g class="lbl" data-l="34"><rect x="72.37" y="137.11" width="6.2" height="4.5" rx="2.25"/><text x="75.47" y="139.41">34</text></g><g class="lbl" data-l="45"><rect x="21.72" y="129.86" width="6.2" height="4.5" rx="2.25"/><text x="24.82" y="132.16">45</text></g><g class="lbl" data-l="35"><rect x="76.08" y="129.86" width="6.2" height="4.5" rx="2.25"/><text x="79.18" y="132.16">35</text></g><g class="lbl" data-l="46"><rect x="16.9" y="120.83" width="6.2" height="4.5" rx="2.25"/><text x="20" y="123.13">46</text></g><g class="lbl work" data-l="36" style="--wc:#6A4BD8"><rect x="80.9" y="120.83" width="6.2" height="4.5" rx="2.25"/><text x="84" y="123.13">36</text></g><g class="lbl" data-l="47"><rect x="13.26" y="109.65" width="6.2" height="4.5" rx="2.25"/><text x="16.36" y="111.95">47</text></g><g class="lbl work" data-l="37" style="--wc:#6A4BD8"><rect x="84.54" y="109.65" width="6.2" height="4.5" rx="2.25"/><text x="87.64" y="111.95">37</text></g><g class="lbl" data-l="48"><rect x="10.25" y="99.04" width="6.2" height="4.5" rx="2.25"/><text x="13.35" y="101.34">48</text></g><g class="lbl" data-l="38"><rect x="87.55" y="99.04" width="6.2" height="4.5" rx="2.25"/><text x="90.65" y="101.34">38</text></g>
+</svg><svg class="chart chart-rows" viewBox="0 0 144 78" role="group" aria-label="مخطط الأسنان: منظر أمامي" dir="ltr">
+  <defs>
+    <linearGradient id="cr-crown" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#D3DCE1"/><stop offset=".32" stop-color="#FFFFFF"/><stop offset=".62" stop-color="#F6F8F9"/><stop offset="1" stop-color="#CBD5DB"/></linearGradient>
+    <linearGradient id="cr-root" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#DCCBB0"/><stop offset=".45" stop-color="#F5EEE2"/><stop offset="1" stop-color="#D5C2A4"/></linearGradient>
+  </defs>
+  <text class="side" x="2" y="4">يمين المريض</text><text class="side" x="142" y="4" text-anchor="end">يسار المريض</text>
+  <line class="midline" x1="72" y1="2" x2="72" y2="76"/>
+  <g class="tooth work" data-t="11" style="--wc:#B4690E" transform="translate(67.1,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 11، قاطع علوي يمين"><path class="root" d="M-3.01,0 C-2.86,-6.5 -1.29,-12.48 0,-13 C1.29,-12.48 2.86,-6.5 3.01,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-3.61,0 C-4.3,3.68 -4.3,8.4 -3.87,10.5 Q0,11.03 3.87,10.5 C4.3,8.4 4.3,3.68 3.61,0 Q0,-1.47 -3.61,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.38,2.31 Q-1.81,5.78 -1.12,8.19"/><path class="hot" d="M-3.61,0 C-4.3,3.68 -4.3,8.4 -3.87,10.5 Q0,11.03 3.87,10.5 C4.3,8.4 4.3,3.68 3.61,0 Q0,-1.47 -3.61,0 Z"/></g><g class="tooth work" data-t="12" style="--wc:#B4690E" transform="translate(58.9,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 12، قاطع علوي يمين"><path class="root" d="M-2.31,0 C-2.19,-6.5 -0.99,-12.48 0,-13 C0.99,-12.48 2.19,-6.5 2.31,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.77,0 C-3.3,3.15 -3.3,7.2 -2.97,9 Q0,9.45 2.97,9 C3.3,7.2 3.3,3.15 2.77,0 Q0,-1.26 -2.77,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.06,1.98 Q-1.39,4.95 -0.86,7.02"/><path class="hot" d="M-2.77,0 C-3.3,3.15 -3.3,7.2 -2.97,9 Q0,9.45 2.97,9 C3.3,7.2 3.3,3.15 2.77,0 Q0,-1.26 -2.77,0 Z"/></g><g class="tooth sel" data-t="13" transform="translate(51.2,21)" tabindex="0" role="checkbox" aria-checked="true" aria-label="سن 13، ناب علوي يمين"><path class="root" d="M-2.81,0 C-2.67,-8.5 -1.14,-16.32 0,-17 C1.14,-16.32 2.67,-8.5 2.81,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-3.19,0 C-3.88,4 -3.5,7.2 -2.36,8.4 Q-0.76,9.6 0,10.4 Q0.76,9.6 2.36,8.4 C3.5,7.2 3.88,4 3.19,0 Q0,-1.4 -3.19,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.22,2.2 Q-1.6,5.5 -0.99,7.8"/><path class="hot" d="M-3.19,0 C-3.88,4 -3.5,7.2 -2.36,8.4 Q-0.76,9.6 0,10.4 Q0.76,9.6 2.36,8.4 C3.5,7.2 3.88,4 3.19,0 Q0,-1.4 -3.19,0 Z"/></g><g class="tooth" data-t="14" transform="translate(43.3,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 14، ضاحك علوي يمين"><path class="root" d="M-2.59,0 C-2.46,-7 -1.05,-13.44 0,-14 C1.05,-13.44 2.46,-7 2.59,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.8,0 C-3.78,3.4 -3.22,7.23 -1.47,7.99 Q0,9.01 1.47,7.99 C3.22,7.23 3.78,3.4 2.8,0 Q0,-1.02 -2.8,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.12,1.87 Q-1.47,4.68 -0.91,6.63"/><path class="hot" d="M-2.8,0 C-3.78,3.4 -3.22,7.23 -1.47,7.99 Q0,9.01 1.47,7.99 C3.22,7.23 3.78,3.4 2.8,0 Q0,-1.02 -2.8,0 Z"/></g><g class="tooth" data-t="15" transform="translate(35.9,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 15، ضاحك علوي يمين"><path class="root" d="M-2.44,0 C-2.32,-7 -0.99,-13.44 0,-14 C0.99,-13.44 2.32,-7 2.44,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.64,0 C-3.56,3.2 -3.04,6.8 -1.39,7.52 Q0,8.48 1.39,7.52 C3.04,6.8 3.56,3.2 2.64,0 Q0,-0.96 -2.64,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.06,1.76 Q-1.39,4.4 -0.86,6.24"/><path class="hot" d="M-2.64,0 C-3.56,3.2 -3.04,6.8 -1.39,7.52 Q0,8.48 1.39,7.52 C3.04,6.8 3.56,3.2 2.64,0 Q0,-0.96 -2.64,0 Z"/></g><g class="tooth" data-t="16" transform="translate(26.9,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 16، طاحن علوي يمين"><path class="root" d="M-4.28,0 C-4.69,-6.25 -3.67,-12.25 -2.45,-12.5 C-1.43,-12.25 -1.02,-6.25 0,-3.5 C1.02,-6.25 1.43,-12.25 2.45,-12.5 C3.67,-12.25 4.69,-6.25 4.28,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-4.49,0 C-5.41,3 -5.1,6 -3.98,7.13 Q-2.14,8.4 -0.2,7.05 Q2.04,8.4 3.98,7.13 C5.1,6 5.41,3 4.49,0 Q0,-0.75 -4.49,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.63,1.65 Q-2.14,4.13 -1.33,5.85"/><path class="hot" d="M-4.49,0 C-5.41,3 -5.1,6 -3.98,7.13 Q-2.14,8.4 -0.2,7.05 Q2.04,8.4 3.98,7.13 C5.1,6 5.41,3 4.49,0 Q0,-0.75 -4.49,0 Z"/></g><g class="tooth" data-t="17" transform="translate(16.6,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 17، طاحن علوي يمين"><path class="root" d="M-3.86,0 C-4.23,-6 -3.31,-11.76 -2.21,-12 C-1.29,-11.76 -0.92,-6 0,-3.36 C0.92,-6 1.29,-11.76 2.21,-12 C3.31,-11.76 4.23,-6 3.86,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-4.05,0 C-4.88,2.8 -4.6,5.6 -3.59,6.65 Q-1.93,7.84 -0.18,6.58 Q1.84,7.84 3.59,6.65 C4.6,5.6 4.88,2.8 4.05,0 Q0,-0.7 -4.05,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.47,1.54 Q-1.93,3.85 -1.2,5.46"/><path class="hot" d="M-4.05,0 C-4.88,2.8 -4.6,5.6 -3.59,6.65 Q-1.93,7.84 -0.18,6.58 Q1.84,7.84 3.59,6.65 C4.6,5.6 4.88,2.8 4.05,0 Q0,-0.7 -4.05,0 Z"/></g><g class="tooth" data-t="18" transform="translate(7.1,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 18، طاحن علوي يمين"><path class="root" d="M-3.61,0 C-3.96,-5.5 -3.1,-10.78 -2.06,-11 C-1.2,-10.78 -0.86,-5.5 0,-3.08 C0.86,-5.5 1.2,-10.78 2.06,-11 C3.1,-10.78 3.96,-5.5 3.61,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-3.78,0 C-4.56,2.6 -4.3,5.2 -3.35,6.18 Q-1.81,7.28 -0.17,6.11 Q1.72,7.28 3.35,6.18 C4.3,5.2 4.56,2.6 3.78,0 Q0,-0.65 -3.78,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.38,1.43 Q-1.81,3.58 -1.12,5.07"/><path class="hot" d="M-3.78,0 C-4.56,2.6 -4.3,5.2 -3.35,6.18 Q-1.81,7.28 -0.17,6.11 Q1.72,7.28 3.35,6.18 C4.3,5.2 4.56,2.6 3.78,0 Q0,-0.65 -3.78,0 Z"/></g><g class="tooth work" data-t="21" style="--wc:#B4690E" transform="translate(76.9,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 21، قاطع علوي يسار"><path class="root" d="M-3.01,0 C-2.86,-6.5 -1.29,-12.48 0,-13 C1.29,-12.48 2.86,-6.5 3.01,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-3.61,0 C-4.3,3.68 -4.3,8.4 -3.87,10.5 Q0,11.03 3.87,10.5 C4.3,8.4 4.3,3.68 3.61,0 Q0,-1.47 -3.61,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.38,2.31 Q-1.81,5.78 -1.12,8.19"/><path class="hot" d="M-3.61,0 C-4.3,3.68 -4.3,8.4 -3.87,10.5 Q0,11.03 3.87,10.5 C4.3,8.4 4.3,3.68 3.61,0 Q0,-1.47 -3.61,0 Z"/></g><g class="tooth work" data-t="22" style="--wc:#B4690E" transform="translate(85.1,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 22، قاطع علوي يسار"><path class="root" d="M-2.31,0 C-2.19,-6.5 -0.99,-12.48 0,-13 C0.99,-12.48 2.19,-6.5 2.31,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.77,0 C-3.3,3.15 -3.3,7.2 -2.97,9 Q0,9.45 2.97,9 C3.3,7.2 3.3,3.15 2.77,0 Q0,-1.26 -2.77,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.06,1.98 Q-1.39,4.95 -0.86,7.02"/><path class="hot" d="M-2.77,0 C-3.3,3.15 -3.3,7.2 -2.97,9 Q0,9.45 2.97,9 C3.3,7.2 3.3,3.15 2.77,0 Q0,-1.26 -2.77,0 Z"/></g><g class="tooth sel" data-t="23" transform="translate(92.8,21)" tabindex="0" role="checkbox" aria-checked="true" aria-label="سن 23، ناب علوي يسار"><path class="root" d="M-2.81,0 C-2.67,-8.5 -1.14,-16.32 0,-17 C1.14,-16.32 2.67,-8.5 2.81,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-3.19,0 C-3.88,4 -3.5,7.2 -2.36,8.4 Q-0.76,9.6 0,10.4 Q0.76,9.6 2.36,8.4 C3.5,7.2 3.88,4 3.19,0 Q0,-1.4 -3.19,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.22,2.2 Q-1.6,5.5 -0.99,7.8"/><path class="hot" d="M-3.19,0 C-3.88,4 -3.5,7.2 -2.36,8.4 Q-0.76,9.6 0,10.4 Q0.76,9.6 2.36,8.4 C3.5,7.2 3.88,4 3.19,0 Q0,-1.4 -3.19,0 Z"/></g><g class="tooth" data-t="24" transform="translate(100.7,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 24، ضاحك علوي يسار"><path class="root" d="M-2.59,0 C-2.46,-7 -1.05,-13.44 0,-14 C1.05,-13.44 2.46,-7 2.59,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.8,0 C-3.78,3.4 -3.22,7.23 -1.47,7.99 Q0,9.01 1.47,7.99 C3.22,7.23 3.78,3.4 2.8,0 Q0,-1.02 -2.8,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.12,1.87 Q-1.47,4.68 -0.91,6.63"/><path class="hot" d="M-2.8,0 C-3.78,3.4 -3.22,7.23 -1.47,7.99 Q0,9.01 1.47,7.99 C3.22,7.23 3.78,3.4 2.8,0 Q0,-1.02 -2.8,0 Z"/></g><g class="tooth" data-t="25" transform="translate(108.1,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 25، ضاحك علوي يسار"><path class="root" d="M-2.44,0 C-2.32,-7 -0.99,-13.44 0,-14 C0.99,-13.44 2.32,-7 2.44,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.64,0 C-3.56,3.2 -3.04,6.8 -1.39,7.52 Q0,8.48 1.39,7.52 C3.04,6.8 3.56,3.2 2.64,0 Q0,-0.96 -2.64,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.06,1.76 Q-1.39,4.4 -0.86,6.24"/><path class="hot" d="M-2.64,0 C-3.56,3.2 -3.04,6.8 -1.39,7.52 Q0,8.48 1.39,7.52 C3.04,6.8 3.56,3.2 2.64,0 Q0,-0.96 -2.64,0 Z"/></g><g class="tooth" data-t="26" transform="translate(117.1,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 26، طاحن علوي يسار"><path class="root" d="M-4.28,0 C-4.69,-6.25 -3.67,-12.25 -2.45,-12.5 C-1.43,-12.25 -1.02,-6.25 0,-3.5 C1.02,-6.25 1.43,-12.25 2.45,-12.5 C3.67,-12.25 4.69,-6.25 4.28,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-4.49,0 C-5.41,3 -5.1,6 -3.98,7.13 Q-2.14,8.4 -0.2,7.05 Q2.04,8.4 3.98,7.13 C5.1,6 5.41,3 4.49,0 Q0,-0.75 -4.49,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.63,1.65 Q-2.14,4.13 -1.33,5.85"/><path class="hot" d="M-4.49,0 C-5.41,3 -5.1,6 -3.98,7.13 Q-2.14,8.4 -0.2,7.05 Q2.04,8.4 3.98,7.13 C5.1,6 5.41,3 4.49,0 Q0,-0.75 -4.49,0 Z"/></g><g class="tooth" data-t="27" transform="translate(127.4,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 27، طاحن علوي يسار"><path class="root" d="M-3.86,0 C-4.23,-6 -3.31,-11.76 -2.21,-12 C-1.29,-11.76 -0.92,-6 0,-3.36 C0.92,-6 1.29,-11.76 2.21,-12 C3.31,-11.76 4.23,-6 3.86,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-4.05,0 C-4.88,2.8 -4.6,5.6 -3.59,6.65 Q-1.93,7.84 -0.18,6.58 Q1.84,7.84 3.59,6.65 C4.6,5.6 4.88,2.8 4.05,0 Q0,-0.7 -4.05,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.47,1.54 Q-1.93,3.85 -1.2,5.46"/><path class="hot" d="M-4.05,0 C-4.88,2.8 -4.6,5.6 -3.59,6.65 Q-1.93,7.84 -0.18,6.58 Q1.84,7.84 3.59,6.65 C4.6,5.6 4.88,2.8 4.05,0 Q0,-0.7 -4.05,0 Z"/></g><g class="tooth" data-t="28" transform="translate(136.9,21)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 28، طاحن علوي يسار"><path class="root" d="M-3.61,0 C-3.96,-5.5 -3.1,-10.78 -2.06,-11 C-1.2,-10.78 -0.86,-5.5 0,-3.08 C0.86,-5.5 1.2,-10.78 2.06,-11 C3.1,-10.78 3.96,-5.5 3.61,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-3.78,0 C-4.56,2.6 -4.3,5.2 -3.35,6.18 Q-1.81,7.28 -0.17,6.11 Q1.72,7.28 3.35,6.18 C4.3,5.2 4.56,2.6 3.78,0 Q0,-0.65 -3.78,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.38,1.43 Q-1.81,3.58 -1.12,5.07"/><path class="hot" d="M-3.78,0 C-4.56,2.6 -4.3,5.2 -3.35,6.18 Q-1.81,7.28 -0.17,6.11 Q1.72,7.28 3.35,6.18 C4.3,5.2 4.56,2.6 3.78,0 Q0,-0.65 -3.78,0 Z"/></g><g class="tooth" data-t="41" transform="translate(68.7,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 41، قاطع سفلي يمين"><path class="root" d="M-1.89,0 C-1.8,-6.25 -0.81,-12 0,-12.5 C0.81,-12 1.8,-6.25 1.89,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.27,0 C-2.7,3.15 -2.7,7.2 -2.43,9 Q0,9.45 2.43,9 C2.7,7.2 2.7,3.15 2.27,0 Q0,-1.26 -2.27,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-0.86,1.98 Q-1.13,4.95 -0.7,7.02"/><path class="hot" d="M-2.27,0 C-2.7,3.15 -2.7,7.2 -2.43,9 Q0,9.45 2.43,9 C2.7,7.2 2.7,3.15 2.27,0 Q0,-1.26 -2.27,0 Z"/></g><g class="tooth" data-t="42" transform="translate(62.45,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 42، قاطع سفلي يمين"><path class="root" d="M-2.06,0 C-1.96,-6.5 -0.88,-12.48 0,-13 C0.89,-12.48 1.96,-6.5 2.07,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.48,0 C-2.95,3.15 -2.95,7.2 -2.65,9 Q0,9.45 2.66,9 C2.95,7.2 2.95,3.15 2.48,0 Q0,-1.26 -2.48,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-0.94,1.98 Q-1.24,4.95 -0.77,7.02"/><path class="hot" d="M-2.48,0 C-2.95,3.15 -2.95,7.2 -2.65,9 Q0,9.45 2.66,9 C2.95,7.2 2.95,3.15 2.48,0 Q0,-1.26 -2.48,0 Z"/></g><g class="tooth" data-t="43" transform="translate(55.45,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 43، ناب سفلي يمين"><path class="root" d="M-2.55,0 C-2.43,-8 -1.03,-15.36 0,-16 C1.03,-15.36 2.43,-8 2.55,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.9,0 C-3.52,4.4 -3.17,7.92 -2.14,9.24 Q-0.69,10.56 0,11.44 Q0.69,10.56 2.14,9.24 C3.17,7.92 3.52,4.4 2.9,0 Q0,-1.54 -2.9,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.1,2.42 Q-1.45,6.05 -0.9,8.58"/><path class="hot" d="M-2.9,0 C-3.52,4.4 -3.17,7.92 -2.14,9.24 Q-0.69,10.56 0,11.44 Q0.69,10.56 2.14,9.24 C3.17,7.92 3.52,4.4 2.9,0 Q0,-1.54 -2.9,0 Z"/></g><g class="tooth" data-t="44" transform="translate(47.9,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 44، ضاحك سفلي يمين"><path class="root" d="M-2.59,0 C-2.46,-7 -1.05,-13.44 0,-14 C1.05,-13.44 2.46,-7 2.59,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.8,0 C-3.78,3.4 -3.22,7.23 -1.47,7.99 Q0,9.01 1.47,7.99 C3.22,7.23 3.78,3.4 2.8,0 Q0,-1.02 -2.8,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.12,1.87 Q-1.47,4.68 -0.91,6.63"/><path class="hot" d="M-2.8,0 C-3.78,3.4 -3.22,7.23 -1.47,7.99 Q0,9.01 1.47,7.99 C3.22,7.23 3.78,3.4 2.8,0 Q0,-1.02 -2.8,0 Z"/></g><g class="tooth" data-t="45" transform="translate(40.25,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 45، ضاحك سفلي يمين"><path class="root" d="M-2.63,0 C-2.5,-7 -1.06,-13.44 0,-14 C1.07,-13.44 2.5,-7 2.63,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.84,0 C-3.83,3.2 -3.27,6.8 -1.49,7.52 Q0,8.48 1.49,7.52 C3.27,6.8 3.83,3.2 2.84,0 Q0,-0.96 -2.84,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.14,1.76 Q-1.49,4.4 -0.92,6.24"/><path class="hot" d="M-2.84,0 C-3.83,3.2 -3.27,6.8 -1.49,7.52 Q0,8.48 1.49,7.52 C3.27,6.8 3.83,3.2 2.84,0 Q0,-0.96 -2.84,0 Z"/></g><g class="tooth" data-t="46" transform="translate(30.5,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 46، طاحن سفلي يمين"><path class="root" d="M-4.7,0 C-5.15,-7 -4.03,-13.72 -2.69,-14 C-1.57,-13.72 -1.12,-7 0,-3.92 C1.12,-7 1.57,-13.72 2.69,-14 C4.03,-13.72 5.15,-7 4.7,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-4.93,0 C-5.94,3 -5.6,6 -4.37,7.13 Q-2.35,8.4 -0.22,7.05 Q2.24,8.4 4.37,7.13 C5.6,6 5.94,3 4.93,0 Q0,-0.75 -4.93,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.79,1.65 Q-2.35,4.13 -1.46,5.85"/><path class="hot" d="M-4.93,0 C-5.94,3 -5.6,6 -4.37,7.13 Q-2.35,8.4 -0.22,7.05 Q2.24,8.4 4.37,7.13 C5.6,6 5.94,3 4.93,0 Q0,-0.75 -4.93,0 Z"/></g><g class="tooth" data-t="47" transform="translate(19.05,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 47، طاحن سفلي يمين"><path class="root" d="M-4.41,0 C-4.83,-6.5 -3.78,-12.74 -2.52,-13 C-1.47,-12.74 -1.05,-6.5 0,-3.64 C1.05,-6.5 1.47,-12.74 2.52,-13 C3.78,-12.74 4.83,-6.5 4.41,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-4.62,0 C-5.56,2.8 -5.25,5.6 -4.09,6.65 Q-2.2,7.84 -0.21,6.58 Q2.1,7.84 4.1,6.65 C5.25,5.6 5.57,2.8 4.62,0 Q0,-0.7 -4.62,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.68,1.54 Q-2.2,3.85 -1.36,5.46"/><path class="hot" d="M-4.62,0 C-5.56,2.8 -5.25,5.6 -4.09,6.65 Q-2.2,7.84 -0.21,6.58 Q2.1,7.84 4.1,6.65 C5.25,5.6 5.57,2.8 4.62,0 Q0,-0.7 -4.62,0 Z"/></g><g class="tooth" data-t="48" transform="translate(8.2,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 48، طاحن سفلي يمين"><path class="root" d="M-4.2,0 C-4.6,-6 -3.6,-11.76 -2.4,-12 C-1.4,-11.76 -1,-6 0,-3.36 C1,-6 1.4,-11.76 2.4,-12 C3.6,-11.76 4.6,-6 4.2,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-4.4,0 C-5.3,2.72 -5,5.44 -3.9,6.46 Q-2.1,7.62 -0.2,6.39 Q2,7.62 3.9,6.46 C5,5.44 5.3,2.72 4.4,0 Q0,-0.68 -4.4,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.6,1.5 Q-2.1,3.74 -1.3,5.3"/><path class="hot" d="M-4.4,0 C-5.3,2.72 -5,5.44 -3.9,6.46 Q-2.1,7.62 -0.2,6.39 Q2,7.62 3.9,6.46 C5,5.44 5.3,2.72 4.4,0 Q0,-0.68 -4.4,0 Z"/></g><g class="tooth" data-t="31" transform="translate(75.3,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 31، قاطع سفلي يسار"><path class="root" d="M-1.89,0 C-1.8,-6.25 -0.81,-12 0,-12.5 C0.81,-12 1.8,-6.25 1.89,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.27,0 C-2.7,3.15 -2.7,7.2 -2.43,9 Q0,9.45 2.43,9 C2.7,7.2 2.7,3.15 2.27,0 Q0,-1.26 -2.27,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-0.86,1.98 Q-1.13,4.95 -0.7,7.02"/><path class="hot" d="M-2.27,0 C-2.7,3.15 -2.7,7.2 -2.43,9 Q0,9.45 2.43,9 C2.7,7.2 2.7,3.15 2.27,0 Q0,-1.26 -2.27,0 Z"/></g><g class="tooth" data-t="32" transform="translate(81.55,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 32، قاطع سفلي يسار"><path class="root" d="M-2.06,0 C-1.96,-6.5 -0.88,-12.48 0,-13 C0.89,-12.48 1.96,-6.5 2.07,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.48,0 C-2.95,3.15 -2.95,7.2 -2.65,9 Q0,9.45 2.66,9 C2.95,7.2 2.95,3.15 2.48,0 Q0,-1.26 -2.48,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-0.94,1.98 Q-1.24,4.95 -0.77,7.02"/><path class="hot" d="M-2.48,0 C-2.95,3.15 -2.95,7.2 -2.65,9 Q0,9.45 2.66,9 C2.95,7.2 2.95,3.15 2.48,0 Q0,-1.26 -2.48,0 Z"/></g><g class="tooth" data-t="33" transform="translate(88.55,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 33، ناب سفلي يسار"><path class="root" d="M-2.55,0 C-2.43,-8 -1.03,-15.36 0,-16 C1.03,-15.36 2.43,-8 2.55,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.9,0 C-3.52,4.4 -3.17,7.92 -2.14,9.24 Q-0.69,10.56 0,11.44 Q0.69,10.56 2.14,9.24 C3.17,7.92 3.52,4.4 2.9,0 Q0,-1.54 -2.9,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.1,2.42 Q-1.45,6.05 -0.9,8.58"/><path class="hot" d="M-2.9,0 C-3.52,4.4 -3.17,7.92 -2.14,9.24 Q-0.69,10.56 0,11.44 Q0.69,10.56 2.14,9.24 C3.17,7.92 3.52,4.4 2.9,0 Q0,-1.54 -2.9,0 Z"/></g><g class="tooth" data-t="34" transform="translate(96.1,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 34، ضاحك سفلي يسار"><path class="root" d="M-2.59,0 C-2.46,-7 -1.05,-13.44 0,-14 C1.05,-13.44 2.46,-7 2.59,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.8,0 C-3.78,3.4 -3.22,7.23 -1.47,7.99 Q0,9.01 1.47,7.99 C3.22,7.23 3.78,3.4 2.8,0 Q0,-1.02 -2.8,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.12,1.87 Q-1.47,4.68 -0.91,6.63"/><path class="hot" d="M-2.8,0 C-3.78,3.4 -3.22,7.23 -1.47,7.99 Q0,9.01 1.47,7.99 C3.22,7.23 3.78,3.4 2.8,0 Q0,-1.02 -2.8,0 Z"/></g><g class="tooth" data-t="35" transform="translate(103.75,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 35، ضاحك سفلي يسار"><path class="root" d="M-2.63,0 C-2.5,-7 -1.06,-13.44 0,-14 C1.07,-13.44 2.5,-7 2.63,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-2.84,0 C-3.83,3.2 -3.27,6.8 -1.49,7.52 Q0,8.48 1.49,7.52 C3.27,6.8 3.83,3.2 2.84,0 Q0,-0.96 -2.84,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.14,1.76 Q-1.49,4.4 -0.92,6.24"/><path class="hot" d="M-2.84,0 C-3.83,3.2 -3.27,6.8 -1.49,7.52 Q0,8.48 1.49,7.52 C3.27,6.8 3.83,3.2 2.84,0 Q0,-0.96 -2.84,0 Z"/></g><g class="tooth work" data-t="36" style="--wc:#6A4BD8" transform="translate(113.5,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 36، طاحن سفلي يسار"><path class="root" d="M-4.7,0 C-5.15,-7 -4.03,-13.72 -2.69,-14 C-1.57,-13.72 -1.12,-7 0,-3.92 C1.12,-7 1.57,-13.72 2.69,-14 C4.03,-13.72 5.15,-7 4.7,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-4.93,0 C-5.94,3 -5.6,6 -4.37,7.13 Q-2.35,8.4 -0.22,7.05 Q2.24,8.4 4.37,7.13 C5.6,6 5.94,3 4.93,0 Q0,-0.75 -4.93,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.79,1.65 Q-2.35,4.13 -1.46,5.85"/><path class="hot" d="M-4.93,0 C-5.94,3 -5.6,6 -4.37,7.13 Q-2.35,8.4 -0.22,7.05 Q2.24,8.4 4.37,7.13 C5.6,6 5.94,3 4.93,0 Q0,-0.75 -4.93,0 Z"/></g><g class="tooth work" data-t="37" style="--wc:#6A4BD8" transform="translate(124.95,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 37، طاحن سفلي يسار"><path class="root" d="M-4.41,0 C-4.83,-6.5 -3.78,-12.74 -2.52,-13 C-1.47,-12.74 -1.05,-6.5 0,-3.64 C1.05,-6.5 1.47,-12.74 2.52,-13 C3.78,-12.74 4.83,-6.5 4.41,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-4.62,0 C-5.56,2.8 -5.25,5.6 -4.09,6.65 Q-2.2,7.84 -0.21,6.58 Q2.1,7.84 4.1,6.65 C5.25,5.6 5.57,2.8 4.62,0 Q0,-0.7 -4.62,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.68,1.54 Q-2.2,3.85 -1.36,5.46"/><path class="hot" d="M-4.62,0 C-5.56,2.8 -5.25,5.6 -4.09,6.65 Q-2.2,7.84 -0.21,6.58 Q2.1,7.84 4.1,6.65 C5.25,5.6 5.57,2.8 4.62,0 Q0,-0.7 -4.62,0 Z"/></g><g class="tooth" data-t="38" transform="translate(135.8,57) scale(1,-1)" tabindex="0" role="checkbox" aria-checked="false" aria-label="سن 38، طاحن سفلي يسار"><path class="root" d="M-4.2,0 C-4.6,-6 -3.6,-11.76 -2.4,-12 C-1.4,-11.76 -1,-6 0,-3.36 C1,-6 1.4,-11.76 2.4,-12 C3.6,-11.76 4.6,-6 4.2,0 Z" fill="url(#cr-root)"/><path class="enamel" d="M-4.4,0 C-5.3,2.72 -5,5.44 -3.9,6.46 Q-2.1,7.62 -0.2,6.39 Q2,7.62 3.9,6.46 C5,5.44 5.3,2.72 4.4,0 Q0,-0.68 -4.4,0 Z" fill="url(#cr-crown)"/><path class="shine" d="M-1.6,1.5 Q-2.1,3.74 -1.3,5.3"/><path class="hot" d="M-4.4,0 C-5.3,2.72 -5,5.44 -3.9,6.46 Q-2.1,7.62 -0.2,6.39 Q2,7.62 3.9,6.46 C5,5.44 5.3,2.72 4.4,0 Q0,-0.68 -4.4,0 Z"/></g><g class="lbl work" data-l="11" style="--wc:#B4690E"><rect x="64" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="67.1" y="35.45">11</text></g><g class="lbl work" data-l="12" style="--wc:#B4690E"><rect x="55.8" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="58.9" y="35.45">12</text></g><g class="lbl sel" data-l="13"><rect x="48.1" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="51.2" y="35.45">13</text></g><g class="lbl" data-l="14"><rect x="40.2" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="43.3" y="35.45">14</text></g><g class="lbl" data-l="15"><rect x="32.8" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="35.9" y="35.45">15</text></g><g class="lbl" data-l="16"><rect x="23.8" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="26.9" y="35.45">16</text></g><g class="lbl" data-l="17"><rect x="13.5" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="16.6" y="35.45">17</text></g><g class="lbl" data-l="18"><rect x="4" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="7.1" y="35.45">18</text></g><g class="lbl work" data-l="21" style="--wc:#B4690E"><rect x="73.8" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="76.9" y="35.45">21</text></g><g class="lbl work" data-l="22" style="--wc:#B4690E"><rect x="82" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="85.1" y="35.45">22</text></g><g class="lbl sel" data-l="23"><rect x="89.7" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="92.8" y="35.45">23</text></g><g class="lbl" data-l="24"><rect x="97.6" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="100.7" y="35.45">24</text></g><g class="lbl" data-l="25"><rect x="105" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="108.1" y="35.45">25</text></g><g class="lbl" data-l="26"><rect x="114" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="117.1" y="35.45">26</text></g><g class="lbl" data-l="27"><rect x="124.3" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="127.4" y="35.45">27</text></g><g class="lbl" data-l="28"><rect x="133.8" y="33.15" width="6.2" height="4.5" rx="2.25"/><text x="136.9" y="35.45">28</text></g><g class="lbl" data-l="41"><rect x="65.6" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="68.7" y="42.65">41</text></g><g class="lbl" data-l="42"><rect x="59.35" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="62.45" y="42.65">42</text></g><g class="lbl" data-l="43"><rect x="52.35" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="55.45" y="42.65">43</text></g><g class="lbl" data-l="44"><rect x="44.8" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="47.9" y="42.65">44</text></g><g class="lbl" data-l="45"><rect x="37.15" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="40.25" y="42.65">45</text></g><g class="lbl" data-l="46"><rect x="27.4" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="30.5" y="42.65">46</text></g><g class="lbl" data-l="47"><rect x="15.95" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="19.05" y="42.65">47</text></g><g class="lbl" data-l="48"><rect x="5.1" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="8.2" y="42.65">48</text></g><g class="lbl" data-l="31"><rect x="72.2" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="75.3" y="42.65">31</text></g><g class="lbl" data-l="32"><rect x="78.45" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="81.55" y="42.65">32</text></g><g class="lbl" data-l="33"><rect x="85.45" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="88.55" y="42.65">33</text></g><g class="lbl" data-l="34"><rect x="93" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="96.1" y="42.65">34</text></g><g class="lbl" data-l="35"><rect x="100.65" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="103.75" y="42.65">35</text></g><g class="lbl work" data-l="36" style="--wc:#6A4BD8"><rect x="110.4" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="113.5" y="42.65">36</text></g><g class="lbl work" data-l="37" style="--wc:#6A4BD8"><rect x="121.85" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="124.95" y="42.65">37</text></g><g class="lbl" data-l="38"><rect x="132.7" y="40.35" width="6.2" height="4.5" rx="2.25"/><text x="135.8" y="42.65">38</text></g>
+</svg></div>
+      <div class="legend"><span style="--c:#006EBD"><i></i>محدد الآن</span><span style="--c:#B4690E"><i></i>زيركون</span><span style="--c:#6A4BD8"><i></i>إي-ماكس</span><span class="muted">اضغط على السن للتحديد، أو استخدم المسافة من لوحة المفاتيح</span></div>
+      <div class="selchips" id="selchips" aria-live="polite"></div>
+      <div class="chart-tools"><span class="muted" style="font-size:13px;align-self:center">عمل على الفك كاملًا:</span><button class="btn btn-sm" type="button">الفك العلوي</button><button class="btn btn-sm" type="button">الفك السفلي</button><button class="btn btn-sm" type="button">الفكّان</button></div>
+    </section>
+  </div>
+  <section class="pane lines" aria-labelledby="lines-title">
+    <h2 id="lines-title">أسطر العمل <span class="muted n" style="font-weight:600">(6)</span></h2>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>السن</th><th>نوع العمل</th><th>اللون</th><th>سعر الوحدة (₪)</th><th class="end"><span class="muted">حذف</span></th></tr></thead>
+      <tbody>
+        <tr><td><span class="n" style="font-weight:800">11</span></td>
+          <td><span class="legend"><span style="--c:#B4690E"><i></i>زيركون</span></span></td>
+          <td class="n">A2</td>
+          <td><span class="price"><span class="control n">140.00</span><span class="special"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z"/></svg>سعر خاص</span></span></td>
+          <td class="end"><button class="btn btn-ghost btn-sm" type="button" aria-label="حذف سطر السن 11"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13"/></svg></button></td></tr>
+        <tr><td><span class="n" style="font-weight:800">12</span></td>
+          <td><span class="legend"><span style="--c:#B4690E"><i></i>زيركون</span></span></td>
+          <td class="n">A2</td>
+          <td><span class="price"><span class="control n">140.00</span><span class="special"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z"/></svg>سعر خاص</span></span></td>
+          <td class="end"><button class="btn btn-ghost btn-sm" type="button" aria-label="حذف سطر السن 12"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13"/></svg></button></td></tr>
+        <tr><td><span class="n" style="font-weight:800">21</span></td>
+          <td><span class="legend"><span style="--c:#B4690E"><i></i>زيركون</span></span></td>
+          <td class="n">A2</td>
+          <td><span class="price"><span class="control n">140.00</span><span class="special"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z"/></svg>سعر خاص</span></span></td>
+          <td class="end"><button class="btn btn-ghost btn-sm" type="button" aria-label="حذف سطر السن 21"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13"/></svg></button></td></tr>
+        <tr><td><span class="n" style="font-weight:800">22</span></td>
+          <td><span class="legend"><span style="--c:#B4690E"><i></i>زيركون</span></span></td>
+          <td class="n">A2</td>
+          <td><span class="price"><span class="control n">140.00</span><span class="special"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9Z"/></svg>سعر خاص</span></span></td>
+          <td class="end"><button class="btn btn-ghost btn-sm" type="button" aria-label="حذف سطر السن 22"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13"/></svg></button></td></tr>
+        <tr><td><span class="n" style="font-weight:800">36</span></td>
+          <td><span class="legend"><span style="--c:#6A4BD8"><i></i>إي-ماكس</span></span></td>
+          <td class="n">B1</td>
+          <td><span class="price"><span class="control n">220.00</span></span></td>
+          <td class="end"><button class="btn btn-ghost btn-sm" type="button" aria-label="حذف سطر السن 36"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13"/></svg></button></td></tr>
+        <tr><td><span class="n" style="font-weight:800">37</span></td>
+          <td><span class="legend"><span style="--c:#6A4BD8"><i></i>إي-ماكس</span></span></td>
+          <td class="n">B1</td>
+          <td><span class="price"><span class="control n">220.00</span></span></td>
+          <td class="end"><button class="btn btn-ghost btn-sm" type="button" aria-label="حذف سطر السن 37"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6.5 7l1 13h9l1-13"/></svg></button></td></tr></tbody>
+    </table></div>
+    <dl class="totals"><dt>المجموع</dt><dd class="n">1,000.00 ₪</dd><dt>خصم على الحالة</dt><dd class="n">50.00 ₪</dd><dt class="grand">الإجمالي</dt><dd class="grand n">950.00 ₪</dd></dl>
+  </section>
+  <div class="savebar"><a class="btn" href="#cases">إلغاء</a><button class="btn btn-primary" type="button" data-save>حفظ الحالة</button></div>
+</section>
+</main>
+</div>
+</div>
+<div class="mock" role="navigation" aria-label="التنقل بين نماذج التصميم"><span>نموذج</span><a href="a-brand-gradient.html">أ</a><a href="b-lab-sheet.html">ب</a><a href="c-workbench.html" aria-current="page">ج</a><a href="index.html">الكل</a></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+  var toast=document.getElementById('toast'),tm;
+  function say(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tm);tm=setTimeout(function(){toast.classList.remove('show')},2200)}
+  document.addEventListener('click',function(e){
+    var s=e.target.closest('[data-soon]');if(s){e.preventDefault();say('هذه الشاشة ليست ضمن هذا النموذج')}
+    var v=e.target.closest('[data-save]');if(v){say('تم حفظ الحالة رقم 1288')}
+  });
+  var sel=new Set();
+  document.querySelectorAll('.tooth.sel').forEach(function(t){sel.add(+t.dataset.t)});
+  function paint(){
+    document.querySelectorAll('.tooth').forEach(function(t){var on=sel.has(+t.dataset.t);t.classList.toggle('sel',on);t.setAttribute('aria-checked',on)});
+    document.querySelectorAll('.lbl').forEach(function(l){l.classList.toggle('sel',sel.has(+l.dataset.l))});
+    var list=Array.from(sel).sort(function(a,b){return a-b});
+    var box=document.getElementById('selchips');
+    if(box){box.innerHTML=list.length?'<span class="muted" style="font-size:13px">الأسنان المحددة:</span>'+list.map(function(t){return '<span class="t n">'+t+'<button type="button" aria-label="إلغاء تحديد السن '+t+'" data-un="'+t+'"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m7 7 10 10M17 7 7 17"/></svg></button></span>'}).join(''):'<span class="muted" style="font-size:13px">لم تحدد أي سن بعد.</span>'}
+    var c=document.getElementById('apply-count');if(c)c.textContent='('+list.length+')';
+  }
+  document.querySelectorAll('.tooth').forEach(function(t){
+    function tog(){var n=+t.dataset.t;sel.has(n)?sel.delete(n):sel.add(n);paint()}
+    t.addEventListener('click',tog);
+    t.addEventListener('keydown',function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();tog()}});
+  });
+  document.addEventListener('click',function(e){
+    var u=e.target.closest('[data-un]');if(u){sel.delete(+u.dataset.un);paint()}
+    var a=e.target.closest('[data-act]');if(!a)return;
+    var act=a.dataset.act,all=[];[1,2,3,4].forEach(function(q){for(var i=1;i<=8;i++)all.push(q*10+i)});
+    if(act==='all')all.forEach(function(t){sel.add(t)});
+    else if(act==='clear')sel.clear();
+    else{var q=+act.slice(1);all.filter(function(t){return Math.floor(t/10)===q}).forEach(function(t){sel.add(t)})}
+    paint();
+  });
+  document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){
+    var pane=b.closest('.chart-pane');pane.classList.toggle('show-rows',b.dataset.view==='rows');
+    pane.querySelectorAll('[data-view]').forEach(function(x){x.setAttribute('aria-pressed',x===b)});
+  })});
+  var ap=document.getElementById('apply');if(ap)ap.addEventListener('click',function(){say(sel.size?'أُضيف '+sel.size+' سطر عمل (نموذج فقط)':'حدّد سنًا واحدًا على الأقل أولًا')});
+  paint();
+})();
+</script>
+</body>
+</html>

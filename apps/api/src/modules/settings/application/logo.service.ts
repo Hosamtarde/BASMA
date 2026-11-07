@@ -10,7 +10,7 @@ import { LogoFile, LogoMeta, LogoRepository } from '../infrastructure/logo.repos
 
 /**
  * The lab logo is stored in the database (owner decision B1) so every backup contains it.
- * Without a stored logo, clients fall back to the bundled default (SPEC §5.18).
+ * Without a stored logo, clients show the lab name only; never the vendor's logo (SPEC §2.3).
  */
 @Injectable()
 export class LogoService {
@@ -58,7 +58,7 @@ export class LogoService {
     return saved;
   }
 
-  /** Back to the bundled default. Idempotent. */
+  /** Back to no logo (lab name only). Idempotent. */
   async remove(userId: number): Promise<void> {
     await this.db.transaction(async (tx) => {
       if (await this.repo.delete(tx)) {

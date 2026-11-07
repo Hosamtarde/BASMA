@@ -19,7 +19,9 @@ Items to decide or build before selling the product to other labs (SPEC §2.4). 
 | 13 | Rate-limit store | In-memory, per process. Fine for one service; revisit if several API processes ever run |
 | 14 | "Money exists" check grows per milestone | `SettingsRepository.hasMoneyData` covers work-type prices, opening balances, special prices (B1) and any case (B2); **B3 must add payments, B6 invoices**, or the currency could change under real amounts |
 | 15 | Search speed | Doctor/catalog search and the case patient-name search use `ILIKE '%…%'` (sequential scan): fine for hundreds of doctors; for 20k cases decide on `pg_trgm` indexes with global search (B4) and the load test (B8) |
-| 16 | Logo in the browser | `GET /settings/logo` needs the bearer token, so Phase 2 must fetch it as a blob (a plain `<img src>` cannot send the header) |
+| 16 | Logo in the browser | Done in F0: fetched as a blob and shown through an object URL that is revoked on change/unmount |
 | 17 | Pre-B1 databases | A database set up with the B0 first run has no settings and no expense categories. No customer install exists yet; developers reset their dev DB (`docker compose down -v`) |
 | 18 | Open item for B3: cancel from "returned" | Not allowed in B2. Decide in B3, once payments exist, whether a returned case may be cancelled and what happens to its payments (owner, B2) |
 | 19 | Case search by patient | Contains-search on patient names returns personal data to any user with `cases.read`; fine with one owner, review when more roles exist |
+| 20 | HTTPS / reverse proxy | The refresh cookie gets `Secure` from `req.secure`. Behind a TLS proxy (cloud, LAN #8) set Express `trust proxy`, enable HSTS (off on loopback http, ADR-0017) and review the loopback-only `API_HOST` rule |
+| 21 | Web bundle size | One 733 KB chunk (229 KB gzip) in F0, loaded from the local disk; split by route if later slices make start-up slow |
