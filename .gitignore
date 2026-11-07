@@ -14,3 +14,6 @@ backups/
 playwright-report/
 test-results/
 blob-report/
+
+# Product logo: only the 800 px copy is tracked; the 1 MB original stays local.
+assets/brand/basma-logo.png

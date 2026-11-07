@@ -1,4 +1,7 @@
+import { PRODUCT_NAME } from '@app/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
+import ar from './ar.json';
+import en from './en.json';
 import { formatNumber, formatWeekday, todayIn } from './format';
 import { changeLanguage, currentLanguage, i18next, initI18n, rememberLanguage, storedLanguage } from './i18n';
 
@@ -20,6 +23,17 @@ describe('i18n', () => {
     expect(document.documentElement).toHaveAttribute('lang', 'en');
     expect(document.documentElement).toHaveAttribute('dir', 'ltr');
     expect(i18next.t('auth.login.title')).toBe('Sign in');
+  });
+
+  it('shows the product name «بسمة» / «Basma» as the tab title, following the language', async () => {
+    expect(document.title).toBe('بسمة');
+    await changeLanguage('en');
+    expect(document.title).toBe('Basma');
+  });
+
+  it('keeps the English product name equal to the one PRODUCT_NAME constant', () => {
+    expect(en.app.productName).toBe(PRODUCT_NAME);
+    expect(ar.app.productName).toBe('بسمة');
   });
 
   it('uses the Arabic plural forms', () => {

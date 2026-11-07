@@ -1,4 +1,4 @@
-# Dental Lab Management System — product name `PRODUCT_NAME` (TBD), built by Smile Artec Dental Laboratory
+# Dental Lab Management System — product name «Basma» (بسمة, `PRODUCT_NAME`), built by Smile Artec Dental Laboratory
 
 > Spec for Claude Code. Written in English for implementation accuracy. **The product is Arabic by default (RTL) and fully switchable to English (LTR)** — see §6.1. Arabic labels in `«…»` are the source wording; the English equivalents live in the i18n catalogs.
 > Language of the person you are working with: Arabic (Palestinian dialect). Talk to them in Arabic; write code, comments and commit messages in English.
@@ -7,7 +7,7 @@
 
 ## 0. What we are building
 
-A **management system (backend/API first, UI later) for a dental technician laboratory** — built by and first used at **Smile Artec Dental Laboratory** (the owner's own lab, the "main lab"), later distributed to other labs under a separate product name (`PRODUCT_NAME`, still to be chosen) that receives dental cases from doctors, tracks them until delivery, and manages the lab's money: prices, invoices, payments in/out, cheques and outstanding debts.
+A **management system (backend/API first, UI later) for a dental technician laboratory** — built by and first used at **Smile Artec Dental Laboratory** (the owner's own lab, the "main lab"), later distributed to other labs under its own product name, «Basma» (بسمة, `PRODUCT_NAME`), that receives dental cases from doctors, tracks them until delivery, and manages the lab's money: prices, invoices, payments in/out, cheques and outstanding debts.
 
 It is a **reduced edition** of a commercial product the owner already knows (an Arabic dental clinic/lab program called "الإخلاص / AL EKHLAS"). The owner's instruction is: *"same program, but remove what we don't need, and for what stays, same behaviour."*
 
@@ -93,7 +93,7 @@ The owner will **install the system on the lab's computers from a single compres
 - Data safety is therefore the owner's backup folder (§2.1) — make backup status visible and easy to restore.
 
 ### 2.3 Product identity vs lab identity — DECIDED
-- **"Smile Artec" is the owner's own laboratory** (the *main lab*), not the product name. The product that will be distributed to other labs gets **its own name, `PRODUCT_NAME` (to be chosen by the owner)**, defined in one place (config/constant) and used by the installer, window title, splash/login screen and docs.
+- **"Smile Artec" is the owner's own laboratory** (the *main lab*), not the product name. The product that will be distributed to other labs gets **its own name, «Basma» (بسمة), held in `PRODUCT_NAME` + the `app.productName` i18n key**, defined in one place (config/constant) and used by the installer, window title, splash/login screen and docs.
 - **Lab identity = per installation:** each lab's own name and logo (entered at first run, editable in Settings) appear on its invoices, statements and receipts. **Never fall back to the Smile Artec logo on another lab's documents** — if no logo is uploaded, print the lab name only.
 - The owner's installation is simply the first customer: its lab profile is Smile Artec (name + logo from `assets/`).
 - Vendor credit «Powered by Smile Artec Dental Laboratory» may appear on the splash/login screen only (not on invoices).
@@ -649,7 +649,7 @@ The look is agreed (§1.1, `docs/design-directions/`). Each slice delivers its A
 14. Print/PDF only; no e-mail/WhatsApp sending.
 15. **Backend stack: NestJS + PostgreSQL — decided by the owner.**
 16. **Runs on each customer's own Windows computer via an installer (§2.1); independent installation per computer — decided (§2.2).**
-19. Product name `PRODUCT_NAME` — **owner is choosing**; until then use the placeholder through one constant (§2.3).
+19. Product name — **decided: «Basma» (بسمة)**, through one constant + one i18n key (§2.3).
 20. Licensing/subscription, auto-update and cloud are **out of v1** (§2.4).
 17. **Invoice PDF:** backend returns snapshot + template JSON; rendering/printing is Phase 2 (alternative: server-side PDF).
 18. **Patients** are not modelled (see 1) even though the engineering standards list them as a possible module; materials/inventory and employees are out of v1 (§3.2).

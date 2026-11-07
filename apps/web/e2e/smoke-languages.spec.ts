@@ -8,6 +8,7 @@ const CASES = [
     other: 'en',
     labels: AR,
     title: 'تسجيل الدخول',
+    product: 'بسمة',
     home: 'الرئيسية',
     otherHome: 'Home',
     pick: 'العربية',
@@ -18,6 +19,7 @@ const CASES = [
     other: 'ar',
     labels: EN,
     title: 'Sign in',
+    product: 'Basma',
     home: 'Home',
     otherHome: 'الرئيسية',
     pick: 'English',
@@ -36,6 +38,12 @@ for (const c of CASES) {
     await page.getByRole('button', { name: new RegExp(`^${c.pick}`) }).click();
     await expectDirection(page, c.lang);
     await expect(page.getByRole('heading', { name: c.title })).toBeVisible();
+    // Product identity (SPEC §2.3): tab title in the current language, PNG favicon, small logo.
+    await expect(page).toHaveTitle(c.product);
+    const favicon = page.locator('link[rel="icon"]');
+    await expect(favicon).toHaveAttribute('type', 'image/png');
+    await expect(favicon).toHaveAttribute('href', /basma-logo-64/);
+    await expect(page.getByRole('contentinfo').getByRole('img', { name: c.product })).toBeVisible();
 
     await signIn(page, OWNER.username, OWNER.password, c.labels);
     await expect(page.getByRole('link', { name: c.home })).toHaveAttribute('aria-current', 'page');

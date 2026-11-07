@@ -97,7 +97,9 @@ describe('HomePage', () => {
     expect(subtitle).toHaveClass('uppercase');
     expect(banner.querySelector('[data-banner-mark]')).toHaveAttribute('aria-hidden', 'true');
     expect(within(banner).queryByRole('img')).not.toBeInTheDocument();
-    expect(banner).not.toHaveTextContent('DentalLab');
+    expect(banner).not.toHaveTextContent('بسمة');
+    expect(banner).not.toHaveTextContent('Basma');
+    expect(banner.querySelector('[data-product-logo]')).toBeNull();
     expect(banner).toHaveTextContent(/\d{4}-\d{2}-\d{2}/);
   });
 

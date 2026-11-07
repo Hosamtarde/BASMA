@@ -5,9 +5,9 @@ One codebase ships two branded editions of the same app. Decision record: [ADR-0
 | Edition id | Who it is for | Product name shown |
 |---|---|---|
 | `smile-artec` | Smile Artec Dental Laboratory (owner: Ibrahim Al-Tarda), the main lab | Smile Artec product branding |
-| `generic` | Other labs that buy the product | `{{PRODUCT_NAME}}` — placeholder, final name not decided |
+| `generic` | Other labs that buy the product | «Basma» (بسمة) |
 
-Status: **documented, not implemented.** Implementation is slice **E1** below. Until then the app has one product identity: the `PRODUCT_NAME` constant in `packages/shared/src/product.ts` (placeholder value).
+Status: **documented, not implemented.** Implementation is slice **E1** below. Until then the app has one product identity: the `PRODUCT_NAME` constant in `packages/shared/src/product.ts` (`'Basma'`) plus the display key `app.productName` in `apps/web/src/i18n/{ar,en}.json` (بسمة / Basma).
 
 ## The two levels of branding
 
@@ -35,7 +35,7 @@ Rules that hold in both editions (SPEC §2.3):
    - `editions/smile-artec.ts` and `editions/generic.ts`, each exporting the same typed shape, e.g. `{ id, i18nKeys: { productName, windowTitle, about, licence }, installer: { exeName, iconPath, appId }, defaultLogoPath }`.
    - `index.ts` exports the selected `BRANDING` object (and keeps `PRODUCT_NAME`-style helpers for current callers during migration).
    - No other file names an edition.
-3. **Text in the catalogs.** Display text is in `apps/web/src/i18n/{ar,en}.json` and `apps/api/src/shared/i18n/catalogs/{ar,en}.json` under edition-scoped keys (e.g. `edition.smile-artec.productName`, `edition.generic.productName`), Arabic default, English switchable. `i18n:check` covers both editions' keys in both languages. The generic product name is `{{PRODUCT_NAME}}` until the owner decides.
+3. **Text in the catalogs.** Display text is in `apps/web/src/i18n/{ar,en}.json` and `apps/api/src/shared/i18n/catalogs/{ar,en}.json` under edition-scoped keys (e.g. `edition.smile-artec.productName`, `edition.generic.productName`), Arabic default, English switchable. `i18n:check` covers both editions' keys in both languages. The generic product name is «Basma» (بسمة).
 4. **Assets.** Edition icons and default logos sit under `assets/editions/<edition>/` (raster logos never enlarged past native size, SPEC §1). The Smile Artec assets in `assets/` stay the source for the `smile-artec` edition.
 5. **Consumers.** Web: tab title, window title, login/About screen. API: OpenAPI title, About/version endpoint if one is added. Installer (B7): file name, icon, shortcut name, Add/Remove Programs entry.
 
@@ -65,7 +65,7 @@ Branch `feat/e1-editions`; stops for the owner's go-ahead like every slice.
 ### Tasks
 
 1. Add the branding module in `packages/shared` with the two edition files and a typed shape; fail the build on an unknown `EDITION`.
-2. Move `PRODUCT_NAME` users (`apps/api/src/openapi.ts`, `apps/web/src/main.tsx`, `apps/web/src/features/auth/AuthLayout.tsx`) to the branding module.
+2. Move `PRODUCT_NAME` users (`apps/api/src/openapi.ts`; on screen the `app.productName` key in `AuthLayout.tsx` and `i18n.ts`) to the branding module.
 3. Add edition-scoped keys to the web and API catalogs in Arabic and English; keep `i18n:check` green.
 4. Wire `EDITION` into the web build (tab title, window title, login/About text, default logo) and the API build (OpenAPI title).
 5. Add edition assets under `assets/editions/<edition>/` (icon, default logo); `generic` uses a neutral placeholder mark.
@@ -78,7 +78,7 @@ Branch `feat/e1-editions`; stops for the owner's go-ahead like every slice.
 ### Acceptance criteria
 
 - `EDITION=smile-artec` and `EDITION=generic` both build (lint, typecheck, tests, build all green).
-- Each installer shows the right product name, icon and window/tab title; `generic` shows `{{PRODUCT_NAME}}` (or the final name once decided).
+- Each installer shows the right product name, icon and window/tab title; `generic` shows «Basma» (بسمة).
 - No edition string outside the branding module, its catalog keys and edition assets (CI check passes, and fails on a planted violation).
 - CI builds both editions on every pull request.
 - Lab branding (logo, name, slogan) behaves the same in both editions; printed documents never show a product or Smile Artec logo for a lab without one.

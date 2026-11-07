@@ -36,6 +36,8 @@ function applyToDocument(lang: Language): void {
   const html = document.documentElement;
   html.lang = lang;
   html.dir = directionOf(lang);
+  // The tab title is the product name in the current language (SPEC §2.3).
+  document.title = i18next.t('app.productName');
 }
 
 export function currentLanguage(): Language {
@@ -43,7 +45,7 @@ export function currentLanguage(): Language {
   return isLanguage(lang) ? lang : DEFAULT_LANGUAGE;
 }
 
-/** Changes the UI language in place: catalogs, `<html lang dir>`, and every formatter. */
+/** Changes the UI language in place: catalogs, `<html lang dir>`, the tab title, and every formatter. */
 export async function changeLanguage(lang: Language): Promise<void> {
   if (currentLanguage() !== lang || document.documentElement.lang !== lang) {
     await i18next.changeLanguage(lang);

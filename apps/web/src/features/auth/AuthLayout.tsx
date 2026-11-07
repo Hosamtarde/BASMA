@@ -1,6 +1,6 @@
-import { PRODUCT_NAME } from '@app/shared';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { productLogoUrl } from '@/design/product-logo';
 import { LanguageSwitch } from '@/features/shell/LanguageSwitch';
 import { cn } from '@/lib/cn';
 
@@ -14,14 +14,15 @@ interface AuthLayoutProps {
 
 /**
  * Signed-out pages (login, first-run setup, password change): the product name, the language
- * switch and the vendor credit, which SPEC §2.3 allows on these screens only.
+ * switch, and a footer with the small product logo and the vendor credit, which SPEC §2.3 allows
+ * on these screens only. The lab's own logo never appears here.
  */
 export function AuthLayout({ title, intro, wide = false, children }: AuthLayoutProps) {
   const { t } = useTranslation();
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="bg-sidebar flex h-16 items-center gap-3 px-6 text-white">
-        <span className="text-[18px] font-extrabold">{PRODUCT_NAME}</span>
+        <span className="text-[18px] font-extrabold">{t('app.productName')}</span>
         <span className="flex-1" />
         <div className="rounded-[var(--radius-control)] bg-white/95 text-ink">
           <LanguageSwitch />
@@ -43,7 +44,18 @@ export function AuthLayout({ title, intro, wide = false, children }: AuthLayoutP
           <div className="mt-6">{children}</div>
         </section>
       </main>
-      <footer className="pb-6 text-center text-[13px] text-muted">{t('app.vendorCredit')}</footer>
+      <footer className="flex flex-col items-center gap-2 pb-6 text-center text-[13px] text-muted">
+        {/* Raster logo (800 × 533): always shown far below its native size. */}
+        <img
+          src={productLogoUrl}
+          alt={t('app.productName')}
+          data-product-logo
+          width={72}
+          height={48}
+          className="h-12 w-auto"
+        />
+        <span>{t('app.vendorCredit')}</span>
+      </footer>
     </div>
   );
 }

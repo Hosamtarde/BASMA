@@ -69,12 +69,24 @@ describe('LoginPage', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/change-password'));
   });
 
+  it('shows the product name and the small product logo, never a lab logo', () => {
+    stubApi({});
+    renderRoutes(routes, '/login');
+    expect(screen.getByText('بسمة')).toBeInTheDocument();
+    const logo = screen.getByRole('img', { name: 'بسمة' });
+    expect(logo).toHaveAttribute('data-product-logo');
+    expect(logo.closest('footer')).not.toBeNull();
+    expect(screen.getAllByRole('img')).toHaveLength(1);
+  });
+
   it('renders in English with the same structure', async () => {
     stubApi({});
     await changeLanguage('en');
     renderRoutes(routes, '/login');
     expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
     expect(screen.getByText('Powered by Smile Artec Dental Laboratory')).toBeInTheDocument();
+    expect(screen.getByText('Basma')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Basma' })).toHaveAttribute('data-product-logo');
     await changeLanguage('ar');
   });
 });

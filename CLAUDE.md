@@ -1,4 +1,4 @@
-# CLAUDE.md — Dental Lab Management System (product name TBD · built by Smile Artec Dental Laboratory)
+# CLAUDE.md — Basma (بسمة), a dental lab management system · built by Smile Artec Dental Laboratory
 
 ## Read first, in this order
 1. `ENGINEERING_STANDARDS.md` — how we engineer (architecture, security, testing, workflow). Binding.
@@ -42,7 +42,7 @@ Editions: one codebase ships two branded installers (`smile-artec`, `generic`) �
 - Idempotency keys on payment/invoice creation; optimistic concurrency (`row_version`) on mutable aggregates; gap-free numbering assigned inside the insert transaction.
 - Every write: validated DTO → application service → one DB transaction. Authorization checked on the server for every endpoint. Never trust client-supplied prices, balances, totals, roles or ids of ownership.
 - No entities in API responses; no secrets in code or logs; no stack traces to clients.
-- This product is a **behavioural** re-implementation of workflows the owner knows from another dental program. Do not look for, copy or reuse that product's code, images, icons or texts. Original code and original assets only. Brand assets of the owner's lab (Smile Artec — the vendor / main lab, **not** the product name) are in `assets/` (transparent PNG logos from a high-resolution source — never enlarge past native size; the logo path is a setting). The product name is still being chosen by the owner: use one `PRODUCT_NAME` constant everywhere (SPEC §2.3); the repo/folder name `smile-artec` is temporary.
+- This product is a **behavioural** re-implementation of workflows the owner knows from another dental program. Do not look for, copy or reuse that product's code, images, icons or texts. Original code and original assets only. Brand assets of the owner's lab (Smile Artec — the vendor / main lab, **not** the product name) are in `assets/` (transparent PNG logos from a high-resolution source — never enlarge past native size; the logo path is a setting). The product name is **Basma** (Arabic «بسمة»), decided by the owner (SPEC §2.3). It is defined once: `PRODUCT_NAME` in `packages/shared/src/product.ts` (technical name: API title, installer, file names) and the `app.productName` key in `apps/web/src/i18n/{ar,en}.json` for everything shown on screen (a unit test keeps the English value equal to the constant). Never hard-code the name elsewhere. The product logo is `assets/brand/basma-logo-800.png` (signed-out footer) with a 64 px copy `basma-logo-64.png` (favicon) — only there — never the lab logo, never on printed documents. The repo/folder name `smile-artec` is temporary.
 
 ## Commands (run from the repo root; Node 24, Docker for the dev DB and for integration/e2e tests; `npm install` also builds packages/shared)
 ```
