@@ -74,7 +74,21 @@ test('Home before the first case: a friendly empty state with a button to add th
   const empty = page.getByRole('region', { name: 'لا توجد حالات بعد' });
   await expect(empty).toBeVisible();
   await expect(page.getByRole('region', { name: 'مسار الحالات' })).toHaveCount(0);
-  await expect(page.getByRole('region', { name: 'آخر الحالات' })).toHaveCount(0);
+  // The three bottom panels stay, so the screen keeps its shape: zeros, a bare ring, a hint.
+  const keyNumbers = page.getByRole('region', { name: 'الأرقام الرئيسية' });
+  await expect(keyNumbers.getByRole('link', { name: 'الحالات 0', exact: true })).toBeVisible();
+  await expect(keyNumbers.getByRole('link', { name: 'حالات متأخرة 0', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('img', { name: 'توزيع الحالات حسب المرحلة، المجموع 0', exact: true }),
+  ).toBeVisible();
+  await expect(page.locator('circle[data-status]')).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'آخر الحالات' })).toContainText(
+    'ستظهر هنا الحالات التي تسجّلها.',
+  );
+  // No logo: the brand mark holds its place; no product name in the banner.
+  const banner = page.getByRole('region', { name: LAB_AR });
+  await expect(banner.locator('[data-banner-mark]')).toBeVisible();
+  await expect(banner).not.toContainText('DentalLab');
   // The action cards are there: two links, five «قريباً».
   const cards = page.getByRole('region', { name: 'ماذا تريد أن تسجّل؟' });
   await expect(cards.locator('a[href]')).toHaveCount(2);
@@ -84,6 +98,12 @@ test('Home before the first case: a friendly empty state with a button to add th
   await page.getByRole('button', { name: /^English/ }).click();
   await expectDirection(page, 'en');
   await expect(page.getByRole('region', { name: 'No cases yet' })).toBeVisible();
+  await expect(
+    page.getByRole('region', { name: 'Key numbers' }).getByRole('link', { name: 'Cases 0', exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Latest cases' })).toContainText(
+    'Cases you record will appear here.',
+  );
   await expectAccessible(page);
   await shot(page, 'home-empty-en', { fullPage: false });
   await page.getByRole('button', { name: /^العربية/ }).click();
