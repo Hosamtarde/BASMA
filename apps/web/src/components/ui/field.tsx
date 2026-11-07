@@ -53,25 +53,45 @@ export interface TextFieldProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   hint?: string | undefined;
   error?: string | undefined;
   ref?: React.Ref<HTMLInputElement>;
+  /** Shown inside the box at the end (e.g. the currency symbol); decorative. */
+  suffix?: ReactNode;
 }
 
-export function TextField({ label, hint, error, required, className, ...input }: TextFieldProps) {
+export function TextField({ label, hint, error, required, className, suffix, ...input }: TextFieldProps) {
   const id = useId();
   return (
     <FieldShell id={id} label={label} hint={hint} error={error} required={required}>
-      <input
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-required={required || undefined}
-        aria-describedby={describedBy(id, hint, error)}
-        className={cn(controlClass, className)}
-        {...input}
-      />
+      <div className="relative">
+        <input
+          id={id}
+          aria-invalid={error ? true : undefined}
+          aria-required={required || undefined}
+          aria-describedby={describedBy(id, hint, error)}
+          className={cn(controlClass, suffix !== undefined && 'pe-12', className)}
+          {...input}
+        />
+        {suffix !== undefined && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 end-3 flex items-center text-[14px] text-muted"
+          >
+            {suffix}
+          </span>
+        )}
+      </div>
     </FieldShell>
   );
 }
 
-export function PasswordField({ label, hint, error, required, className, ...input }: TextFieldProps) {
+export function PasswordField({
+  label,
+  hint,
+  error,
+  required,
+  className,
+  suffix: _suffix,
+  ...input
+}: TextFieldProps) {
   const id = useId();
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
