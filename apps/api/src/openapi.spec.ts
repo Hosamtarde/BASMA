@@ -57,4 +57,17 @@ describe('OpenAPI contract (built without a database)', () => {
   it('never exposes a refresh token in a response body', () => {
     expect(JSON.stringify(doc.components?.schemas?.['TokenResponse'])).not.toContain('"refreshToken"');
   });
+
+  it('gives every property a real type (nullable strings and numbers are not "object")', () => {
+    const untyped: string[] = [];
+    for (const [name, schema] of Object.entries(doc.components?.schemas ?? {})) {
+      const props = (schema as { properties?: Record<string, Record<string, unknown>> }).properties ?? {};
+      for (const [prop, p] of Object.entries(props)) {
+        const isRef = '$ref' in p || 'allOf' in p || 'oneOf' in p || 'enum' in p;
+        const bareObject = p['type'] === 'object' && !('properties' in p) && !('additionalProperties' in p);
+        if (!isRef && (bareObject || p['type'] === undefined)) untyped.push(`${name}.${prop}`);
+      }
+    }
+    expect(untyped).toEqual([]);
+  });
 });

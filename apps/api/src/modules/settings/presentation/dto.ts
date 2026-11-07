@@ -19,18 +19,29 @@ export const IsTimeZoneName = () =>
 // ---- Shared request parts (also used by first-run setup) ----
 
 export class LabProfileInput {
-  @ApiPropertyOptional({ maxLength: LAB_NAME_MAX_LENGTH, nullable: true, example: 'مختبر الأسنان' })
+  @ApiPropertyOptional({
+    type: String,
+    maxLength: LAB_NAME_MAX_LENGTH,
+    nullable: true,
+    example: 'مختبر الأسنان',
+  })
   @OptionalText(LAB_NAME_MAX_LENGTH)
   nameAr?: string | null;
 
-  @ApiPropertyOptional({ maxLength: LAB_NAME_MAX_LENGTH, nullable: true, example: 'Dental Lab' })
+  @ApiPropertyOptional({
+    type: String,
+    maxLength: LAB_NAME_MAX_LENGTH,
+    nullable: true,
+    example: 'Dental Lab',
+  })
   @OptionalText(LAB_NAME_MAX_LENGTH)
   nameEn?: string | null;
 
-  @ApiPropertyOptional({ maxLength: PHONE_MAX_LENGTH, nullable: true }) @OptionalPhone() phone?:
-    string | null;
+  @ApiPropertyOptional({ type: String, maxLength: PHONE_MAX_LENGTH, nullable: true })
+  @OptionalPhone()
+  phone?: string | null;
 
-  @ApiPropertyOptional({ maxLength: ADDRESS_MAX_LENGTH, nullable: true })
+  @ApiPropertyOptional({ type: String, maxLength: ADDRESS_MAX_LENGTH, nullable: true })
   @OptionalText(ADDRESS_MAX_LENGTH)
   address?: string | null;
 }

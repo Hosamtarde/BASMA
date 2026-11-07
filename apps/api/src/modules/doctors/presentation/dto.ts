@@ -13,12 +13,13 @@ const balanceDoc = {
 
 export class CreateDoctorRequest {
   @ApiProperty({ maxLength: 100, example: 'د. أحمد سالم' }) @IsName() name!: string;
-  @ApiPropertyOptional({ maxLength: PHONE_MAX_LENGTH, nullable: true }) @OptionalPhone() phone?:
-    string | null;
-  @ApiPropertyOptional({ maxLength: CLINIC_MAX_LENGTH, nullable: true })
+  @ApiPropertyOptional({ type: String, maxLength: PHONE_MAX_LENGTH, nullable: true })
+  @OptionalPhone()
+  phone?: string | null;
+  @ApiPropertyOptional({ type: String, maxLength: CLINIC_MAX_LENGTH, nullable: true })
   @OptionalText(CLINIC_MAX_LENGTH)
   clinic?: string | null;
-  @ApiPropertyOptional({ maxLength: NOTES_MAX_LENGTH, nullable: true })
+  @ApiPropertyOptional({ type: String, maxLength: NOTES_MAX_LENGTH, nullable: true })
   @OptionalText(NOTES_MAX_LENGTH)
   notes?: string | null;
   @ApiPropertyOptional({ ...balanceDoc, default: 0 })
@@ -29,12 +30,13 @@ export class CreateDoctorRequest {
 
 export class UpdateDoctorRequest extends VersionedPatch {
   @ApiPropertyOptional({ maxLength: 100 }) @IsOptionalNonNull() @IsName() name?: string;
-  @ApiPropertyOptional({ maxLength: PHONE_MAX_LENGTH, nullable: true }) @OptionalPhone() phone?:
-    string | null;
-  @ApiPropertyOptional({ maxLength: CLINIC_MAX_LENGTH, nullable: true })
+  @ApiPropertyOptional({ type: String, maxLength: PHONE_MAX_LENGTH, nullable: true })
+  @OptionalPhone()
+  phone?: string | null;
+  @ApiPropertyOptional({ type: String, maxLength: CLINIC_MAX_LENGTH, nullable: true })
   @OptionalText(CLINIC_MAX_LENGTH)
   clinic?: string | null;
-  @ApiPropertyOptional({ maxLength: NOTES_MAX_LENGTH, nullable: true })
+  @ApiPropertyOptional({ type: String, maxLength: NOTES_MAX_LENGTH, nullable: true })
   @OptionalText(NOTES_MAX_LENGTH)
   notes?: string | null;
   @ApiPropertyOptional(balanceDoc) @IsOptionalNonNull() @IsSignedAmount() openingBalance?: number;
