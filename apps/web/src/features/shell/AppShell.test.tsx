@@ -6,14 +6,15 @@ import { LabBrand } from './LabBrand';
 
 const labels = { sidebar: 'side', mainNav: 'main nav', skipToContent: 'skip' };
 
-function renderShell(logoUrl: string | null) {
+function renderShell(logoUrl: string | null, path = '/') {
   return render(
-    <MemoryRouter initialEntries={['/']}>
+    <MemoryRouter initialEntries={[path]}>
       <AppShell
         brand={<LabBrand name="مختبر الاختبار" logoUrl={logoUrl} logoAlt="logo of the lab" />}
         nav={[
           { to: '/', label: 'home', icon: <svg aria-hidden="true" />, end: true },
-          { to: '/cases', label: 'cases', icon: <svg aria-hidden="true" /> },
+          { to: '/cases/new', label: 'new case', icon: <svg aria-hidden="true" /> },
+          { to: '/cases', label: 'cases', icon: <svg aria-hidden="true" />, except: ['/cases/new'] },
         ]}
         topBarEnd={<button type="button">menu</button>}
         labels={labels}
@@ -38,6 +39,18 @@ describe('AppShell', () => {
     const nav = screen.getByRole('navigation', { name: 'main nav' });
     expect(within(nav).getByRole('link', { name: 'home' })).toHaveAttribute('aria-current', 'page');
     expect(within(nav).getByRole('link', { name: 'cases' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('gives a path under another item to that item only (new case is not «cases»)', () => {
+    renderShell(null, '/cases/new');
+    expect(screen.getByRole('link', { name: 'new case' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'cases' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('keeps a case page under «cases»', () => {
+    renderShell(null, '/cases/12');
+    expect(screen.getByRole('link', { name: 'cases' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'new case' })).not.toHaveAttribute('aria-current');
   });
 
   it('shows the lab name only when no logo is uploaded (never a vendor logo)', () => {
