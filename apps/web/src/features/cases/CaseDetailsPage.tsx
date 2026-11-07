@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
 import { NotFoundPage } from '@/app/errors';
+import { ActionButton } from '@/components/ui/action-button';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/field';
@@ -49,6 +50,7 @@ export function CaseDetailsPage() {
   if (!valid) return <NotFoundPage />;
   if (!detail) return <Spinner label={t('common.loading')} />;
   const today = todayIn(timeZone);
+  const cancelled = detail.status === 'cancelled';
   const close = (o: boolean) => !o && setDialog(null);
 
   return (
@@ -67,25 +69,42 @@ export function CaseDetailsPage() {
         <StatusBadge status={detail.status} />
         {detail.overdue && <OverdueMarker />}
         <span className="flex-1" />
+        {/* Always the same three actions; what is allowed comes from the API, and an action that is
+            not allowed now stays visible, disabled, with the reason. */}
         <div className="flex flex-wrap gap-2">
-          {detail.allowedStatuses.some((s) => s !== 'cancelled') && (
-            <Button onClick={() => setDialog('status')}>
-              <Repeat aria-hidden="true" />
-              {t('caseDetails.changeStatus')}
-            </Button>
-          )}
-          {detail.canEdit && (
-            <Button variant="secondary" onClick={() => setDialog('edit')}>
-              <Pencil aria-hidden="true" />
-              {t('caseDetails.edit')}
-            </Button>
-          )}
-          {detail.canCancel && (
-            <Button variant="danger" onClick={() => setDialog('cancel')}>
-              <Ban aria-hidden="true" />
-              {t('caseDetails.cancelCase')}
-            </Button>
-          )}
+          <ActionButton
+            variant="secondary"
+            onClick={() => setDialog('edit')}
+            disabledReason={
+              detail.canEdit ? null : t(cancelled ? 'caseDetails.why.cancelled' : 'caseDetails.why.noEdit')
+            }
+          >
+            <Pencil aria-hidden="true" />
+            {t('caseDetails.edit')}
+          </ActionButton>
+          <ActionButton
+            onClick={() => setDialog('status')}
+            disabledReason={
+              detail.allowedStatuses.some((s) => s !== 'cancelled')
+                ? null
+                : t(cancelled ? 'caseDetails.why.cancelled' : 'caseDetails.why.noStatus')
+            }
+          >
+            <Repeat aria-hidden="true" />
+            {t('caseDetails.changeStatus')}
+          </ActionButton>
+          <ActionButton
+            variant="danger"
+            onClick={() => setDialog('cancel')}
+            disabledReason={
+              detail.canCancel
+                ? null
+                : t(cancelled ? 'caseDetails.why.cancelled' : 'caseDetails.why.cancelAfterDelivery')
+            }
+          >
+            <Ban aria-hidden="true" />
+            {t('caseDetails.cancelCase')}
+          </ActionButton>
         </div>
       </div>
       {detail.status === 'cancelled' && (

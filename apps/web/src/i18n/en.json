@@ -472,7 +472,12 @@
     "status": "Status",
     "total": "Total",
     "empty": "No cases recorded yet.",
-    "overdue": "Overdue"
+    "overdue": "Overdue",
+    "view": "View / Edit",
+    "viewCase": "View / Edit case {{no}}",
+    "more": "More actions for case {{no}}",
+    "menuOpen": "Open case",
+    "menuNone": "No other actions available"
   },
   "caseDetails": {
     "title": "Case {{no}}",
@@ -538,6 +543,12 @@
     "addLinesDialog": {
       "title": "Add lines to the case",
       "submit": "Save lines"
+    },
+    "why": {
+      "cancelled": "The case is cancelled and cannot be changed.",
+      "cancelAfterDelivery": "A case can be cancelled only before delivery.",
+      "noStatus": "The status cannot be changed now.",
+      "noEdit": "This case cannot be edited now."
     }
   }
 }
