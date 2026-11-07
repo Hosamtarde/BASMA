@@ -3,14 +3,16 @@
   "private": true,
   "description": "Dental lab management system (product name TBD) — built by Smile Artec Dental Laboratory",
   "workspaces": [
+    "packages/shared",
     "apps/api"
   ],
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
+    "prepare": "npm run build -w packages/shared",
     "dev": "npm run dev -w apps/api",
-    "build": "npm run build -w apps/api",
+    "build": "npm run build -w packages/shared && npm run build -w apps/api",
     "lint": "npm run lint -w apps/api",
     "typecheck": "npm run typecheck -w apps/api",
     "test": "npm run test -w apps/api",
