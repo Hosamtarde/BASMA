@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
@@ -10,14 +11,19 @@ import { PRODUCT_NAME } from './config/product';
 import { AllExceptionsFilter } from './shared/errors/all-exceptions.filter';
 import { createValidationPipe } from './shared/errors/validation';
 import { I18nService } from './shared/i18n/i18n.service';
+import { HELMET_OPTIONS, serveWebApp } from './web/web-hosting';
 
 export { API_PREFIX };
 
 /** Builds the fully configured app; shared by main.ts and the e2e tests so both run the same pipeline. */
 export async function createApp(config: AppConfig, options: AppOptions = {}): Promise<INestApplication> {
-  const app = await NestFactory.create(AppModule.forRoot(config, options), { bufferLogs: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(config, options), {
+    bufferLogs: true,
+  });
   app.useLogger(app.get(Logger));
-  app.use(helmet());
+  app.use(helmet(HELMET_OPTIONS));
+  // Installed build: the same process serves the UI, so it is one origin (no CORS, cookie just works).
+  if (config.webDistDir !== null) serveWebApp(app, config.webDistDir);
   app.setGlobalPrefix(API_PREFIX);
   app.useGlobalPipes(createValidationPipe());
   app.useGlobalFilters(new AllExceptionsFilter(app.get(I18nService)));
