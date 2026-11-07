@@ -65,6 +65,33 @@ test('setup creates the owner and signs in automatically', async ({ page }) => {
   await expectAccessible(page);
 });
 
+test('Home before the first case: a friendly empty state with a button to add the first case', async ({
+  page,
+}) => {
+  await signedInFirst(page);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await expect(page.getByRole('heading', { level: 1, name: LAB_AR })).toBeVisible();
+  const empty = page.getByRole('region', { name: 'لا توجد حالات بعد' });
+  await expect(empty).toBeVisible();
+  await expect(page.getByRole('region', { name: 'مسار الحالات' })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'آخر الحالات' })).toHaveCount(0);
+  // The action cards are there: two links, five «قريباً».
+  const cards = page.getByRole('region', { name: 'ماذا تريد أن تسجّل؟' });
+  await expect(cards.locator('a[href]')).toHaveCount(2);
+  await expect(cards.locator('[aria-disabled="true"]')).toHaveCount(5);
+  await expectAccessible(page);
+  await shot(page, 'home-empty-ar', { fullPage: false });
+  await page.getByRole('button', { name: /^English/ }).click();
+  await expectDirection(page, 'en');
+  await expect(page.getByRole('region', { name: 'No cases yet' })).toBeVisible();
+  await expectAccessible(page);
+  await shot(page, 'home-empty-en', { fullPage: false });
+  await page.getByRole('button', { name: /^العربية/ }).click();
+  await expectDirection(page, 'ar');
+  await empty.getByRole('link', { name: 'أضف أول حالة' }).click();
+  await expect(page).toHaveURL(/\/cases\/new$/);
+});
+
 test('currency: editable while no amount exists, locked with an explanation after the first price', async ({
   page,
 }) => {

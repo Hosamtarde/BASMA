@@ -1,19 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Card, DataTable, PageHeader, Pager, SearchBox } from '@/components/ui/list';
+import { Money, Td, Th } from '@/components/ui/table';
 import { doctorQuery } from '@/features/doctors/api';
 import { useCurrency } from '@/features/shell/currency';
 import { settingsQuery } from '@/features/shell/settings';
-import { todayIn } from '@/i18n/format';
+import { formatNumber, todayIn } from '@/i18n/format';
+import { currentLanguage } from '@/i18n/i18n';
 import { cn } from '@/lib/cn';
 import { isIsoDate } from '@/lib/dates';
 import { useUrlState } from '@/lib/url-state';
-import { CASE_STATUSES, casesQuery } from './api';
+import { CASE_STATUSES, caseCountsQuery, casesQuery } from './api';
 import type { CaseListParams, CaseStatus } from './api';
+import { CaseActionDialogs, CaseRowMenu, clickableRow, useRowOpen, ViewCaseButton } from './CaseActions';
+import type { CaseAction } from './CaseActions';
 import { DoctorPicker } from './pickers';
 import { OverdueMarker, STATUS_STYLE, StatusBadge } from './status';
 
@@ -77,7 +82,22 @@ export function CasesPage() {
   const today = todayIn(settings?.labProfile?.timeZone ?? 'UTC');
   const { list, from, to, update, clear } = useCaseListParams();
   const { data } = useQuery(casesQuery(list));
-  const { data: doctor } = useQuery({ ...doctorQuery(list.doctorId ?? 0), enabled: list.doctorId !== undefined });
+  // The chips count what the list would show for each status with the other filters applied.
+  const countFilter = {
+    search: list.search,
+    doctorId: list.doctorId,
+    overdue: list.overdue,
+    from: list.from,
+    to: list.to,
+  };
+  const { data: counts } = useQuery(caseCountsQuery(countFilter));
+  const lang = currentLanguage();
+  const openRow = useRowOpen();
+  const [action, setAction] = useState<CaseAction>(null);
+  const { data: doctor } = useQuery({
+    ...doctorQuery(list.doctorId ?? 0),
+    enabled: list.doctorId !== undefined,
+  });
   const filtered =
     list.search !== '' || list.status || list.doctorId || list.overdue || from !== '' || to !== '';
 
@@ -114,7 +134,13 @@ export function CasesPage() {
             onChange={(v) => update({ from: v })}
             className="w-44"
           />
-          <DateField label={t('cases.to')} today={today} value={to} onChange={(v) => update({ to: v })} className="w-44" />
+          <DateField
+            label={t('cases.to')}
+            today={today}
+            value={to}
+            onChange={(v) => update({ to: v })}
+            className="w-44"
+          />
           <label className="flex h-10 items-center gap-2 text-[14px] font-bold">
             <input
               type="checkbox"
@@ -123,6 +149,10 @@ export function CasesPage() {
               onChange={(e) => update({ overdue: e.target.checked ? '1' : undefined })}
             />
             {t('cases.overdueOnly')}
+            {counts && ' '}
+            {counts && (
+              <span className="num font-semibold text-muted">({formatNumber(counts.overdue, lang)})</span>
+            )}
           </label>
           {filtered && (
             <Button variant="link" className="h-10" onClick={clear}>
@@ -134,10 +164,17 @@ export function CasesPage() {
           <button
             type="button"
             aria-pressed={!list.status}
-            className={cn(chip, !list.status ? 'border-navy bg-navy text-white hover:bg-navy' : 'border-border')}
+            className={cn(
+              chip,
+              !list.status ? 'border-navy bg-navy text-white hover:bg-navy' : 'border-border',
+            )}
             onClick={() => update({ status: undefined })}
           >
             {t('cases.allStatuses')}
+            {counts && ' '}
+            {counts && (
+              <span className="num font-semibold opacity-80">{formatNumber(counts.total, lang)}</span>
+            )}
           </button>
           {CASE_STATUSES.map((s) => (
             <button
@@ -149,6 +186,10 @@ export function CasesPage() {
             >
               <i aria-hidden="true" className={cn('size-2 rounded-full', STATUS_STYLE[s].dot)} />
               {t(`caseStatus.${s}`)}
+              {counts && ' '}
+              {counts && (
+                <span className="num font-semibold text-muted">{formatNumber(counts.byStatus[s], lang)}</span>
+              )}
             </button>
           ))}
         </div>
@@ -160,51 +201,61 @@ export function CasesPage() {
           emptyText={filtered ? t('list.noResults') : t('cases.empty')}
           head={
             <>
-              <th scope="col">{t('cases.caseNo')}</th>
-              <th scope="col">{t('cases.doctor')}</th>
-              <th scope="col">{t('cases.patient')}</th>
-              <th scope="col">{t('cases.technician')}</th>
-              <th scope="col">{t('cases.received')}</th>
-              <th scope="col">{t('cases.expected')}</th>
-              <th scope="col">{t('cases.status')}</th>
-              <th scope="col" className="text-end!">
-                {t('cases.total')}
-              </th>
+              <Th kind="number">{t('cases.caseNo')}</Th>
+              <Th>{t('cases.doctor')}</Th>
+              <Th>{t('cases.patient')}</Th>
+              <Th>{t('cases.technician')}</Th>
+              <Th kind="number">{t('cases.received')}</Th>
+              <Th kind="number">{t('cases.expected')}</Th>
+              <Th>{t('cases.status')}</Th>
+              <Th kind="money">{t('cases.total')}</Th>
+              <Th kind="actions">
+                <span className="sr-only">{t('list.actions')}</span>
+              </Th>
             </>
           }
         >
           {data?.items.map((c) => (
-            <tr key={c.id}>
-              <td className={cn('border-s-4 py-2!', STATUS_STYLE[c.status].bar)}>
+            <tr key={c.id} className={clickableRow} onClick={openRow(c.id)}>
+              <Td kind="number" className={cn('border-s-4 py-2!', STATUS_STYLE[c.status].bar)}>
                 <Link
                   to={`/cases/${c.id}`}
                   className="num font-extrabold text-ink underline-offset-4 hover:underline"
                 >
                   {c.caseNo}
                 </Link>
-              </td>
-              <td dir="auto" className="py-2!">
+              </Td>
+              <Td autoDir className="py-2!">
                 {c.doctor.name}
-              </td>
-              <td dir="auto" className="py-2!">
+              </Td>
+              <Td autoDir className="py-2!">
                 {c.patientName}
-              </td>
-              <td dir="auto" className="py-2! text-muted">
+              </Td>
+              <Td autoDir className="py-2! text-muted">
                 {c.technician?.name ?? '—'}
-              </td>
-              <td className="num py-2!">{c.receivedDate}</td>
-              <td className="py-2! whitespace-nowrap">
+              </Td>
+              <Td kind="number" className="py-2!">
+                {c.receivedDate}
+              </Td>
+              <Td kind="number" className="py-2! whitespace-nowrap">
                 <span className="inline-flex items-center gap-2">
                   <span className="num">{c.expectedDate}</span>
                   {c.overdue && <OverdueMarker />}
                 </span>
-              </td>
-              <td className="py-2!">
+              </Td>
+              <Td className="py-2!">
                 <StatusBadge status={c.status} />
-              </td>
-              <td className={cn('num py-2! text-end font-bold whitespace-nowrap', c.status === 'cancelled' && 'text-muted line-through')}>
-                {currency.format(c.total)} {currency.symbol}
-              </td>
+              </Td>
+              <Td
+                kind="money"
+                className={cn('py-2! font-bold', c.status === 'cancelled' && 'text-muted line-through')}
+              >
+                <Money value={currency.format(c.total)} symbol={currency.symbol} />
+              </Td>
+              <Td kind="actions" className="py-1.5!">
+                <ViewCaseButton id={c.id} caseNo={c.caseNo} />
+                <CaseRowMenu id={c.id} caseNo={c.caseNo} onAction={setAction} />
+              </Td>
             </tr>
           ))}
         </DataTable>
@@ -217,6 +268,7 @@ export function CasesPage() {
           />
         )}
       </Card>
+      <CaseActionDialogs action={action} onClose={() => setAction(null)} />
     </>
   );
 }

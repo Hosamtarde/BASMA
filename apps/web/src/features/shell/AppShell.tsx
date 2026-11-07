@@ -81,7 +81,7 @@ export function AppShell({ brand, nav, navBottom = [], topBarEnd, labels, childr
           <span className="flex-1" />
           {topBarEnd}
         </header>
-        <main id="main" tabIndex={-1} className="flex-1 px-4 pt-2 pb-24 outline-none md:px-8">
+        <main id="main" tabIndex={-1} className="flex-1 px-4 pt-2 pb-24 outline-none md:px-7">
           {children}
         </main>
       </div>

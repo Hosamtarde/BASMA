@@ -147,9 +147,8 @@ export class CancelCaseRequest extends VersionedPatch {
     string | null;
 }
 
-export class CaseListQueryDto {
-  @ApiPropertyOptional({ enum: CASE_STATUSES }) @IsOptional() @IsIn(CASE_STATUSES) status?: CaseStatus;
-
+/** Filters shared by GET /cases and GET /cases/summary. */
+export class CaseFilterQueryDto {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) doctorId?: number;
 
   @ApiPropertyOptional({ description: 'Expected date before the lab’s today and still in the lab' })
@@ -172,6 +171,10 @@ export class CaseListQueryDto {
   @IsOptional()
   @IsDateOnly()
   to?: string;
+}
+
+export class CaseListQueryDto extends CaseFilterQueryDto {
+  @ApiPropertyOptional({ enum: CASE_STATUSES }) @IsOptional() @IsIn(CASE_STATUSES) status?: CaseStatus;
 
   @ApiPropertyOptional({ minimum: 1, default: 1 })
   @IsOptional()
@@ -249,4 +252,22 @@ export class CaseDetailResponse extends CaseSummaryResponse {
   allowedStatuses!: CaseStatus[];
   @ApiProperty({ description: 'true when POST /cases/{id}/cancel is allowed now' }) canCancel!: boolean;
   @ApiProperty({ description: 'true when header and lines may be edited (not cancelled)' }) canEdit!: boolean;
+}
+
+/** One count per status, every status always present (0 when none). */
+export class CaseStatusCounts {
+  @ApiProperty() waiting!: number;
+  @ApiProperty() design!: number;
+  @ApiProperty() in_progress!: number;
+  @ApiProperty() ready!: number;
+  @ApiProperty() delivered!: number;
+  @ApiProperty() returned!: number;
+  @ApiProperty() cancelled!: number;
+}
+
+export class CaseCountsResponse {
+  @ApiProperty({ type: CaseStatusCounts }) byStatus!: CaseStatusCounts;
+  @ApiProperty({ description: 'All matching cases (sum of byStatus)' }) total!: number;
+  @ApiProperty({ description: 'Matching cases that are overdue (lab’s today, same rule as the list)' })
+  overdue!: number;
 }

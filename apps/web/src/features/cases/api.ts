@@ -15,6 +15,9 @@ export type UpdateCase = components['schemas']['UpdateCaseRequest'];
 export type UpdateCaseLine = components['schemas']['UpdateCaseLineRequest'];
 export type ChangeCaseStatus = components['schemas']['ChangeCaseStatusRequest'];
 export type InitialStatus = NonNullable<CreateCase['status']>;
+export type CaseCounts = components['schemas']['CaseCountsResponse'];
+/** The list filters the counts honour (everything except status and paging). */
+export type CaseCountFilter = Omit<CaseListParams, 'status' | 'page'>;
 
 /** The order of the case lifecycle (SPEC §9), used for chips and filters. */
 export const CASE_STATUSES: readonly CaseStatus[] = [
@@ -48,6 +51,8 @@ export const caseKeys = {
   lists: ['cases', 'list'] as const,
   list: (p: CaseListParams) => ['cases', 'list', p] as const,
   one: (id: number) => ['cases', 'one', id] as const,
+  summaries: ['cases', 'summary'] as const,
+  summary: (f: CaseCountFilter) => ['cases', 'summary', f] as const,
 };
 
 export const casesQuery = (p: CaseListParams) =>
@@ -69,6 +74,37 @@ export const casesQuery = (p: CaseListParams) =>
     placeholderData: keepPreviousData,
   });
 
+/**
+ * Cases per status and overdue in one request and one snapshot (GET /cases/summary), with the
+ * same filters as the list so the chips always count what the list would show.
+ */
+export const caseCountsQuery = (f: CaseCountFilter = { search: '' }) =>
+  queryOptions({
+    queryKey: caseKeys.summary(f),
+    queryFn: () =>
+      unwrap(
+        api.GET('/api/v1/cases/summary', {
+          params: {
+            query: {
+              search: f.search || undefined,
+              doctorId: f.doctorId,
+              overdue: f.overdue || undefined,
+              from: f.from,
+              to: f.to,
+            },
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+
+/** The newest cases for Home (same order as the list). */
+export const latestCasesQuery = (count: number) =>
+  queryOptions({
+    queryKey: [...caseKeys.lists, 'latest', count] as const,
+    queryFn: () => unwrap(api.GET('/api/v1/cases', { params: { query: { page: 1, pageSize: count } } })),
+  });
+
 export const caseQuery = (id: number) =>
   queryOptions({
     queryKey: caseKeys.one(id),
@@ -84,9 +120,7 @@ export const caseApi = {
   addLines: (id: number, rowVersion: number, lines: CaseLineInput[]) =>
     unwrap(api.POST('/api/v1/cases/{id}/lines', { ...byId(id), body: { rowVersion, lines } })),
   updateLine: (id: number, lineId: number, body: UpdateCaseLine) =>
-    unwrap(
-      api.PATCH('/api/v1/cases/{id}/lines/{lineId}', { params: { path: { id, lineId } }, body }),
-    ),
+    unwrap(api.PATCH('/api/v1/cases/{id}/lines/{lineId}', { params: { path: { id, lineId } }, body })),
   removeLine: (id: number, lineId: number, rowVersion: number) =>
     unwrap(
       api.DELETE('/api/v1/cases/{id}/lines/{lineId}', {
@@ -107,6 +141,7 @@ export async function storeCase(queryClient: QueryClient, saved: CaseDetail): Pr
   queryClient.setQueryData(caseKeys.one(saved.id), saved);
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: caseKeys.lists }),
+    queryClient.invalidateQueries({ queryKey: caseKeys.summaries }),
     queryClient.invalidateQueries({ queryKey: ['settings'] }),
   ]);
 }

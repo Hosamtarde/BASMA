@@ -50,7 +50,13 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   ],
   history: [
     { fromStatus: null, toStatus: 'waiting', at: '2026-11-01T08:00:00Z', note: null, deliveredDate: null },
-    { fromStatus: 'waiting', toStatus: 'design', at: '2026-11-02T09:30:00Z', note: 'بدأ التصميم', deliveredDate: null },
+    {
+      fromStatus: 'waiting',
+      toStatus: 'design',
+      at: '2026-11-02T09:30:00Z',
+      note: 'بدأ التصميم',
+      deliveredDate: null,
+    },
   ],
   allowedStatuses: ['waiting', 'in_progress', 'ready', 'delivered'],
   canCancel: true,
@@ -58,8 +64,7 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   ...over,
 });
 
-const renderCase = () =>
-  renderRoutes([{ path: '/cases/:id', element: <CaseDetailsPage /> }], '/cases/41');
+const renderCase = () => renderRoutes([{ path: '/cases/:id', element: <CaseDetailsPage /> }], '/cases/41');
 
 describe('CaseDetailsPage', () => {
   beforeEach(async () => {
@@ -88,11 +93,14 @@ describe('CaseDetailsPage', () => {
     expect(items[1]).toHaveTextContent('إنشاء الحالة على مرحلة «بالانتظار»');
   });
 
-  it('offers only the statuses the API allows, and hides edit and cancel when not allowed', async () => {
+  it('offers only the statuses the API allows; edit and cancel stay visible, disabled, with the reason', async () => {
     stubApi({
       'GET /api/v1/settings': () => json(200, settingsFixture()),
       'GET /api/v1/cases/41': () =>
-        json(200, detail({ status: 'delivered', allowedStatuses: ['returned'], canCancel: false, canEdit: false })),
+        json(
+          200,
+          detail({ status: 'delivered', allowedStatuses: ['returned'], canCancel: false, canEdit: false }),
+        ),
     });
     renderCase();
     await userEvent.click(await screen.findByRole('button', { name: 'تغيير المرحلة' }));
@@ -100,8 +108,16 @@ describe('CaseDetailsPage', () => {
     expect(within(dialog).getAllByRole('radio')).toHaveLength(1);
     expect(within(dialog).getByRole('radio', { name: 'مرتجعة للتعديل' })).toBeChecked();
     await userEvent.keyboard('{Escape}');
-    expect(screen.queryByRole('button', { name: 'إلغاء الحالة' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'تعديل البيانات' })).not.toBeInTheDocument();
+    const cancel = screen.getByRole('button', { name: 'إلغاء الحالة' });
+    expect(cancel).toHaveAttribute('aria-disabled', 'true');
+    expect(cancel).toHaveAccessibleDescription('يمكن إلغاء الحالة قبل التسليم فقط.');
+    const edit = screen.getByRole('button', { name: 'تعديل البيانات' });
+    expect(edit).toHaveAttribute('aria-disabled', 'true');
+    expect(edit).toHaveAccessibleDescription('لا يمكن تعديل هذه الحالة الآن.');
+    // A disabled action does nothing.
+    await userEvent.click(cancel);
+    await userEvent.click(edit);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'إضافة سطور' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^تعديل السطر/ })).not.toBeInTheDocument();
   });
@@ -112,7 +128,16 @@ describe('CaseDetailsPage', () => {
       'GET /api/v1/cases': () => json(200, { page: 1, pageSize: 25, total: 0, items: [] }),
       'GET /api/v1/cases/41': () => json(200, detail()),
       'POST /api/v1/cases/41/status': () =>
-        json(200, detail({ status: 'delivered', deliveredDate: '2026-11-03', rowVersion: 5, allowedStatuses: ['returned'], canCancel: false })),
+        json(
+          200,
+          detail({
+            status: 'delivered',
+            deliveredDate: '2026-11-03',
+            rowVersion: 5,
+            allowedStatuses: ['returned'],
+            canCancel: false,
+          }),
+        ),
       'POST /api/v1/cases/41/cancel': () => json(200, detail({ status: 'cancelled', rowVersion: 7 })),
     });
     renderCase();
@@ -124,15 +149,19 @@ describe('CaseDetailsPage', () => {
     await userEvent.type(delivered, '20261103');
     await userEvent.type(within(dialog).getByRole('textbox', { name: 'ملاحظة' }), 'سُلّمت للطبيب');
     await userEvent.click(within(dialog).getByRole('button', { name: 'حفظ' }));
-    await waitFor(() => expect(screen.getByRole('heading', { level: 1 }).parentElement).toHaveTextContent('تم التسليم'));
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { level: 1 }).parentElement).toHaveTextContent('تم التسليم'),
+    );
     expect(JSON.parse(calls.find((c) => c.key === 'POST /api/v1/cases/41/status')?.body ?? '{}')).toEqual({
       rowVersion: 4,
       to: 'delivered',
       note: 'سُلّمت للطبيب',
       deliveredDate: '2026-11-03',
     });
-    // The answer said no cancel any more: the button is gone (no client-side lifecycle rule).
-    expect(screen.queryByRole('button', { name: 'إلغاء الحالة' })).not.toBeInTheDocument();
+    // The answer said no cancel any more: the button turns disabled (no client-side lifecycle rule).
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'إلغاء الحالة' })).toHaveAttribute('aria-disabled', 'true'),
+    );
   });
 
   it('cancels with a required reason, sending the version that was read', async () => {
@@ -141,7 +170,16 @@ describe('CaseDetailsPage', () => {
       'GET /api/v1/cases': () => json(200, { page: 1, pageSize: 25, total: 0, items: [] }),
       'GET /api/v1/cases/41': () => json(200, detail({ rowVersion: 9 })),
       'POST /api/v1/cases/41/cancel': () =>
-        json(200, detail({ status: 'cancelled', rowVersion: 10, allowedStatuses: [], canCancel: false, canEdit: false })),
+        json(
+          200,
+          detail({
+            status: 'cancelled',
+            rowVersion: 10,
+            allowedStatuses: [],
+            canCancel: false,
+            canEdit: false,
+          }),
+        ),
     });
     renderCase();
     await userEvent.click(await screen.findByRole('button', { name: 'إلغاء الحالة' }));
@@ -157,7 +195,9 @@ describe('CaseDetailsPage', () => {
       rowVersion: 9,
       reason: 'طلب الطبيب',
     });
-    expect(screen.queryByRole('button', { name: 'تغيير المرحلة' })).not.toBeInTheDocument();
+    const change = screen.getByRole('button', { name: 'تغيير المرحلة' });
+    expect(change).toHaveAttribute('aria-disabled', 'true');
+    expect(change).toHaveAccessibleDescription('الحالة ملغاة ولا يمكن تغييرها.');
   });
 
   it('edits only the changed header fields, then a line, each with the latest version', async () => {

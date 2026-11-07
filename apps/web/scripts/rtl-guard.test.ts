@@ -3,6 +3,27 @@ import { scan } from './rtl-guard.ts';
 
 const matches = (text: string, kind: 'tsx' | 'css' = 'tsx') => scan('f', text, kind).map((f) => f.match);
 
+describe('RTL guard: table cells', () => {
+  it.each([
+    '<td className="num">{d.phone}</td>',
+    '<td className="num py-2! text-end">{x}</td>',
+    '<th scope="col" className="w-0 num">',
+    '<td dir="auto">{d.name}</td>',
+    '<td dir="ltr" className="font-bold">',
+  ])('rejects a direction on the cell itself: %s', (line) => {
+    expect(matches(line)).toHaveLength(1);
+  });
+
+  it.each([
+    '<td className="font-bold"><span className="num">{x}</span></td>',
+    '<td>\n<span dir="auto">{name}</span>',
+    '<Td kind="number">{d.phone}</Td>',
+    '<td className="numbered">x</td>',
+  ])('accepts a direction on the inline value: %s', (line) => {
+    expect(matches(line)).toEqual([]);
+  });
+});
+
 describe('RTL guard', () => {
   it.each([
     'ml-2',

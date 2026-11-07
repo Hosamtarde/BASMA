@@ -90,3 +90,29 @@ export function totalOf(subtotal: number, discount: number): number | null {
 export function isOverdue(c: { status: CaseStatus; expectedDate: string }, today: string): boolean {
   return c.expectedDate < today && c.status !== 'delivered' && c.status !== 'cancelled';
 }
+
+/** One row of the per-status count query: how many cases, and how many of them are overdue. */
+export interface StatusCountRow {
+  status: CaseStatus;
+  count: number;
+  overdue: number;
+}
+
+export interface CaseCounts {
+  byStatus: Record<CaseStatus, number>;
+  total: number;
+  overdue: number;
+}
+
+/** Folds the grouped rows into a count for every status (zero when absent) plus the totals. */
+export function summarizeCounts(rows: readonly StatusCountRow[]): CaseCounts {
+  const byStatus = Object.fromEntries(CASE_STATUSES.map((s) => [s, 0])) as Record<CaseStatus, number>;
+  let total = 0;
+  let overdue = 0;
+  for (const r of rows) {
+    byStatus[r.status] += r.count;
+    total += r.count;
+    overdue += r.overdue;
+  }
+  return { byStatus, total, overdue };
+}

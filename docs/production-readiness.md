@@ -24,16 +24,18 @@ Items to decide or build before selling the product to other labs (SPEC §2.4). 
 | 18 | Open item for B3: cancel from "returned" | Not allowed in B2. Decide in B3, once payments exist, whether a returned case may be cancelled and what happens to its payments (owner, B2) |
 | 19 | Case search by patient | Contains-search on patient names returns personal data to any user with `cases.read`; fine with one owner, review when more roles exist |
 | 20 | HTTPS / reverse proxy | The refresh cookie gets `Secure` from `req.secure`. Behind a TLS proxy (cloud, LAN #8) set Express `trust proxy`, enable HSTS (off on loopback http, ADR-0017) and review the loopback-only `API_HOST` rule |
-| 21 | Web bundle size | One chunk loaded from the local disk: 733 KB (229 KB gzip) in F0, 1,000 KB (302 KB gzip) after F2 (cases screens, cmdk, react-day-picker with date-fns; only the ar/en calendar locales are bundled). Split by route (React Router `lazy`) if start-up gets slow |
+| 21 | Web bundle size | One chunk loaded from the local disk: 733 KB (229 KB gzip) in F0, 1,000 KB (302 KB gzip) after F2 (cases screens, cmdk, react-day-picker with date-fns; only the ar/en calendar locales are bundled), 1,030 KB (310 KB gzip) after F2b (Home, row actions; no new package). Split by route (React Router `lazy`) if start-up gets slow |
 
 ## Follow-ups from the vertical slices
 
 | # | Slice | Item | Notes |
 |---|---|---|---|
-| S1 | Home | Pipeline strip (direction C) and the status donut need a count per status | Possible today without API changes: one `GET /cases?status=…&pageSize=1` per status (7 requests) and read `total`. Recommended for the Home slice: one `GET /cases/summary` (counts per status + overdue, one GROUP BY), so the numbers come from one snapshot and one request |
-| S2 | Cases | Per-status counts on the case-list chips | Same need as S1; the chips show no counts until then |
+| S1 | Home | Pipeline strip and status donut need a count per status | **Done (F2b):** `GET /cases/summary` returns the count per status, the total and the overdue count in one grouped statement (one snapshot), with the same filters and lab-today overdue rule as the list (except status and paging); permission `cases.read` |
+| S2 | Cases | Per-status counts on the case-list chips | **Done (F2b):** the chips and «المتأخرة فقط» show counts from `GET /cases/summary` with the list's other filters (doctor, search, dates, overdue) |
 | S3 | Shade guide | «الأكثر استخدامًا» row (SPEC §5.5) | Needs usage counts from the API (e.g. top shades of the last N lines); not built in F2 |
 | S4 | Add case | Same tooth twice | SPEC default kept: several lines per tooth are allowed without asking (crown + abutment); a "replace or add" question can be added if the owner wants it |
 | S5 | Tooth chart | Work-type colours | The chart colours work types from a fixed palette in order of first use on the case (no colour field in the API). A colour per work type would need a setting (B-slice) |
 | S6 | Tooth chart | Artwork | Our own parametric drawing (`features/cases/chart/geometry.ts`), to be replaced by licensed artwork; only the artwork layer changes (SPEC §1.1) |
-
+| S7 | Home | Action cards for payments, debts, cheques and invoices | Shown with «قريباً» and no link (F2b). Each becomes a link with a live figure when its slice ships: add `to` in `features/home/ActionCards.tsx` and its figure (the mockup's: incoming/outgoing this month, owed to the lab, cheques due in 7 days, cases waiting for an invoice) |
+| S8 | Home | «الأرقام الرئيسية» and «آخر العمليات» panels of direction A | Need money (B3–B6) and an activity feed; F2b shows the status donut and the latest cases instead |
+| S9 | Cases | Row «⋮» menu reads the case when opened | One GET per menu opening, so the list does not carry allowedStatuses/canCancel for every row. If the menu feels slow, add those fields to the list items (additive API change) |

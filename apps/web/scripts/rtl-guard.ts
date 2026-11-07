@@ -26,6 +26,11 @@ const CLASS_RULES: { re: RegExp; hint: string }[] = [
     re: /(?<![\w-])rounded-(?:[lr]|tl|tr|bl|br)(?:-[\w[.\]/-]+)?(?![\w-])/g,
     hint: 'use rounded-s/-e/-ss/-se/-es/-ee',
   },
+  {
+    // A direction on the cell itself flips its start/end, so the value drifts away from its header.
+    re: /<t[dh]\b[^>]*?(?:\bdir=|className=["'{][^>]*?(?<![\w-])num(?![\w-]))/g,
+    hint: 'never put num/dir on a table cell: use Td kind="number"/"money" or autoDir (components/ui/table)',
+  },
 ];
 
 const CSS_RULES: { re: RegExp; hint: string }[] = [
