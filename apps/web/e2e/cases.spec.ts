@@ -77,7 +77,7 @@ test('add a case with teeth and a shade, then open it (Arabic, keyboard on the c
   await page.setViewportSize(REPORT_SIZE);
   await signedIn(page);
   await setLanguage(page, 'ar');
-  await page.getByRole('link', { name: 'إضافة حالة جديدة' }).click();
+  await page.getByRole('link', { name: 'إضافة حالة جديدة', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'إضافة حالة جديدة', level: 1 })).toBeVisible();
 
   await pick(page, 'الطبيب', s.doctor.name);
@@ -196,7 +196,8 @@ test('filter and search the case list; filters stay in the address', async ({ pa
   await expect(table.getByRole('row')).toHaveCount(2);
   await expect(table).toContainText(`جاهزة ${s.suffix}`);
 
-  await page.getByRole('button', { name: 'الكل', exact: true }).click();
+  // The chips carry their count from GET /cases/summary.
+  await page.getByRole('button', { name: /^الكل \d+$/ }).click();
   await page.getByRole('checkbox', { name: 'المتأخرة فقط' }).check();
   await expect(table.getByRole('row')).toHaveCount(2);
   await expect(table.getByRole('row', { name: new RegExp(`متأخرة ${s.suffix}`) })).toContainText('متأخرة');
@@ -257,9 +258,15 @@ test('change the status with a note, then cancel with a reason', async ({ page, 
   await cancel.getByRole('textbox', { name: 'سبب الإلغاء' }).fill('طلب الطبيب');
   await cancel.getByRole('button', { name: 'إلغاء الحالة' }).click();
   await expect(page.getByText('هذه الحالة ملغاة، ولا يمكن تعديلها.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'تغيير المرحلة' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'إلغاء الحالة' })).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'تعديل البيانات' })).toHaveCount(0);
+  // The actions stay in place, disabled, and say why.
+  for (const name of ['تغيير المرحلة', 'إلغاء الحالة', 'تعديل البيانات']) {
+    const action = page.getByRole('button', { name });
+    await expect(action).toHaveAttribute('aria-disabled', 'true');
+    await expect(action).toHaveAccessibleDescription('الحالة ملغاة ولا يمكن تغييرها.');
+  }
+  await page.getByRole('button', { name: 'تعديل البيانات' }).hover();
+  await expect(page.getByRole('tooltip')).toHaveText('الحالة ملغاة ولا يمكن تغييرها.');
+  await expectAccessible(page);
   await expect(page.getByRole('list').filter({ hasText: 'طلب الطبيب' })).toContainText('«ملغاة»');
 });
 

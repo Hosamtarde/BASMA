@@ -88,3 +88,21 @@ export const PNG_1X1 = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
   'base64',
 );
+
+/** Left and right edges of the text inside an element (not its padding box), in viewport pixels. */
+export async function textEdges(
+  el: import('@playwright/test').Locator,
+): Promise<{ left: number; right: number }> {
+  return el.evaluate((node) => {
+    const range = document.createRange();
+    range.selectNodeContents(node);
+    const r = range.getBoundingClientRect();
+    return { left: r.left, right: r.right };
+  });
+}
+
+/** The reading-start edge of an element's text: right in Arabic, left in English. */
+export async function startEdge(el: import('@playwright/test').Locator, lang: 'ar' | 'en'): Promise<number> {
+  const e = await textEdges(el);
+  return lang === 'ar' ? e.right : e.left;
+}

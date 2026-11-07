@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { apiPost, apiToken, expectAccessible, setLanguage, shot, signedIn, uid } from './support';
+import { apiPost, apiToken, expectAccessible, setLanguage, shot, signedIn, startEdge, uid } from './support';
 
 /** Doctors (SPEC §5.2) and special prices (§5.12). Every test creates its own uniquely named data. */
 
@@ -7,7 +7,7 @@ test('add, search, edit and delete a doctor; duplicate names are refused inline'
   const name = `د. سامي ${uid()}`;
   await signedIn(page);
   await setLanguage(page, 'ar');
-  await page.getByRole('link', { name: 'الأطباء' }).click();
+  await page.getByRole('link', { name: 'الأطباء', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'الأطباء', level: 1 })).toBeVisible();
 
   await page.getByRole('button', { name: 'إضافة طبيب' }).click();
@@ -151,5 +151,46 @@ test('the doctors list in both languages (keyboard reachable, axe clean)', async
   await expect(page.getByRole('columnheader', { name: 'Doctor name' })).toBeVisible();
   await expectAccessible(page);
   await shot(page, 'doctors-en');
+  await setLanguage(page, 'ar');
+});
+
+test('every column value sits under its header: phone and name at the reading start, both languages', async ({
+  page,
+  request,
+}) => {
+  const token = await apiToken(request);
+  const suffix = uid();
+  await apiPost(request, token, '/doctors', {
+    name: `د. محاذاة ${suffix}`,
+    clinic: 'عيادة الرمال',
+    phone: '0599 123 456',
+  });
+  await signedIn(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  for (const lang of ['ar', 'en'] as const) {
+    await setLanguage(page, lang);
+    await page.goto(`/doctors?q=${suffix}`);
+    const table = page.getByRole('table');
+    const row = table.getByRole('row', { name: new RegExp(suffix) });
+    await expect(row).toBeVisible();
+    const phoneHeader = table.getByRole('columnheader', { name: lang === 'ar' ? 'الهاتف' : 'Phone' });
+    const phone = row.getByText('0599 123 456', { exact: true });
+    // Same start edge (right in Arabic, left in English) within a pixel or two.
+    expect(
+      Math.abs((await startEdge(phoneHeader, lang)) - (await startEdge(phone, lang))),
+    ).toBeLessThanOrEqual(2);
+    // The digits keep their left-to-right order.
+    await expect(phone).toHaveCSS('direction', 'ltr');
+    const nameHeader = table.getByRole('columnheader', {
+      name: lang === 'ar' ? 'اسم الطبيب' : 'Doctor name',
+    });
+    const name = row.getByRole('link', { name: `د. محاذاة ${suffix}` });
+    // An Arabic name in the English list still starts at the column's start (left).
+    expect(Math.abs((await startEdge(nameHeader, lang)) - (await startEdge(name, lang)))).toBeLessThanOrEqual(
+      2,
+    );
+    await expectAccessible(page);
+    await shot(page, `doctors-aligned-${lang}`, { fullPage: false });
+  }
   await setLanguage(page, 'ar');
 });
