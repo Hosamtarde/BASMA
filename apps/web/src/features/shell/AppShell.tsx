@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { NavLink } from 'react-router';
+import { NavLink, useLocation } from 'react-router';
 import { cn } from '@/lib/cn';
 
 export interface NavItem {
@@ -8,6 +8,8 @@ export interface NavItem {
   icon: ReactNode;
   /** Exact match only (the home route). */
   end?: boolean;
+  /** Paths under `to` that belong to another item (e.g. /cases/new is «إضافة حالة جديدة»). */
+  except?: string[];
 }
 
 interface AppShellProps {
@@ -22,10 +24,13 @@ interface AppShellProps {
 }
 
 function NavEntry({ item }: { item: NavItem }) {
+  const { pathname } = useLocation();
+  const excluded = item.except?.includes(pathname) ?? false;
   return (
     <NavLink
       to={item.to}
-      end={item.end}
+      // An excluded path (another item) makes this link match only its own path exactly.
+      end={item.end || excluded}
       className={({ isActive }) =>
         cn(
           'relative flex items-center gap-3 rounded-[var(--radius-control)] px-3 py-2 text-[14.5px] font-semibold text-[#e3eff7] no-underline hover:bg-white/10 [&_svg]:size-5 [&_svg]:shrink-0',
