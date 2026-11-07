@@ -1,0 +1,4145 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1/health/live": {
+      "get": {
+        "operationId": "HealthController_live",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LiveResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Process is running",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "operationId": "HealthController_ready",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "error.health.not_ready",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Database reachable and all migrations applied",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/setup/status": {
+      "get": {
+        "operationId": "SetupController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Is first-run setup still required?",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/setup": {
+      "post": {
+        "operationId": "SetupController_createOwner",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetupRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed | error.settings.lab_name_required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.setup.already_done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "summary": "First run (works only once): owner, lab profile, currency, language, time zone",
+        "tags": [
+          "setup"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "The refresh token is set as the httpOnly, SameSite=Strict cookie \"refresh_token\" (path /api/v1/auth); it is never in the body.",
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "error.auth.invalid_credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Sign in with username and password",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "description": "The refresh token is set as the httpOnly, SameSite=Strict cookie \"refresh_token\" (path /api/v1/auth); it is never in the body. Reusing an already rotated token ends the whole session family.",
+        "operationId": "AuthController_refresh",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "error.auth.invalid_refresh_token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "error.auth.forbidden (cross-origin request)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "refresh_token": []
+          }
+        ],
+        "summary": "Exchange the refresh cookie for a new access token and a rotated cookie",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "401": {
+            "description": "error.auth.unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "error.auth.forbidden (cross-origin request)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "refresh_token": []
+          },
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "End the session of the refresh cookie and clear the cookie",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/change-password": {
+      "post": {
+        "operationId": "AuthController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "error.validation.failed | error.auth.wrong_current_password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "error.auth.unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "error.auth.forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change own password; ends all sessions and clears the refresh cookie",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "operationId": "AuthController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "error.auth.unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Current user and permissions",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/technicians": {
+      "get": {
+        "operationId": "TechniciansController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active flag; omit for all",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicianPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "technicians"
+        ]
+      },
+      "post": {
+        "operationId": "TechniciansController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTechnicianRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicianResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.technician.name_taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "technicians"
+        ]
+      }
+    },
+    "/api/v1/technicians/{id}": {
+      "patch": {
+        "operationId": "TechniciansController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTechnicianRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TechnicianResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.concurrency.stale | error.technician.name_taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "technicians"
+        ]
+      },
+      "delete": {
+        "operationId": "TechniciansController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "technicians"
+        ]
+      }
+    },
+    "/api/v1/work-types": {
+      "get": {
+        "operationId": "WorkTypesController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active flag; omit for all",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkTypePage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "work-types"
+        ]
+      },
+      "post": {
+        "operationId": "WorkTypesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkTypeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkTypeResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.work_type.name_taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "work-types"
+        ]
+      }
+    },
+    "/api/v1/work-types/{id}": {
+      "patch": {
+        "operationId": "WorkTypesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkTypeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkTypeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.concurrency.stale | error.work_type.name_taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "work-types"
+        ]
+      },
+      "delete": {
+        "operationId": "WorkTypesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "work-types"
+        ]
+      }
+    },
+    "/api/v1/expense-categories": {
+      "get": {
+        "operationId": "ExpenseCategoriesController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active flag; omit for all",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseCategoryPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "expense-categories"
+        ]
+      },
+      "post": {
+        "operationId": "ExpenseCategoriesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateExpenseCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseCategoryResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.expense_category.name_taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "expense-categories"
+        ]
+      }
+    },
+    "/api/v1/expense-categories/{id}": {
+      "patch": {
+        "operationId": "ExpenseCategoriesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExpenseCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpenseCategoryResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.concurrency.stale | error.expense_category.name_taken | error.expense_category.system",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "expense-categories"
+        ]
+      },
+      "delete": {
+        "operationId": "ExpenseCategoriesController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.expense_category.system",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "expense-categories"
+        ]
+      }
+    },
+    "/api/v1/doctors": {
+      "get": {
+        "operationId": "DoctorsController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "active",
+            "required": false,
+            "in": "query",
+            "description": "Filter by active flag; omit for all",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List doctors; search matches name, phone or clinic",
+        "tags": [
+          "doctors"
+        ]
+      },
+      "post": {
+        "operationId": "DoctorsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDoctorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.doctor.name_taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "doctors"
+        ]
+      }
+    },
+    "/api/v1/doctors/{id}": {
+      "get": {
+        "operationId": "DoctorsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "doctors"
+        ]
+      },
+      "patch": {
+        "operationId": "DoctorsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDoctorRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.concurrency.stale | error.doctor.name_taken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "doctors"
+        ]
+      },
+      "delete": {
+        "operationId": "DoctorsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete if never used and opening balance is 0; otherwise deactivate",
+        "tags": [
+          "doctors"
+        ]
+      }
+    },
+    "/api/v1/doctors/{id}/prices": {
+      "get": {
+        "operationId": "DoctorsController_prices",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DoctorPriceResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Work types with general and special price for this doctor",
+        "tags": [
+          "doctors"
+        ]
+      }
+    },
+    "/api/v1/doctors/{id}/prices/{workTypeId}": {
+      "put": {
+        "operationId": "DoctorsController_setPrice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "workTypeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetDoctorPriceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DoctorPriceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "doctors"
+        ]
+      },
+      "delete": {
+        "operationId": "DoctorsController_removePrice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "workTypeId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove the special price (general price applies again)",
+        "tags": [
+          "doctors"
+        ]
+      }
+    },
+    "/api/v1/settings/logo": {
+      "get": {
+        "operationId": "SettingsController_logo",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Image bytes"
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The stored lab logo (404 = use the bundled default)",
+        "tags": [
+          "settings"
+        ]
+      },
+      "put": {
+        "operationId": "SettingsController_uploadLogo",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoUploadRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.logo.missing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "error.payload_too_large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "error.logo.invalid_type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Upload the lab logo (PNG/JPEG, ≤ 1 MB; type checked from the bytes)",
+        "tags": [
+          "settings"
+        ]
+      },
+      "delete": {
+        "operationId": "SettingsController_removeLogo",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove the stored logo (back to the bundled default)",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings": {
+      "get": {
+        "operationId": "SettingsController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lab profile, currency, language and numbering, with lock states",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/lab-profile": {
+      "patch": {
+        "operationId": "SettingsController_updateLabProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLabProfileRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed | error.settings.lab_name_required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/currency": {
+      "patch": {
+        "operationId": "SettingsController_updateCurrency",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCurrencyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.settings.currency_locked | error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Code and decimals lock once any amount exists; the symbol stays editable",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/language": {
+      "patch": {
+        "operationId": "SettingsController_updateLanguage",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLanguageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/settings/numbering": {
+      "patch": {
+        "operationId": "SettingsController_updateNumbering",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateNumberingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.settings.numbering_locked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "First case/invoice number; only until the first number is issued",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/cases": {
+      "get": {
+        "operationId": "CasesController_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "waiting",
+                "design",
+                "in_progress",
+                "ready",
+                "delivered",
+                "returned",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "overdue",
+            "required": false,
+            "in": "query",
+            "description": "Expected date before the lab’s today and still in the lab",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Patient name (contains) or exact case number",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Received date from (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Received date to (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseSummaryPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cases, newest first; filters: status, doctor, overdue, received date range, search",
+        "tags": [
+          "cases"
+        ]
+      },
+      "post": {
+        "operationId": "CasesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed | error.case.* (dates, line position)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.case.*_inactive | error.case.discount_exceeds_subtotal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a case; numbers and prices are assigned by the server",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/v1/cases/{id}": {
+      "get": {
+        "operationId": "CasesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cases"
+        ]
+      },
+      "patch": {
+        "operationId": "CasesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetailResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.concurrency.stale | error.case.cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Edit the case header (the doctor cannot change)",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/v1/cases/{id}/lines": {
+      "post": {
+        "operationId": "CasesController_addLines",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCaseLinesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetailResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.case.too_many_lines | error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/v1/cases/{id}/lines/{lineId}": {
+      "patch": {
+        "operationId": "CasesController_updateLine",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lineId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCaseLineRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetailResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cases"
+        ]
+      },
+      "delete": {
+        "operationId": "CasesController_removeLine",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lineId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "rowVersion",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetailResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.case.last_line | error.case.discount_exceeds_subtotal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/v1/cases/{id}/status": {
+      "post": {
+        "operationId": "CasesController_changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeCaseStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetailResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.case.invalid_transition | error.case.same_status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change status (machine of SPEC §9 as approved for B2)",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/v1/cases/{id}/cancel": {
+      "post": {
+        "operationId": "CasesController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelCaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetailResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.case.cannot_cancel | error.case.cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel (final). Only before delivery.",
+        "tags": [
+          "cases"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "DentalLab API",
+    "description": "",
+    "version": "1",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "LiveResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "ReadyResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "database": {
+            "type": "string",
+            "example": "up"
+          },
+          "migrations": {
+            "type": "string",
+            "example": "current"
+          }
+        },
+        "required": [
+          "status",
+          "database",
+          "migrations"
+        ]
+      },
+      "SetupStatusResponse": {
+        "type": "object",
+        "properties": {
+          "setupRequired": {
+            "type": "boolean",
+            "description": "true until the owner account has been created"
+          }
+        },
+        "required": [
+          "setupRequired"
+        ]
+      },
+      "SetupLabProfile": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "object",
+            "maxLength": 100,
+            "nullable": true,
+            "example": "مختبر الأسنان"
+          },
+          "nameEn": {
+            "type": "object",
+            "maxLength": 100,
+            "nullable": true,
+            "example": "Dental Lab"
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 30,
+            "example": "02 222 3333"
+          },
+          "address": {
+            "type": "object",
+            "maxLength": 300,
+            "nullable": true
+          }
+        },
+        "required": [
+          "phone"
+        ]
+      },
+      "CurrencyInput": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "maxLength": 10,
+            "example": "ILS",
+            "description": "Free text code (SPEC §5.18)"
+          },
+          "symbol": {
+            "type": "string",
+            "maxLength": 5,
+            "example": "₪"
+          },
+          "decimals": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 3,
+            "example": 2
+          }
+        },
+        "required": [
+          "code",
+          "symbol",
+          "decimals"
+        ]
+      },
+      "SetupRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 50,
+            "example": "owner"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128,
+            "format": "password"
+          },
+          "lab": {
+            "$ref": "#/components/schemas/SetupLabProfile"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/CurrencyInput"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "description": "UI and document language; seed names are created in it and never renamed later"
+          },
+          "timeZone": {
+            "type": "string",
+            "example": "Asia/Hebron",
+            "description": "Default: DEFAULT_TIME_ZONE of the install"
+          }
+        },
+        "required": [
+          "username",
+          "password",
+          "lab",
+          "currency",
+          "language"
+        ]
+      },
+      "SetupResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "username"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "owner"
+          },
+          "password": {
+            "type": "string",
+            "format": "password"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "accessTokenExpiresIn": {
+            "type": "number",
+            "description": "Seconds"
+          },
+          "refreshTokenExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Expiry of the refresh cookie"
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accessToken",
+          "accessTokenExpiresIn",
+          "refreshTokenExpiresAt",
+          "mustChangePassword"
+        ]
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "format": "password"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128,
+            "format": "password"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "MeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "username": {
+            "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "mustChangePassword": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "permissions",
+          "mustChangePassword"
+        ]
+      },
+      "TechnicianResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "rowVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "active",
+          "rowVersion"
+        ]
+      },
+      "TechnicianPage": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TechnicianResponse"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "items"
+        ]
+      },
+      "CreateTechnicianRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateTechnicianRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "DeleteResponse": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "deleted",
+              "deactivated"
+            ],
+            "description": "deleted if never used, otherwise deactivated (kept for history)"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "WorkTypeResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "Integer minor units (e.g. agorot)",
+            "minimum": 0,
+            "example": 15000
+          },
+          "sortOrder": {
+            "type": "number"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "rowVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "unitPrice",
+          "sortOrder",
+          "active",
+          "rowVersion"
+        ]
+      },
+      "WorkTypePage": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkTypeResponse"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "items"
+        ]
+      },
+      "CreateWorkTypeRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "example": "ط²ظٹط±ظƒظˆظ†"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "Integer minor units (e.g. agorot)",
+            "minimum": 0,
+            "example": 15000,
+            "default": 0
+          },
+          "sortOrder": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000,
+            "default": 0
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateWorkTypeRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "Integer minor units (e.g. agorot)",
+            "minimum": 0,
+            "example": 15000
+          },
+          "sortOrder": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "ExpenseCategoryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "isDoctor": {
+            "type": "boolean",
+            "description": "System آ«doctor refundآ» category (SPEC آ§5.9)"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "rowVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "isDoctor",
+          "active",
+          "rowVersion"
+        ]
+      },
+      "ExpenseCategoryPage": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExpenseCategoryResponse"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "items"
+        ]
+      },
+      "CreateExpenseCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateExpenseCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "active": {
+            "type": "boolean",
+            "description": "The doctor-refund category cannot be deactivated"
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "DoctorResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "clinic": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "openingBalance": {
+            "type": "number",
+            "description": "Signed, integer minor units: > 0 the doctor owes the lab, < 0 the lab owes the doctor",
+            "example": 0
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "rowVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "clinic",
+          "notes",
+          "openingBalance",
+          "active",
+          "rowVersion"
+        ]
+      },
+      "DoctorPage": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoctorResponse"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "items"
+        ]
+      },
+      "CreateDoctorRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "example": "د. أحمد سالم"
+          },
+          "phone": {
+            "type": "object",
+            "maxLength": 30,
+            "nullable": true
+          },
+          "clinic": {
+            "type": "object",
+            "maxLength": 100,
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "openingBalance": {
+            "type": "number",
+            "description": "Signed, integer minor units: > 0 the doctor owes the lab, < 0 the lab owes the doctor",
+            "example": 0,
+            "default": 0
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateDoctorRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "phone": {
+            "type": "object",
+            "maxLength": 30,
+            "nullable": true
+          },
+          "clinic": {
+            "type": "object",
+            "maxLength": 100,
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "openingBalance": {
+            "type": "number",
+            "description": "Signed, integer minor units: > 0 the doctor owes the lab, < 0 the lab owes the doctor",
+            "example": 0
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "DoctorPriceResponse": {
+        "type": "object",
+        "properties": {
+          "workTypeId": {
+            "type": "number"
+          },
+          "workTypeName": {
+            "type": "string"
+          },
+          "workTypeActive": {
+            "type": "boolean"
+          },
+          "generalPrice": {
+            "type": "number",
+            "description": "General price per tooth, minor units"
+          },
+          "specialPrice": {
+            "type": "number",
+            "nullable": true,
+            "description": "null = the general price applies"
+          }
+        },
+        "required": [
+          "workTypeId",
+          "workTypeName",
+          "workTypeActive",
+          "generalPrice",
+          "specialPrice"
+        ]
+      },
+      "SetDoctorPriceRequest": {
+        "type": "object",
+        "properties": {
+          "price": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0,
+            "example": 20000
+          }
+        },
+        "required": [
+          "price"
+        ]
+      },
+      "LogoUploadRequest": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "description": "PNG or JPEG, at most 1 MB"
+          }
+        },
+        "required": [
+          "file"
+        ]
+      },
+      "LogoView": {
+        "type": "object",
+        "properties": {
+          "present": {
+            "type": "boolean",
+            "description": "false = clients use the bundled default logo"
+          },
+          "mimeType": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "image/png",
+              "image/jpeg"
+            ]
+          },
+          "sizeBytes": {
+            "type": "number",
+            "nullable": true
+          },
+          "sha256": {
+            "type": "string",
+            "nullable": true,
+            "description": "SHA-256; changes when the logo changes"
+          },
+          "updatedAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "present",
+          "mimeType",
+          "sizeBytes",
+          "sha256",
+          "updatedAt"
+        ]
+      },
+      "LabProfileView": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "string",
+            "nullable": true
+          },
+          "nameEn": {
+            "type": "string",
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "address": {
+            "type": "string",
+            "nullable": true
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "rowVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "nameAr",
+          "nameEn",
+          "phone",
+          "address",
+          "timeZone",
+          "rowVersion"
+        ]
+      },
+      "CurrencyLocks": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "boolean"
+          },
+          "decimals": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "decimals"
+        ]
+      },
+      "CurrencyView": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string"
+          },
+          "decimals": {
+            "type": "number"
+          },
+          "rowVersion": {
+            "type": "number"
+          },
+          "locked": {
+            "description": "true once any amount exists",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CurrencyLocks"
+              }
+            ]
+          }
+        },
+        "required": [
+          "code",
+          "symbol",
+          "decimals",
+          "rowVersion",
+          "locked"
+        ]
+      },
+      "LanguageView": {
+        "type": "object",
+        "properties": {
+          "ui": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          },
+          "documents": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          },
+          "rowVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "ui",
+          "documents",
+          "rowVersion"
+        ]
+      },
+      "CounterView": {
+        "type": "object",
+        "properties": {
+          "startValue": {
+            "type": "number"
+          },
+          "nextValue": {
+            "type": "number"
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "true once a number was issued"
+          }
+        },
+        "required": [
+          "startValue",
+          "nextValue",
+          "locked"
+        ]
+      },
+      "NumberingView": {
+        "type": "object",
+        "properties": {
+          "caseNo": {
+            "$ref": "#/components/schemas/CounterView"
+          },
+          "invoiceNo": {
+            "$ref": "#/components/schemas/CounterView"
+          }
+        },
+        "required": [
+          "caseNo",
+          "invoiceNo"
+        ]
+      },
+      "SettingsResponse": {
+        "type": "object",
+        "properties": {
+          "logo": {
+            "$ref": "#/components/schemas/LogoView"
+          },
+          "labProfile": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LabProfileView"
+              }
+            ]
+          },
+          "currency": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CurrencyView"
+              }
+            ]
+          },
+          "language": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LanguageView"
+              }
+            ]
+          },
+          "numbering": {
+            "$ref": "#/components/schemas/NumberingView"
+          }
+        },
+        "required": [
+          "logo",
+          "labProfile",
+          "currency",
+          "language",
+          "numbering"
+        ]
+      },
+      "UpdateLabProfileRequest": {
+        "type": "object",
+        "properties": {
+          "nameAr": {
+            "type": "object",
+            "maxLength": 100,
+            "nullable": true,
+            "example": "مختبر الأسنان"
+          },
+          "nameEn": {
+            "type": "object",
+            "maxLength": 100,
+            "nullable": true,
+            "example": "Dental Lab"
+          },
+          "phone": {
+            "type": "object",
+            "maxLength": 30,
+            "nullable": true
+          },
+          "address": {
+            "type": "object",
+            "maxLength": 300,
+            "nullable": true
+          },
+          "rowVersion": {
+            "type": "number"
+          },
+          "timeZone": {
+            "type": "string",
+            "example": "Asia/Hebron"
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "UpdateCurrencyRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 10,
+            "description": "Locked once any amount exists"
+          },
+          "symbol": {
+            "type": "string",
+            "maxLength": 5,
+            "description": "Always editable"
+          },
+          "decimals": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 3,
+            "description": "Locked once any amount exists"
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "UpdateLanguageRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "ui": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          },
+          "documents": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "description": "Language of printed documents"
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "UpdateNumberingRequest": {
+        "type": "object",
+        "properties": {
+          "caseNoStart": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 999999999,
+            "description": "First case number"
+          },
+          "invoiceNoStart": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 999999999,
+            "description": "First invoice number"
+          }
+        }
+      },
+      "Ref": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "CaseSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "caseNo": {
+            "type": "number"
+          },
+          "doctor": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "patientName": {
+            "type": "string"
+          },
+          "technician": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "receivedDate": {
+            "type": "string"
+          },
+          "expectedDate": {
+            "type": "string"
+          },
+          "deliveredDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "design",
+              "in_progress",
+              "ready",
+              "delivered",
+              "returned",
+              "cancelled"
+            ]
+          },
+          "total": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "overdue": {
+            "type": "boolean",
+            "description": "Computed with the lab’s today (time zone setting)"
+          },
+          "rowVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "caseNo",
+          "doctor",
+          "patientName",
+          "technician",
+          "receivedDate",
+          "expectedDate",
+          "deliveredDate",
+          "status",
+          "total",
+          "overdue",
+          "rowVersion"
+        ]
+      },
+      "CaseSummaryPage": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaseSummaryResponse"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "items"
+        ]
+      },
+      "CaseLineInput": {
+        "type": "object",
+        "properties": {
+          "toothNo": {
+            "type": "number",
+            "description": "FDI tooth 11–48. Exactly one of toothNo / area.",
+            "example": 11
+          },
+          "area": {
+            "type": "string",
+            "enum": [
+              "upper_arch",
+              "lower_arch",
+              "both_arches",
+              "none"
+            ],
+            "description": "For work not on one tooth. Exactly one of toothNo / area."
+          },
+          "workTypeId": {
+            "type": "number"
+          },
+          "shade": {
+            "type": "object",
+            "maxLength": 20,
+            "nullable": true,
+            "example": "A2"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "Manual price override; omit to use special/general price",
+            "minimum": 0
+          },
+          "note": {
+            "type": "object",
+            "maxLength": 200,
+            "nullable": true
+          }
+        },
+        "required": [
+          "workTypeId"
+        ]
+      },
+      "CreateCaseRequest": {
+        "type": "object",
+        "properties": {
+          "doctorId": {
+            "type": "number"
+          },
+          "patientName": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "technicianId": {
+            "type": "object",
+            "nullable": true
+          },
+          "receivedDate": {
+            "type": "string",
+            "example": "2026-11-06",
+            "description": "Default: today (lab time zone); never in the future"
+          },
+          "expectedDate": {
+            "type": "string",
+            "example": "2026-11-10"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "design",
+              "in_progress",
+              "ready"
+            ],
+            "default": "design"
+          },
+          "discount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0,
+            "default": 0
+          },
+          "notes": {
+            "type": "object",
+            "maxLength": 2000,
+            "nullable": true
+          },
+          "lines": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaseLineInput"
+            }
+          }
+        },
+        "required": [
+          "doctorId",
+          "patientName",
+          "expectedDate",
+          "lines"
+        ]
+      },
+      "CaseLineResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "toothNo": {
+            "type": "number",
+            "nullable": true
+          },
+          "area": {
+            "type": "string",
+            "enum": [
+              "upper_arch",
+              "lower_arch",
+              "both_arches",
+              "none"
+            ],
+            "nullable": true
+          },
+          "workTypeId": {
+            "type": "number"
+          },
+          "workTypeName": {
+            "type": "string",
+            "description": "Snapshot at line creation"
+          },
+          "shade": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "Snapshot price",
+            "minimum": 0
+          },
+          "priceSource": {
+            "type": "string",
+            "enum": [
+              "general",
+              "special",
+              "manual"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "toothNo",
+          "area",
+          "workTypeId",
+          "workTypeName",
+          "shade",
+          "unitPrice",
+          "priceSource",
+          "note"
+        ]
+      },
+      "CaseHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "fromStatus": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "design",
+              "in_progress",
+              "ready",
+              "delivered",
+              "returned",
+              "cancelled"
+            ],
+            "nullable": true
+          },
+          "toStatus": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "design",
+              "in_progress",
+              "ready",
+              "delivered",
+              "returned",
+              "cancelled"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "deliveredDate": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "fromStatus",
+          "toStatus",
+          "at",
+          "note",
+          "deliveredDate"
+        ]
+      },
+      "CaseDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "caseNo": {
+            "type": "number"
+          },
+          "doctor": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "patientName": {
+            "type": "string"
+          },
+          "technician": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "receivedDate": {
+            "type": "string"
+          },
+          "expectedDate": {
+            "type": "string"
+          },
+          "deliveredDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "design",
+              "in_progress",
+              "ready",
+              "delivered",
+              "returned",
+              "cancelled"
+            ]
+          },
+          "total": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "overdue": {
+            "type": "boolean",
+            "description": "Computed with the lab’s today (time zone setting)"
+          },
+          "rowVersion": {
+            "type": "number"
+          },
+          "subtotal": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "discount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaseLineResponse"
+            }
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaseHistoryResponse"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "caseNo",
+          "doctor",
+          "patientName",
+          "technician",
+          "receivedDate",
+          "expectedDate",
+          "deliveredDate",
+          "status",
+          "total",
+          "overdue",
+          "rowVersion",
+          "subtotal",
+          "discount",
+          "notes",
+          "lines",
+          "history"
+        ]
+      },
+      "UpdateCaseRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "patientName": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "technicianId": {
+            "type": "object",
+            "nullable": true
+          },
+          "receivedDate": {
+            "type": "string"
+          },
+          "expectedDate": {
+            "type": "string"
+          },
+          "discount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "notes": {
+            "type": "object",
+            "maxLength": 2000,
+            "nullable": true
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "AddCaseLinesRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaseLineInput"
+            }
+          }
+        },
+        "required": [
+          "rowVersion",
+          "lines"
+        ]
+      },
+      "UpdateCaseLineRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "unitPrice": {
+            "type": "number",
+            "description": "Sets a manual price (price source becomes manual)",
+            "minimum": 0
+          },
+          "shade": {
+            "type": "object",
+            "maxLength": 20,
+            "nullable": true
+          },
+          "note": {
+            "type": "object",
+            "maxLength": 200,
+            "nullable": true
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "ChangeCaseStatusRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "to": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "design",
+              "in_progress",
+              "ready",
+              "delivered",
+              "returned"
+            ],
+            "description": "Cancel uses POST /cases/{id}/cancel"
+          },
+          "note": {
+            "type": "object",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "deliveredDate": {
+            "type": "string",
+            "description": "Only with to=delivered; default today; ≥ received, ≤ today"
+          }
+        },
+        "required": [
+          "rowVersion",
+          "to"
+        ]
+      },
+      "CancelCaseRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "reason": {
+            "type": "object",
+            "maxLength": 500,
+            "nullable": true
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "FieldError": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "type": "string",
+            "example": "lab.phone",
+            "description": "Dotted path of the invalid field"
+          },
+          "constraints": {
+            "example": [
+              "matches"
+            ],
+            "description": "class-validator constraint names",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "field",
+          "constraints"
+        ]
+      },
+      "ErrorDetails": {
+        "type": "object",
+        "properties": {
+          "fields": {
+            "description": "Present on error.validation.failed",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            }
+          }
+        }
+      },
+      "ErrorBody": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "error.validation.failed",
+            "description": "Stable catalog code; the UI keys on it"
+          },
+          "message": {
+            "type": "string",
+            "description": "Localized message (Accept-Language, fallback ar)"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "description": "Parameters of the message; 5xx errors include correlationId"
+          },
+          "correlationId": {
+            "type": "string",
+            "example": "8f14e45f-ceea-467f-a8f0-4d2e1c7b9a10",
+            "description": "Also in the X-Request-Id header"
+          },
+          "details": {
+            "$ref": "#/components/schemas/ErrorDetails"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "params",
+          "correlationId"
+        ]
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorBody"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      }
+    }
+  }
+}
