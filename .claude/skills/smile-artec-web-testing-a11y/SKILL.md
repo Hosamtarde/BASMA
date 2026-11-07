@@ -20,4 +20,11 @@ description: Use when writing or reviewing tests or accessibility for the Smile 
 - Contrast AA: text uses ink/muted/cyan-ink tokens, never logo cyan; third-party widgets restyled if axe flags them (Sonner rich colours did).
 - Status/alerts: `role="alert"` for errors, `role="status"` for progress; toasts are not the only place important info lives.
 
+**Playwright notes (F2b)**
+- Names shared by the sidebar and Home cards (`الأطباء`, `إضافة حالة جديدة`): match nav links with `exact: true` or scope to `getByRole('complementary')`.
+- Playwright never clicks an `aria-disabled` element (it waits): use `click({ force: true })` to prove a disabled card does nothing.
+- Toasts pause while hovered and dim when stacked (axe flags them): move the mouse away and wait for `[data-sonner-toast]` to be gone before `expectAccessible` or a report screenshot.
+- Column alignment is a layout fact: compare the text edges (`startEdge`/`textEdges` in `e2e/support.ts`) of a header and its cell in both languages.
+- Counts in a shared installation: compare `GET /cases/summary` before and after seeding, never absolute numbers; the empty Home is checked in `first-run.spec.ts`.
+
 **Report**: real command output only; list what was verified by test vs by reading.

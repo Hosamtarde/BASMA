@@ -26,4 +26,6 @@ description: Use whenever writing or reviewing UI text, layout, numbers or dates
 - Western digits in both languages: locale `ar-u-nu-latn` / `en-GB` (`src/i18n/format.ts`); Arabic-Indic digits are a later setting.
 - Dates shown as stored, `YYYY-MM-DD`; weekday names in the UI language; "today" = the lab's time zone (`todayIn(settings.labProfile.timeZone)`).
 - Numbers, phones, case numbers, tooth lists: `num` utility (LTR, isolated). User-entered names: `dir="auto"`. FDI numbers and shade codes are language-neutral.
+- **Tables**: always `Th`/`Td` from `components/ui/table` with a column `kind` shared by the header and its cells: `text` and `number` at the reading start, `money` and `actions` at the reading end. Never put `num` or `dir` on a `<td>`/`<th>` (it flips the cell's start/end and the value drifts away from its header; the RTL guard rejects it): `Td kind="number"` isolates the inline value, `Td autoDir` gives user text its own direction on an inner span, `Money` keeps digits and sign in one LTR run (`250.00 ₪`).
+- An accessible name built from several spans needs real spaces (`{' '}`) between label and count (`قيد التصميم 3`), even when flex gaps hide the difference on screen.
 - Cairo for both languages; never letter-space Arabic.

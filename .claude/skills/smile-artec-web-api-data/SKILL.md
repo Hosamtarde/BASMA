@@ -34,7 +34,7 @@ Every route has `errorElement: <RouteError />`.
 
 **Money**: integer minor units only, through `packages/shared` money (`parseMoney`, `formatMoney`, `toMoneyInput`; strings and BigInt, no floats; extra decimals are an error, never rounded). Forms use `moneySchema(decimals)` + `MoneyField`; the currency comes from `useCurrency()`. Balances and totals always come from the API.
 
-**Lists and writes**: list state (search, status, page) in the URL via `useListParams` (`useLocalListParams` inside dialogs); PATCH only changed fields plus the `rowVersion` that was read; `*.name_taken` lands on the name field in the server's words; delete answers `deleted` or `deactivated` and the toast says which; after a write invalidate every family it touches (e.g. a price also invalidates `settings`, because amounts lock the currency).
+**Lists and writes**: list state (search, status, page) in the URL via `useListParams` (built on `useUrlState`: controls answer at once, quick changes never overwrite each other, only complete values reach the address; `useLocalListParams` inside dialogs). Any new list with state in the address uses `useUrlState` too; PATCH only changed fields plus the `rowVersion` that was read; `*.name_taken` lands on the name field in the server's words; delete answers `deleted` or `deactivated` and the toast says which; after a write invalidate every family it touches (e.g. a price also invalidates `settings`, because amounts lock the currency).
 
 **Pickers, dates, chained writes (F2)**
 - Searchable choices use `EntityPicker` (cmdk in a Radix popover; trigger = select-only combobox named by the visible label). Its `queryKey` lives inside the entity's family (e.g. `[...doctorKeys.all, 'picker', search]`) so writes refresh it; the server searches active records only.
@@ -43,3 +43,7 @@ Every route has `errorElement: <RouteError />`.
 - Previews are labelled previews (case prices and totals): send only what the user typed (a manual price), never a previewed price as truth.
 - A dialog rendered inside a `<form>` bubbles its submit through the React tree (portals included): the outer form ignores `e.target !== e.currentTarget`.
 
+**Counts and row actions (F2b)**
+- Counts per status come from one `GET /cases/summary` (`caseCountsQuery`, same filters as the list except status and paging); `storeCase` invalidates `caseKeys.summaries` with the lists. Never count by paging through lists.
+- Row actions read the API's verdict for that record when the menu opens (`CaseRowMenu` → `caseQuery`) and reuse the details-page dialogs (`CaseActionDialogs`); a whole-row click uses `useRowOpen` (ignores controls and portal events).
+- An action the API does not allow now stays visible through `ActionButton` with `disabledReason` (aria-disabled, tooltip, accessible description); the reason text describes, it does not decide.
