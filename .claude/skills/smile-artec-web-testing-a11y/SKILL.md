@@ -26,5 +26,7 @@ description: Use when writing or reviewing tests or accessibility for the Smile 
 - Toasts pause while hovered and dim when stacked (axe flags them): move the mouse away and wait for `[data-sonner-toast]` to be gone before `expectAccessible` or a report screenshot.
 - Column alignment is a layout fact: compare the text edges (`startEdge`/`textEdges` in `e2e/support.ts`) of a header and its cell in both languages.
 - Counts in a shared installation: compare `GET /cases/summary` before and after seeding, never absolute numbers; the empty Home is checked in `first-run.spec.ts`.
+- Counts that must be exact (Home with realistic data) belong to the `demo` project (`home-demo.spec.ts`): its own database, filled by the demo seed before the port opens.
+- Blur the focused element before a report screenshot taken after a keyboard check.
 
 **Report**: real command output only; list what was verified by test vs by reading.

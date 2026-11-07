@@ -15,6 +15,18 @@ npm run dev               # http://127.0.0.1:4310/api/v1 · OpenAPI UI: http://1
 ```
 First run: `POST /api/v1/setup` creates the owner account (works once), then `POST /api/v1/auth/login`.
 
+## Demo data (development only)
+Fictional Arabic sample data (15 doctors, 8 work types, 3 technicians, 40 cases over six weeks)
+for demos and visual checks, created through the real API. Never part of the build or installer.
+```
+# .env: DEMO_OWNER_PASSWORD=<at least 10 characters>
+npm run demo              # build + fresh <db>_showcase_e2e full of demo data on http://127.0.0.1:4330 (owner / DEMO_OWNER_PASSWORD)
+DEMO_DATABASE_URL=postgres://…/lab_demo npm run seed:demo -w apps/api   # fill an EMPTY *_demo or *_e2e database
+```
+The seed refuses any database whose name does not end with `_demo` or `_e2e`, any non-local
+server, and any installation that already has doctors, work types, technicians or cases.
+The web E2E launcher adds the same data with `E2E_SEED_DEMO=1`.
+
 ## Checks (same as CI)
 ```
 npm run lint && npm run typecheck && npm run i18n:check
