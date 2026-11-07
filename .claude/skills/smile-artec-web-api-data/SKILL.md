@@ -35,3 +35,11 @@ Every route has `errorElement: <RouteError />`.
 **Money**: integer minor units only, through `packages/shared` money (`parseMoney`, `formatMoney`, `toMoneyInput`; strings and BigInt, no floats; extra decimals are an error, never rounded). Forms use `moneySchema(decimals)` + `MoneyField`; the currency comes from `useCurrency()`. Balances and totals always come from the API.
 
 **Lists and writes**: list state (search, status, page) in the URL via `useListParams` (`useLocalListParams` inside dialogs); PATCH only changed fields plus the `rowVersion` that was read; `*.name_taken` lands on the name field in the server's words; delete answers `deleted` or `deactivated` and the toast says which; after a write invalidate every family it touches (e.g. a price also invalidates `settings`, because amounts lock the currency).
+
+**Pickers, dates, chained writes (F2)**
+- Searchable choices use `EntityPicker` (cmdk in a Radix popover; trigger = select-only combobox named by the visible label). Its `queryKey` lives inside the entity's family (e.g. `[...doctorKeys.all, 'picker', search]`) so writes refresh it; the server searches active records only.
+- Dates are `YYYY-MM-DD` strings end to end: `DateField` (masked text + react-day-picker popover, `today = todayIn(labTimeZone)`), `isIsoDate` for validation, `isoToLocalDate`/`localDateToIso` only for the calendar widget.
+- Aggregates with `rowVersion` (cases): every write returns the whole aggregate; store it with `setQueryData` (`storeCase`) before the next call, so each call sends the version just returned. Actions come from the API (`allowedStatuses`, `canEdit`, `canCancel`); never re-implement the lifecycle.
+- Previews are labelled previews (case prices and totals): send only what the user typed (a manual price), never a previewed price as truth.
+- A dialog rendered inside a `<form>` bubbles its submit through the React tree (portals included): the outer form ignores `e.target !== e.currentTarget`.
+

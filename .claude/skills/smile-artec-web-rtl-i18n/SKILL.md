@@ -12,7 +12,9 @@ description: Use whenever writing or reviewing UI text, layout, numbers or dates
 
 **Direction**
 - Logical properties only: `ms-/me-/ps-/pe-`, `start-/end-`, `text-start/end`, `border-s/e`, `rounded-s/e…`, CSS `*-inline-start/end`. `npm run rtl:check` fails on physical ones. Centre with `inset-0 m-auto`, not `left-1/2`.
-- Only exception: the tooth chart keeps a fixed anatomical LTR geometry (18 on the viewer's left in both languages). Mark such lines `rtl-guard-ignore: <reason>`; labels and buttons around it still flip.
+- Only exception: the tooth chart keeps a fixed anatomical LTR geometry (18 on the viewer's left in both languages): the SVG has `direction: ltr` and its arrow keys follow what the eye sees. Mark such lines `rtl-guard-ignore: <reason>`; labels and buttons around it still flip.
+- An LTR box inside an RTL form (amount, date, password) puts its icon/suffix in a wrapper with the box's own `dir`, so the end padding and the icon land on the same side.
+- Third-party widgets bring default texts (cmdk: "Suggestions"): always pass translated `label`s.
 - Radix popovers/dialogs follow `Direction.Provider`; toasts sit at the top-start corner.
 - An accessible name must start with the visible text (WCAG 2.5.3) and keep spaces between parts (`{' '}` between spans).
 
