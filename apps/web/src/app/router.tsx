@@ -9,6 +9,10 @@ import { NewCasePage } from '@/features/cases/NewCasePage';
 import { DoctorInfoTab, DoctorPage, DoctorPricesTab } from '@/features/doctors/DoctorPage';
 import { DoctorsPage } from '@/features/doctors/DoctorsPage';
 import { HomePage } from '@/features/home/HomePage';
+import { ChequesPage } from '@/features/payments/ChequesPage';
+import { DebtsPage } from '@/features/payments/DebtsPage';
+import { DoctorPaymentsTab, DoctorStatementTab } from '@/features/payments/DoctorTabs';
+import { PaymentsPage } from '@/features/payments/PaymentsPage';
 import { GeneralSettingsPage } from '@/features/settings/GeneralSettingsPage';
 import { ExpenseCategoriesPage, TechniciansPage, WorkTypesPage } from '@/features/settings/ListPages';
 import { SettingsLayout } from '@/features/settings/SettingsLayout';
@@ -48,6 +52,9 @@ export const routes: RouteObject[] = [
                   { path: 'cases', element: <CasesPage />, errorElement: <RouteError /> },
                   { path: 'cases/new', element: <NewCasePage />, errorElement: <RouteError /> },
                   { path: 'cases/:id', element: <CaseDetailsPage />, errorElement: <RouteError /> },
+                  { path: 'payments', element: <PaymentsPage />, errorElement: <RouteError /> },
+                  { path: 'cheques', element: <ChequesPage />, errorElement: <RouteError /> },
+                  { path: 'debts', element: <DebtsPage />, errorElement: <RouteError /> },
                   { path: 'doctors', element: <DoctorsPage />, errorElement: <RouteError /> },
                   {
                     path: 'doctors/:id',
@@ -56,6 +63,8 @@ export const routes: RouteObject[] = [
                     children: [
                       { index: true, element: <DoctorInfoTab />, errorElement: <RouteError /> },
                       { path: 'prices', element: <DoctorPricesTab />, errorElement: <RouteError /> },
+                      { path: 'payments', element: <DoctorPaymentsTab />, errorElement: <RouteError /> },
+                      { path: 'statement', element: <DoctorStatementTab />, errorElement: <RouteError /> },
                     ],
                   },
                   {

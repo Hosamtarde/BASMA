@@ -2,7 +2,16 @@ import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet } from 'react-router';
-import { ClipboardIcon, DoctorsIcon, GearIcon, HomeIcon, ToothIcon } from '@/components/icons';
+import {
+  ChequeIcon,
+  ClipboardIcon,
+  DoctorsIcon,
+  GearIcon,
+  HomeIcon,
+  IncomingIcon,
+  ScaleIcon,
+  ToothIcon,
+} from '@/components/icons';
 import { meQuery } from '@/features/auth/api';
 import { changeLanguage, currentLanguage, rememberLanguage } from '@/i18n/i18n';
 import { AppShell } from './AppShell';
@@ -49,6 +58,9 @@ export function ShellLayout() {
       icon: <ClipboardIcon />,
       except: ['/cases/new'],
     },
+    { to: '/payments', label: t('nav.incoming'), icon: <IncomingIcon /> },
+    { to: '/debts', label: t('nav.debts'), icon: <ScaleIcon /> },
+    { to: '/cheques', label: t('nav.cheques'), icon: <ChequeIcon /> },
     { to: '/doctors', label: t('nav.doctors'), icon: <DoctorsIcon /> },
   ];
   const navBottom: NavItem[] = [{ to: '/settings', label: t('nav.settings'), icon: <GearIcon /> }];
