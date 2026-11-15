@@ -47,3 +47,9 @@ Every route has `errorElement: <RouteError />`.
 - Counts per status come from one `GET /cases/summary` (`caseCountsQuery`, same filters as the list except status and paging); `storeCase` invalidates `caseKeys.summaries` with the lists. Never count by paging through lists.
 - Row actions read the API's verdict for that record when the menu opens (`CaseRowMenu` → `caseQuery`) and reuse the details-page dialogs (`CaseActionDialogs`); a whole-row click uses `useRowOpen` (ignores controls and portal events).
 - An action the API does not allow now stays visible through `ActionButton` with `disabledReason` (aria-disabled, tooltip, accessible description); the reason text describes, it does not decide.
+
+**Money screens (B3)**
+- Every payment form holds one `Idempotency-Key` per attempt (`features/payments/PaymentForm.tsx`): the same request again (retry, double click) reuses it, a changed request gets a new one; the key is dropped after success. The add-case form does the same when it carries an advance (`advance` needs the key, a plain case does not).
+- After any money write call `refreshMoney(queryClient)` (payments, cheques, debts, balances, statements, Home summary, cases, settings — amounts lock the currency). Never compute a balance, "counted", paid or remaining in the browser: `counted`, `allowedStatuses` (cheques), `dueState`, `doctorBalance`, `paid`/`remaining` all come from the API.
+- Row actions on money (void, cheque status) stay visible through `ActionButton` with the API's reason; amounts show without a sign, the direction is a word («مستحق لي / عليّ»), never colour alone.
+- Filters of Payments, Cheques and Debts live in the address through `useUrlState`; a native `<select>` filter uses `FilterSelect` (label bound by `htmlFor`, so its name is the label only).
