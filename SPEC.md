@@ -252,7 +252,7 @@ When status changes to «تم التسليم» (from any path) show the dialog:
 3. Message if already delivered: «هذه الحالة مسلّمة بالفعل.»
 
 ### 5.8 Incoming payment «دفعة واردة»
-Fields: doctor (required) → show his current balance; amount (> 0); method **cash / cheque**; if cheque: cheque no., bank, due date; payment date (default today); optional bound case (dropdown of his open cases, default «غير مرتبطة بحالة»); note.
+Fields: doctor (required) → show his current balance; amount (> 0); method **cash / cheque / bank transfer**; if cheque: cheque no., bank, due date; payment date (default today); optional bound case (dropdown of his open cases, default «غير مرتبطة بحالة»); note.
 Button «تسجيل الدفعة». Success toast shows new balance.
 Below: **«تقرير المقبوضات»** — table of incoming payments (no., date, doctor, method, amount, status) with filters (date range, doctor, method), total, and «آخر دفعة». Row actions: print receipt (A4 small receipt with logo), cancel.
 
@@ -369,7 +369,8 @@ balance < 0  → lab owes the doctor («مستحق عليّ»)
 ### 7.4 Cheques
 - Incoming cheque: counts as received (and as income) **only when `cleared`**. While `pending` it is shown separately («شيكات قيد التحصيل») and does **not** reduce dues. `returned` never counts.
 - Outgoing cheque: counts as an expense **only when `cleared`**.
-- Cash payments count immediately.
+- Cash and bank-transfer payments count immediately (owner decision B3, D1: `transfer` is a third method).
+- Cheque status moves `pending → cleared | returned` and `cleared → returned`; `returned` is final (B3, D3).
 
 ### 7.5 Price resolution (at line creation, then frozen)
 1. doctor-specific price for that work type, else
@@ -490,7 +491,7 @@ CREATE TABLE payments (
   category_id INTEGER REFERENCES expense_categories(id),  -- 'out' only
   payee TEXT,                                       -- 'out' free text
   amount INTEGER NOT NULL CHECK (amount > 0),
-  method TEXT NOT NULL CHECK (method IN ('cash','cheque')),
+  method TEXT NOT NULL CHECK (method IN ('cash','cheque','transfer')),
   paid_date TEXT NOT NULL,
   note TEXT,
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','void')),

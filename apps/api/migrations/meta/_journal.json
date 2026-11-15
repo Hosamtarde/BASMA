@@ -29,6 +29,13 @@
       "when": 1794063498518,
       "tag": "0003_lab_slogan",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794777932429,
+      "tag": "0004_payments",
+      "breakpoints": true
     }
   ]
 }

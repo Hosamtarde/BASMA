@@ -14,6 +14,12 @@ export const Permission = {
   CasesRead: 'cases.read',
   CasesWrite: 'cases.write',
   CasesCancel: 'cases.cancel',
+  PaymentsRead: 'payments.read',
+  PaymentsWrite: 'payments.write',
+  PaymentsVoid: 'payments.void',
+  ChequesRead: 'cheques.read',
+  ChequesWrite: 'cheques.write',
+  LedgerRead: 'ledger.read',
 } as const;
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];
