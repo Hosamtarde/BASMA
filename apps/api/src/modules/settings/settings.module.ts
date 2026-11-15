@@ -10,6 +10,6 @@ import { SettingsController } from './presentation/settings.controller';
 @Module({
   controllers: [SettingsController],
   providers: [SettingsService, SettingsRepository, LogoService, LogoRepository, LabCalendar],
-  exports: [SettingsService, LabCalendar],
+  exports: [SettingsService, SettingsRepository, LabCalendar],
 })
 export class SettingsModule {}
