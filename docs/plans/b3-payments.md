@@ -226,3 +226,27 @@ New API catalog keys (ar + en): `error.payment.*`, `error.cheque.*`, `error.idem
 | D10 | **Payment date:** may not be in the future; cheque due date may be any date. | As stated. | Allow future payment dates. |
 
 I need from you: approval of the plan, and an answer (or "defaults are fine") on D1–D10. D1 is a SPEC conflict, so I will not start stage 1 until you answer it.
+
+---
+
+## Decisions taken while unattended
+
+Written during the build, after the owner approved the plan with "defaults are fine for D1–D10" and asked for Stage 0 follow-ups, backend and frontend to run back to back. Each is the safest default; all are easy to change.
+
+1. **Replay hash uses the request as the client sent it** (an omitted `paidAt` stays omitted), not the resolved lab date. A retry after midnight therefore still returns the original instead of a 422 (plan §5 said "resolved"; this is strictly safer). The stored payment keeps the resolved date.
+2. **No `sort` parameter** on `GET /payments`: newest first (`paid_at desc, id desc`) only. The cheque register is ordered by due date.
+3. **The cheque register lists only cheques of active payments.** A voided payment's cheque is frozen and visible on the payments list (struck out with its reason), not in the register or its chip counts.
+4. **`GET /doctors/{id}` does not carry the balance.** The balance has its own `GET /doctors/{id}/balance`; the doctors list is unchanged (B4 decides on a balance column).
+5. **Statement** shows cases, counted payments (a cheque on the day it cleared) and bounced cleared cheques. Voided payments disappear from it entirely; pending cheques are not statement lines (the balance card shows their total apart).
+6. **Home «this month»** = counted payments whose effective date (payment date; for a cheque the clearing date) falls in the lab's current calendar month. The cheques card counts pending cheques due within 7 days plus overdue ones.
+7. **Bound-payment limit** counts pending cheques and ignores returned ones; an unbound payment has no limit.
+8. **Advance payment date** defaults to the lab's today (the form has no separate date field).
+9. **Audit texts omit the amount** (a raw minor-unit integer would mislead); the amount is stored in the entry's params.
+10. **Cheque register has no incoming/outgoing chip** (only incoming exists).
+11. **Doctor picker on the payments form offers active doctors only** (like every picker); an inactive doctor can still pay from his own account page or through the API (D5).
+12. **Cancel from returned**: the reason is enforced on the server. "Blocked once invoiced" cannot be enforced before invoices exist (S13 in production-readiness).
+13. **`Idempotency-Key` on `POST /cases`** is required only when `advance` is present; a plain case needs none (unchanged behaviour). A key that was used for a payment cannot be reused for a case advance (422).
+14. **Paid / remaining** is on `GET /cases/{id}` and `GET /cases/{id}/payments`; the cases list is unchanged.
+15. **Void is a row action** (D6): no separate «إلغاء دفعة» screen and no sidebar item for outgoing or invoice.
+16. **Statement lines are paged on the server** (25 per page) with a running balance computed over the whole history.
+17. **Incident, reported openly:** while cleaning up stray test containers I removed the development database container `smile-artec-db-1` by mistake. Its data volume `smile-artec_dbdata` was untouched; the container was recreated with `docker compose up -d db` and is healthy with the same data. No data was lost.
