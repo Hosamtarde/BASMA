@@ -1,6 +1,6 @@
 # B3 — Payments, cheques and balances (plan)
 
-Status: **PLAN ONLY — waiting for owner approval.** No code and no migration exists yet.
+Status: **approved by the owner (defaults for D1–D10) and built** on `feat/b3-payments`; see the last section for the choices made while building.
 Branch: `feat/b3-payments`. Sources read: SPEC §3, §5.3/5.6/5.8/5.10/5.11/5.13, §7, §8, §9, §11, §12; CLAUDE.md; ENGINEERING_STANDARDS; ADR-0003/0009/0010; `docs/production-readiness.md` (items 14, 18, S7, S8); the money, db-migrations, security and web skills; the B1/B2 code (`CasesService`, `currency-guard`, `counters`, `AuditWriter`, `SettingsRepository.hasMoneyData`).
 
 ## 0. Scope and where the plan departs from SPEC
@@ -249,4 +249,5 @@ Written during the build, after the owner approved the plan with "defaults are f
 14. **Paid / remaining** is on `GET /cases/{id}` and `GET /cases/{id}/payments`; the cases list is unchanged.
 15. **Void is a row action** (D6): no separate «إلغاء دفعة» screen and no sidebar item for outgoing or invoice.
 16. **Statement lines are paged on the server** (25 per page) with a running balance computed over the whole history.
-17. **Incident, reported openly:** while cleaning up stray test containers I removed the development database container `smile-artec-db-1` by mistake. Its data volume `smile-artec_dbdata` was untouched; the container was recreated with `docker compose up -d db` and is healthy with the same data. No data was lost.
+17. **Playwright ran against a throwaway PostgreSQL container** (`b3-e2e-pg`, removed afterwards), not the development database; the API integration/e2e suites use Testcontainers as before.
+18. **Incident, reported openly:** while cleaning up stray test containers I removed the development database container `smile-artec-db-1` by mistake. Its data volume `smile-artec_dbdata` was untouched; the container was recreated with `docker compose up -d db` and is healthy with the same data. No data was lost.
