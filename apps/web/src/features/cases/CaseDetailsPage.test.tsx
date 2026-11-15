@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetSessionForTests, session } from '@/api/session';
 import { initI18n } from '@/i18n/i18n';
-import { settingsFixture } from '@/test/fixtures';
+import { emptyCasePayments, settingsFixture } from '@/test/fixtures';
 import { json, renderRoutes, stubApi } from '@/test/render';
 import type { CaseDetail } from './api';
 import { CaseDetailsPage } from './CaseDetailsPage';
@@ -22,6 +22,8 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   overdue: true,
   rowVersion: 4,
   subtotal: 50000,
+  paid: 0,
+  remaining: 50000,
   discount: 3000,
   notes: 'لون فاتح',
   lines: [
@@ -76,6 +78,7 @@ describe('CaseDetailsPage', () => {
 
   it('shows the header, lines with price sources, totals, notes and the history (newest first)', async () => {
     stubApi({
+      'GET /api/v1/cases/41/payments': () => json(200, emptyCasePayments(41, 47000)),
       'GET /api/v1/settings': () => json(200, settingsFixture()),
       'GET /api/v1/cases/41': () => json(200, detail()),
     });
@@ -95,6 +98,7 @@ describe('CaseDetailsPage', () => {
 
   it('offers only the statuses the API allows; edit and cancel stay visible, disabled, with the reason', async () => {
     stubApi({
+      'GET /api/v1/cases/41/payments': () => json(200, emptyCasePayments(41, 47000)),
       'GET /api/v1/settings': () => json(200, settingsFixture()),
       'GET /api/v1/cases/41': () =>
         json(
@@ -124,6 +128,7 @@ describe('CaseDetailsPage', () => {
 
   it('changes the status with the version that was read, and the actions follow the answer', async () => {
     const calls = stubApi({
+      'GET /api/v1/cases/41/payments': () => json(200, emptyCasePayments(41, 47000)),
       'GET /api/v1/settings': () => json(200, settingsFixture()),
       'GET /api/v1/cases': () => json(200, { page: 1, pageSize: 25, total: 0, items: [] }),
       'GET /api/v1/cases/41': () => json(200, detail()),
@@ -166,6 +171,7 @@ describe('CaseDetailsPage', () => {
 
   it('cancels with a required reason, sending the version that was read', async () => {
     const calls = stubApi({
+      'GET /api/v1/cases/41/payments': () => json(200, emptyCasePayments(41, 47000)),
       'GET /api/v1/settings': () => json(200, settingsFixture()),
       'GET /api/v1/cases': () => json(200, { page: 1, pageSize: 25, total: 0, items: [] }),
       'GET /api/v1/cases/41': () => json(200, detail({ rowVersion: 9 })),
@@ -202,6 +208,7 @@ describe('CaseDetailsPage', () => {
 
   it('edits only the changed header fields, then a line, each with the latest version', async () => {
     const calls = stubApi({
+      'GET /api/v1/cases/41/payments': () => json(200, emptyCasePayments(41, 47000)),
       'GET /api/v1/settings': () => json(200, settingsFixture()),
       'GET /api/v1/cases': () => json(200, { page: 1, pageSize: 25, total: 0, items: [] }),
       'GET /api/v1/cases/41': () => json(200, detail()),

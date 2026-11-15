@@ -11,13 +11,15 @@ import { Link, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { ApiError } from '@/api/errors';
-import { MoneyField, moneySchema } from '@/components/money-field';
+import { MoneyField, moneyErrorMessage, moneySchema } from '@/components/money-field';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { FormDialog } from '@/components/ui/dialog';
 import { FormAlert, SelectField, TextField } from '@/components/ui/field';
 import { Card } from '@/components/ui/list';
 import { workTypesQuery } from '@/features/catalog/api';
+import { newIdempotencyKey, PAYMENT_METHODS, refreshMoney } from '@/features/payments/api';
+import type { PaymentMethod } from '@/features/payments/api';
 import { doctorPricesQuery } from '@/features/doctors/api';
 import { useCurrency } from '@/features/shell/currency';
 import { settingsQuery } from '@/features/shell/settings';
@@ -25,7 +27,7 @@ import { todayIn } from '@/i18n/format';
 import { isIsoDate } from '@/lib/dates';
 import { applyServerErrors, msg, rawMsg, renderMessage } from '@/lib/form-messages';
 import { caseApi, DEFAULT_INITIAL_STATUS, INITIAL_STATUSES, MAX_LINES, storeCase } from './api';
-import type { CaseDetail, CreateCase, InitialStatus } from './api';
+import type { CreateCase, CreateCaseResponse, InitialStatus } from './api';
 import { useChartView, ToothChartPanel } from './chart/ToothChart';
 import { selectionReducer } from './chart/selection';
 import { lineForArea, linesForTeeth, previewSubtotal, teethWork, toLineInputs, workColors } from './draft';
@@ -50,9 +52,31 @@ const formSchema = (decimals: number, today: string) =>
       status: z.enum(INITIAL_STATUSES as [InitialStatus, ...InitialStatus[]]),
       discount: moneySchema(decimals, { optional: true }),
       notes: text(2000),
+      advanceAmount: z.string(),
+      advanceMethod: z.enum(PAYMENT_METHODS as [PaymentMethod, ...PaymentMethod[]]),
+      advanceChequeNo: text(30),
+      advanceBank: text(60),
+      advanceDueDate: z.string(),
     })
     .superRefine((v, ctx) => {
       if (v.doctor === null) ctx.addIssue({ code: 'custom', path: ['doctor'], message: msg('validation.required') });
+      if (v.advanceAmount.trim() !== '') {
+        const advance = parseMoney(v.advanceAmount, decimals);
+        if (!advance.ok)
+          ctx.addIssue({ code: 'custom', path: ['advanceAmount'], message: moneyErrorMessage(advance.error, decimals) });
+        else if (advance.minor <= 0)
+          ctx.addIssue({ code: 'custom', path: ['advanceAmount'], message: msg('payments.errors.amountPositive') });
+        if (v.advanceMethod === 'cheque') {
+          if (v.advanceChequeNo === '')
+            ctx.addIssue({ code: 'custom', path: ['advanceChequeNo'], message: msg('payments.errors.chequeNoRequired') });
+          if (v.advanceBank === '')
+            ctx.addIssue({ code: 'custom', path: ['advanceBank'], message: msg('payments.errors.bankRequired') });
+          if (v.advanceDueDate.trim() === '')
+            ctx.addIssue({ code: 'custom', path: ['advanceDueDate'], message: msg('payments.errors.dueRequired') });
+          else if (!isIsoDate(v.advanceDueDate))
+            ctx.addIssue({ code: 'custom', path: ['advanceDueDate'], message: msg('date.invalid') });
+        }
+      }
       const received = isIsoDate(v.receivedDate);
       if (!received) ctx.addIssue({ code: 'custom', path: ['receivedDate'], message: msg('date.invalid') });
       else if (v.receivedDate > today)
@@ -76,6 +100,10 @@ const FIELDS = [
   'status',
   'discount',
   'notes',
+  'advanceAmount',
+  'advanceChequeNo',
+  'advanceBank',
+  'advanceDueDate',
 ] as const satisfies readonly Path<FormIn>[];
 
 /** Business errors of POST /cases that belong to one field (shown there in the server's words). */
@@ -116,7 +144,9 @@ export function NewCasePage() {
   const [managerOpen, setManagerOpen] = useState(false);
   const [expandOpen, setExpandOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<CaseDetail | null>(null);
+  const [saved, setSaved] = useState<CreateCaseResponse | null>(null);
+  // One Idempotency-Key per attempt: the same request again reuses it, a changed one gets a new key.
+  const attempt = useRef<{ key: string; body: string } | null>(null);
 
   // No work type yet: show the SPEC message and open the manager once (SPEC §5.3).
   const managerShown = useRef(false);
@@ -147,6 +177,11 @@ export function NewCasePage() {
     status: DEFAULT_INITIAL_STATUS,
     discount: '',
     notes: '',
+    advanceAmount: '',
+    advanceMethod: 'cash',
+    advanceChequeNo: '',
+    advanceBank: '',
+    advanceDueDate: '',
   });
   const form = useForm<FormIn, unknown, FormOut>({
     resolver: zodResolver(formSchema(currency.decimals, today)),
@@ -156,6 +191,8 @@ export function NewCasePage() {
   const err = (m: string | undefined) => renderMessage(t, m);
   const doctor = useWatch({ control: form.control, name: 'doctor' });
   const discountText = useWatch({ control: form.control, name: 'discount' });
+  const advanceText = useWatch({ control: form.control, name: 'advanceAmount' });
+  const advanceMethod = useWatch({ control: form.control, name: 'advanceMethod' });
 
   // Preview only: the doctor's special prices (the server applies them on save).
   const { data: doctorPrices } = useQuery({ ...doctorPricesQuery(doctor?.id ?? 0), enabled: doctor !== null });
@@ -195,10 +232,12 @@ export function NewCasePage() {
   };
 
   const create = useMutation({
-    mutationFn: (body: CreateCase) => caseApi.create(body),
+    mutationFn: ({ body, key }: { body: CreateCase; key?: string }) => caseApi.create(body, key),
     meta: { inlineErrors: true },
     onSuccess: async (detail) => {
+      attempt.current = null;
       await storeCase(queryClient, detail);
+      if (detail.advancePayment) await refreshMoney(queryClient);
       setSaved(detail);
       toast.success(t('newCase.saved', { no: detail.caseNo }), {
         action: { label: t('newCase.openCase'), onClick: () => void navigate(`/cases/${detail.id}`) },
@@ -230,6 +269,7 @@ export function NewCasePage() {
     setFormError(null);
     setAnnouncement('');
     setSaved(null);
+    attempt.current = null;
   };
 
   const onValid = (v: FormOut) => {
@@ -241,7 +281,23 @@ export function NewCasePage() {
     const inputs = toLineInputs(lines, currency.decimals);
     setLineErrors(inputs.ok ? new Map() : inputs.errors);
     if (!inputs.ok || v.doctor === null) return;
-    create.mutate({
+    let advance: CreateCase['advance'];
+    if (v.advanceAmount.trim() !== '') {
+      const parsed = parseMoney(v.advanceAmount, currency.decimals);
+      if (!parsed.ok) return;
+      if (total !== null && parsed.minor > total) {
+        form.setError('advanceAmount', { type: 'client', message: msg('newCase.advanceTooBig') });
+        return;
+      }
+      advance = {
+        method: v.advanceMethod,
+        amount: parsed.minor,
+        ...(v.advanceMethod === 'cheque'
+          ? { cheque: { chequeNo: v.advanceChequeNo, bank: v.advanceBank, dueDate: v.advanceDueDate } }
+          : {}),
+      };
+    }
+    const body: CreateCase = {
       doctorId: v.doctor.id,
       patientName: v.patientName,
       technicianId: v.technician?.id ?? null,
@@ -251,7 +307,12 @@ export function NewCasePage() {
       discount: v.discount,
       notes: blankToNull(v.notes),
       lines: inputs.lines,
-    });
+      ...(advance ? { advance } : {}),
+    };
+    if (!advance) return create.mutate({ body });
+    const json = JSON.stringify(body);
+    if (attempt.current?.body !== json) attempt.current = { key: newIdempotencyKey(), body: json };
+    create.mutate({ body, key: attempt.current.key });
   };
 
   const chartPanel = (expanded: boolean) => (
@@ -286,6 +347,9 @@ export function NewCasePage() {
             {t('newCase.saved', { no: saved.caseNo })}
           </h2>
           <p className="text-muted">{t('newCase.savedBody')}</p>
+          {saved.advancePayment && (
+            <p className="font-bold">{t('newCase.savedAdvance', { voucher: saved.advancePayment.voucherNo })}</p>
+          )}
           <div className="flex flex-wrap gap-2.5">
             <Button asChild>
               <Link to={`/cases/${saved.id}`}>{t('newCase.openCase')}</Link>
@@ -427,6 +491,78 @@ export function NewCasePage() {
                 ))}
               </SelectField>
             </div>
+          </Card>
+
+          <Card className="flex flex-col gap-3">
+            <h2 className="text-[17px] font-extrabold">{t('newCase.advanceTitle')}</h2>
+            <p className="text-[13px] text-muted">{t('newCase.advanceHint')}</p>
+            <MoneyField
+              label={t('newCase.advanceAmount')}
+              symbol={currency.symbol}
+              className="max-w-xs"
+              error={err(errors.advanceAmount?.message)}
+              {...form.register('advanceAmount')}
+            />
+            {advanceText.trim() !== '' && (
+              <>
+                <fieldset className="flex flex-col gap-2">
+                  <legend className="mb-1.5 text-[14px] font-bold">{t('newCase.advanceMethod')}</legend>
+                  <div className="flex flex-wrap gap-2">
+                    {PAYMENT_METHODS.map((m) => (
+                      <label
+                        key={m}
+                        className="flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-control px-3 font-bold has-[:checked]:border-navy has-[:checked]:bg-info-bg has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-focus"
+                      >
+                        <input
+                          type="radio"
+                          value={m}
+                          className="size-4 accent-[var(--color-blue)]"
+                          {...form.register('advanceMethod')}
+                        />
+                        {t(`payments.methods.${m}`)}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                {advanceMethod === 'cheque' && (
+                  <div className="grid grid-cols-1 gap-4 rounded-lg border border-border bg-surface p-4 sm:grid-cols-3">
+                    <TextField
+                      label={t('payments.chequeNo')}
+                      required
+                      dir="ltr"
+                      autoComplete="off"
+                      error={err(errors.advanceChequeNo?.message)}
+                      {...form.register('advanceChequeNo')}
+                    />
+                    <TextField
+                      label={t('payments.bank')}
+                      required
+                      dir="auto"
+                      autoComplete="off"
+                      error={err(errors.advanceBank?.message)}
+                      {...form.register('advanceBank')}
+                    />
+                    <Controller
+                      control={form.control}
+                      name="advanceDueDate"
+                      render={({ field }) => (
+                        <DateField
+                          label={t('payments.dueDate')}
+                          required
+                          today={today}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          inputRef={field.ref}
+                          error={err(errors.advanceDueDate?.message)}
+                        />
+                      )}
+                    />
+                  </div>
+                )}
+              </>
+            )}
           </Card>
 
           <Card className="flex flex-col gap-1.5">

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetSessionForTests, session } from '@/api/session';
 import { initI18n } from '@/i18n/i18n';
-import { settingsFixture } from '@/test/fixtures';
+import { balanceFixture, settingsFixture } from '@/test/fixtures';
 import { envelope, json, renderRoutes, stubApi } from '@/test/render';
 import { DoctorPage, DoctorPricesTab } from './DoctorPage';
 import { DoctorsPage } from './DoctorsPage';
@@ -103,6 +103,7 @@ describe('special prices tab', () => {
     const calls = stubApi({
       'GET /api/v1/settings': () => json(200, settingsFixture()),
       'GET /api/v1/doctors/7': () => json(200, doctor()),
+      'GET /api/v1/doctors/7/balance': () => json(200, balanceFixture(7, 0)),
       'GET /api/v1/doctors/7/prices': () =>
         json(200, [
           {
