@@ -15,12 +15,18 @@ import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiHeader,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+import { Headers, Res } from '@nestjs/common';
+import type { Response } from 'express';
+import { markReplay, requireIdempotencyKey } from '../../../shared/http/idempotency';
+import { DomainError } from '../../../shared/errors/domain-error';
+import { toPaymentResponse } from '../../payments/presentation/payments.controller';
 import { ParseIdPipe } from '../../../shared/http/parse-id.pipe';
 import { Permission } from '../../identity/domain/permissions';
 import { CurrentUser, RequirePermission } from '../../identity/presentation/auth.decorators';
@@ -38,6 +44,7 @@ import {
   CaseSummaryResponse,
   ChangeCaseStatusRequest,
   CreateCaseRequest,
+  CreateCaseResponse,
   UpdateCaseLineRequest,
   UpdateCaseRequest,
 } from './dto';
@@ -60,6 +67,8 @@ const toSummary = (c: CaseSummary): CaseSummaryResponse => ({
 const toDetail = (c: CaseDetail): CaseDetailResponse => ({
   ...toSummary(c),
   subtotal: c.subtotal,
+  paid: c.paid,
+  remaining: c.remaining,
   discount: c.discount,
   notes: c.notes,
   lines: c.items.map((i) => ({
@@ -116,27 +125,70 @@ export class CasesController {
 
   @Post()
   @RequirePermission(Permission.CasesWrite)
-  @ApiOperation({ summary: 'Create a case; numbers and prices are assigned by the server' })
-  @ApiCreatedResponse({ type: CaseDetailResponse })
-  @ApiBadRequestResponse({ description: 'error.validation.failed | error.case.* (dates, line position)' })
-  @ApiConflictResponse({ description: 'error.case.*_inactive | error.case.discount_exceeds_subtotal' })
-  async create(@Body() body: CreateCaseRequest, @CurrentUser() user: AuthUser): Promise<CaseDetailResponse> {
-    return toDetail(
-      await this.service.create(
-        definedOnly({
-          doctorId: body.doctorId,
-          patientName: body.patientName,
-          technicianId: body.technicianId,
-          receivedDate: body.receivedDate,
-          expectedDate: body.expectedDate,
-          status: body.status,
-          discount: body.discount,
-          notes: body.notes,
-          lines: body.lines.map((l) => definedOnly({ ...l })),
+  @ApiOperation({
+    summary:
+      'Create a case; numbers and prices are assigned by the server. An advance payment is created in the same transaction',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: false,
+    description:
+      'Required when "advance" is sent (a UUID per attempt); a replay returns the original case (200)',
+  })
+  @ApiCreatedResponse({ type: CreateCaseResponse })
+  @ApiOkResponse({ type: CreateCaseResponse, description: 'Replay of an advance request with the same key' })
+  @ApiBadRequestResponse({
+    description:
+      'error.validation.failed | error.case.* (dates, line position) | error.idempotency.required | error.payment.*',
+  })
+  @ApiConflictResponse({
+    description:
+      'error.case.*_inactive | error.case.discount_exceeds_subtotal | error.payment.exceeds_case_total',
+  })
+  async create(
+    @Body() body: CreateCaseRequest,
+    @Headers('idempotency-key') keyHeader: string | undefined,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<CreateCaseResponse> {
+    const { advance, ...caseBody } = body;
+    let advanceArg: Parameters<CasesService['create']>[2];
+    if (advance) {
+      // The advance is a payment: it needs its own permission and a key (duplicates hurt, ADR-0010).
+      if (!user.permissions.includes(Permission.PaymentsWrite)) {
+        throw new DomainError('error.auth.forbidden', HttpStatus.FORBIDDEN);
+      }
+      advanceArg = {
+        key: requireIdempotencyKey(keyHeader),
+        payment: definedOnly({
+          method: advance.method,
+          amount: advance.amount,
+          paidAt: advance.paidAt,
+          notes: advance.notes,
+          cheque: advance.cheque ? { ...advance.cheque } : undefined,
         }),
-        user.id,
-      ),
+      };
+    }
+    const created = await this.service.create(
+      definedOnly({
+        doctorId: caseBody.doctorId,
+        patientName: caseBody.patientName,
+        technicianId: caseBody.technicianId,
+        receivedDate: caseBody.receivedDate,
+        expectedDate: caseBody.expectedDate,
+        status: caseBody.status,
+        discount: caseBody.discount,
+        notes: caseBody.notes,
+        lines: caseBody.lines.map((l) => definedOnly({ ...l })),
+      }),
+      user.id,
+      advanceArg,
     );
+    markReplay(res, created.replayed);
+    return {
+      ...toDetail(created.detail),
+      advancePayment: created.advance ? toPaymentResponse(created.advance) : null,
+    };
   }
 
   @Get(':id')

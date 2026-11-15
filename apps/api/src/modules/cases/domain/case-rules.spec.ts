@@ -1,4 +1,5 @@
 import {
+  cancelNeedsReason,
   canCancel,
   caseActions,
   CASE_STATUSES,
@@ -32,8 +33,18 @@ describe('status machine (full matrix)', () => {
     }
   }
 
-  it('cancel only before delivery; never from delivered, returned or cancelled', () => {
-    expect(CASE_STATUSES.filter(canCancel)).toEqual(['waiting', 'design', 'in_progress', 'ready']);
+  it('cancel before delivery and from returned (D2); never from delivered or cancelled', () => {
+    expect(CASE_STATUSES.filter(canCancel)).toEqual([
+      'waiting',
+      'design',
+      'in_progress',
+      'ready',
+      'returned',
+    ]);
+  });
+
+  it('only a returned case needs a reason to cancel', () => {
+    expect(CASE_STATUSES.filter(cancelNeedsReason)).toEqual(['returned']);
   });
 
   it.each(CASE_STATUSES)('exposes the same rules as UI actions for %s', (status) => {

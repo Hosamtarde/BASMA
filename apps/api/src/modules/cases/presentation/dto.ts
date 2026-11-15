@@ -22,6 +22,7 @@ import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../../../shared/http/paginatio
 import { OptionalText } from '../../../shared/http/text-fields';
 import { IsAmount } from '../../../shared/money/amount.validators';
 import { IsName } from '../../../shared/text/names';
+import { AdvancePaymentInput, PaymentResponse } from '../../payments/presentation/dto';
 import type { Area, CaseStatus, PriceSource } from '../domain/case-rules';
 import { AREAS, CASE_STATUSES, isFdiTooth, MAX_LINES_PER_CASE, PRE_DELIVERY } from '../domain/case-rules';
 
@@ -101,6 +102,15 @@ export class CreateCaseRequest {
   @ApiProperty({ type: [CaseLineInput], minItems: 1, maxItems: MAX_LINES_PER_CASE })
   @Lines()
   lines!: CaseLineInput[];
+  @ApiPropertyOptional({
+    type: AdvancePaymentInput,
+    description:
+      'Advance payment (SPEC 5.3), created with the case in one transaction and bound to it. Needs the Idempotency-Key header and the payments.write permission.',
+  })
+  @IsOptionalNonNull()
+  @ValidateNested()
+  @Type(() => AdvancePaymentInput)
+  advance?: AdvancePaymentInput;
 }
 
 /** No doctorId: the doctor never changes after creation (owner decision B2). */
@@ -240,6 +250,12 @@ class CaseHistoryResponse {
 
 export class CaseDetailResponse extends CaseSummaryResponse {
   @ApiProperty(amountDoc) subtotal!: number;
+  @ApiProperty({
+    ...amountDoc,
+    description: 'Bound payments that count + the case FIFO share of unbound ones',
+  })
+  paid!: number;
+  @ApiProperty({ ...amountDoc, description: 'total - paid; 0 for a cancelled case' }) remaining!: number;
   @ApiProperty(amountDoc) discount!: number;
   @ApiProperty({ type: String, nullable: true }) notes!: string | null;
   @ApiProperty({ type: [CaseLineResponse] }) lines!: CaseLineResponse[];
@@ -252,6 +268,11 @@ export class CaseDetailResponse extends CaseSummaryResponse {
   allowedStatuses!: CaseStatus[];
   @ApiProperty({ description: 'true when POST /cases/{id}/cancel is allowed now' }) canCancel!: boolean;
   @ApiProperty({ description: 'true when header and lines may be edited (not cancelled)' }) canEdit!: boolean;
+}
+
+export class CreateCaseResponse extends CaseDetailResponse {
+  @ApiProperty({ type: PaymentResponse, nullable: true, description: 'The advance payment, if one was sent' })
+  advancePayment!: PaymentResponse | null;
 }
 
 /** One count per status, every status always present (0 when none). */
