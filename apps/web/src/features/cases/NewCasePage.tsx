@@ -496,13 +496,14 @@ export function NewCasePage() {
           <Card className="flex flex-col gap-3">
             <h2 className="text-[17px] font-extrabold">{t('newCase.advanceTitle')}</h2>
             <p className="text-[13px] text-muted">{t('newCase.advanceHint')}</p>
-            <MoneyField
-              label={t('newCase.advanceAmount')}
-              symbol={currency.symbol}
-              className="max-w-xs"
-              error={err(errors.advanceAmount?.message)}
-              {...form.register('advanceAmount')}
-            />
+            <div className="max-w-xs">
+              <MoneyField
+                label={t('newCase.advanceAmount')}
+                symbol={currency.symbol}
+                error={err(errors.advanceAmount?.message)}
+                {...form.register('advanceAmount')}
+              />
+            </div>
             {advanceText.trim() !== '' && (
               <>
                 <fieldset className="flex flex-col gap-2">

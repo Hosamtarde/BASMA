@@ -20,6 +20,8 @@ import {
  */
 const REPORT_SIZE = { width: 1440, height: 900 };
 const TODAY = new Date().toISOString().slice(0, 10);
+/** Three days ahead: «يستحق قريبًا» whichever time zone the lab and the test machine are in. */
+const SOON = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
 
 interface Seed {
   token: string;
@@ -128,7 +130,7 @@ test('a cheque counts only after it is cleared; a returned one restores the debt
     method: 'cheque',
     amount: 25000,
     caseId: c.id,
-    cheque: { chequeNo: `CH-${s.suffix}`, bank: 'بنك فلسطين', dueDate: TODAY },
+    cheque: { chequeNo: `CH-${s.suffix}`, bank: 'بنك فلسطين', dueDate: SOON },
   });
   await page.setViewportSize(REPORT_SIZE);
   await signedIn(page);
@@ -215,8 +217,13 @@ test('the payments filters live in the address: reload, back and forward keep th
   await page.reload();
   await expect(page.getByLabel('الطريقة')).toHaveValue('transfer');
   await expect(table.getByRole('row')).toHaveCount(2);
+  // Leave and come back: the filter changes replace the address, so Back returns to the filtered list.
+  await page.getByRole('link', { name: 'سجل الشيكات', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'سجل الشيكات', level: 1 })).toBeVisible();
   await page.goBack();
-  await expect(page.getByLabel('الطريقة')).toHaveValue('');
+  await expect(page.getByLabel('الطريقة')).toHaveValue('transfer');
+  await expect(page).toHaveURL(/method=transfer/);
+  await page.getByLabel('الطريقة').selectOption('');
   await expect(table.getByRole('row')).toHaveCount(3);
   await expect(page.getByTestId('payment-totals')).toContainText('30.00 ₪');
 });
@@ -305,6 +312,8 @@ test('add a case with an advance payment in one step (ar)', async ({ page, reque
   await page.getByRole('button', { name: 'حفظ الحالة' }).click();
   await expect(page.getByText('الدفعة المقدمة لا يمكن أن تتجاوز إجمالي الحالة.')).toBeVisible();
   await page.getByRole('textbox', { name: 'مبلغ الدفعة المقدمة' }).fill('150');
+  await page.getByRole('textbox', { name: 'مبلغ الدفعة المقدمة' }).evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  await expect(page.getByRole('textbox', { name: 'مبلغ الدفعة المقدمة' })).toBeInViewport();
   await expectAccessible(page);
   await shot(page, 'new-case-advance-ar', { fullPage: false });
   await page.getByRole('button', { name: 'حفظ الحالة' }).click();
@@ -356,4 +365,6 @@ test('Payments, Cheques and Debts in English: direction, alignment of money colu
   expect(await startEdge(row.getByRole('cell').first(), 'en')).toBeGreaterThan(0);
   // No sideways page scroll.
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  // The language is per installation: leave it as other tests expect it.
+  await setLanguage(page, 'ar');
 });

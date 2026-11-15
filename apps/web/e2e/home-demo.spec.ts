@@ -72,7 +72,18 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
     numbers.getByRole('link', { name: `جاهزة للتسليم ${c.byStatus.ready}`, exact: true }),
   ).toBeVisible();
   await expect(numbers.getByRole('link', { name: `حالات متأخرة ${c.overdue}`, exact: true })).toBeVisible();
-  await expect(numbers).not.toContainText('₪');
+  // The money figures are the ledger's own (B3): the demo seed records payments and cheques.
+  const token = await apiToken(page.request);
+  const ledger = (await (
+    await page.request.get('/api/v1/ledger/summary', { headers: { Authorization: `Bearer ${token}` } })
+  ).json()) as { receivedThisMonth: number; owedToLab: number; pendingChequesCount: number };
+  const money = (minor: number) => `${(minor / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} ₪`;
+  expect(ledger.receivedThisMonth).toBeGreaterThan(0);
+  expect(ledger.owedToLab).toBeGreaterThan(0);
+  await expect(numbers.getByRole('link', { name: `المقبوض هذا الشهر ${money(ledger.receivedThisMonth)}`, exact: true })).toBeVisible();
+  await expect(numbers.getByRole('link', { name: `المستحق للمختبر ${money(ledger.owedToLab)}`, exact: true })).toBeVisible();
+  await expect(numbers.getByRole('link', { name: `شيكات قيد التحصيل ${ledger.pendingChequesCount}`, exact: true })).toBeVisible();
+  await expect(numbers).not.toContainText(/المصاريف|الفواتير/);
 
   // Thin ring, one arc per status (all seven exist in the demo), nothing written in the centre.
   await expect(
