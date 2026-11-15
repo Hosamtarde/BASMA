@@ -439,7 +439,7 @@ export interface paths {
         /** Cases, newest first; filters: status, doctor, overdue, received date range, search */
         get: operations["CasesController_list"];
         put?: never;
-        /** Create a case; numbers and prices are assigned by the server */
+        /** Create a case; numbers and prices are assigned by the server. An advance payment is created in the same transaction */
         post: operations["CasesController_create"];
         delete?: never;
         options?: never;
@@ -541,6 +541,192 @@ export interface paths {
         put?: never;
         /** Cancel (final). Only before delivery. */
         post: operations["CasesController_cancel"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payments, newest first, with totals of the filtered set */
+        get: operations["PaymentsController_list"];
+        put?: never;
+        /** Register an incoming payment (cash, cheque or transfer) */
+        post: operations["PaymentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PaymentsController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/payments/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a payment with a reason (never deleted); its cheque is frozen */
+        post: operations["PaymentsController_void"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cheques": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cheque register (incoming cheques of active payments), by due date; each row is its payment */
+        get: operations["ChequesController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cheques/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Counts per status, due soon and overdue; same filters as the list except status */
+        get: operations["ChequesController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cheques/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change a cheque status: pending → cleared | returned, cleared → returned */
+        patch: operations["ChequesController_changeStatus"];
+        trace?: never;
+    };
+    "/api/v1/doctors/{id}/balance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["LedgerController_balance"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/doctors/{id}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Account statement: cases, cleared payments and bounced cheques with a running balance */
+        get: operations["LedgerController_statement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cases/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payments bound to a case with its paid / remaining amounts */
+        get: operations["LedgerController_casePayments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/debts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Doctors with a balance, largest first, with the four summary figures */
+        get: operations["LedgerController_debts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ledger/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Figures for Home: received this month, owed to the lab, cheques */
+        get: operations["LedgerController_summary"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -959,6 +1145,23 @@ export interface components {
             unitPrice?: number;
             note?: string | null;
         };
+        ChequeInput: {
+            chequeNo: string;
+            bank: string;
+            /** @example 2026-12-01 */
+            dueDate: string;
+        };
+        AdvancePaymentInput: {
+            /** @enum {string} */
+            method: "cash" | "cheque" | "transfer";
+            /** @description Integer minor units, at least 1 */
+            amount: number;
+            /** @description Default: today (lab time zone); never in the future */
+            paidAt?: string;
+            notes?: string | null;
+            /** @description Required for method=cheque, forbidden otherwise */
+            cheque?: components["schemas"]["ChequeInput"];
+        };
         CreateCaseRequest: {
             doctorId: number;
             patientName: string;
@@ -982,6 +1185,8 @@ export interface components {
             discount: number;
             notes?: string | null;
             lines: components["schemas"]["CaseLineInput"][];
+            /** @description Advance payment (SPEC 5.3), created with the case in one transaction and bound to it. Needs the Idempotency-Key header and the payments.write permission. */
+            advance?: components["schemas"]["AdvancePaymentInput"];
         };
         CaseLineResponse: {
             id: number;
@@ -1008,6 +1213,88 @@ export interface components {
             note: string | null;
             deliveredDate: string | null;
         };
+        CaseRef: {
+            id: number;
+            caseNo: number;
+        };
+        ChequeResponse: {
+            id: number;
+            chequeNo: string;
+            bank: string;
+            dueDate: string;
+            /** @enum {string} */
+            status: "pending" | "cleared" | "returned";
+            statusDate: string | null;
+            /**
+             * @description Computed with the lab today
+             * @enum {string}
+             */
+            dueState: "none" | "soon" | "overdue";
+            /** @description Statuses the cheque may move to now */
+            allowedStatuses: ("pending" | "cleared" | "returned")[];
+            rowVersion: number;
+        };
+        PaymentResponse: {
+            id: number;
+            /** @example IN-000001 */
+            voucherNo: string;
+            doctor: components["schemas"]["Ref"];
+            case: components["schemas"]["CaseRef"] | null;
+            /** @enum {string} */
+            method: "cash" | "cheque" | "transfer";
+            /** @description Integer minor units */
+            amount: number;
+            currencyCode: string;
+            paidAt: string;
+            notes: string | null;
+            /** @enum {string} */
+            status: "active" | "void";
+            voidReason: string | null;
+            /** Format: date-time */
+            voidedAt: string | null;
+            /** @description Counts towards the doctor received amount now (SPEC 7.4) */
+            counted: boolean;
+            cheque: components["schemas"]["ChequeResponse"] | null;
+            rowVersion: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CreateCaseResponse: {
+            id: number;
+            caseNo: number;
+            doctor: components["schemas"]["Ref"];
+            patientName: string;
+            technician: components["schemas"]["Ref"] | null;
+            receivedDate: string;
+            expectedDate: string;
+            deliveredDate: string | null;
+            /** @enum {string} */
+            status: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled";
+            /** @description Integer minor units */
+            total: number;
+            /** @description Computed with the lab’s today (time zone setting) */
+            overdue: boolean;
+            rowVersion: number;
+            /** @description Integer minor units */
+            subtotal: number;
+            /** @description Bound payments that count + the case FIFO share of unbound ones */
+            paid: number;
+            /** @description total - paid; 0 for a cancelled case */
+            remaining: number;
+            /** @description Integer minor units */
+            discount: number;
+            notes: string | null;
+            lines: components["schemas"]["CaseLineResponse"][];
+            history: components["schemas"]["CaseHistoryResponse"][];
+            /** @description Statuses this case may move to now (POST /cases/{id}/status); empty when none */
+            allowedStatuses: ("waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled")[];
+            /** @description true when POST /cases/{id}/cancel is allowed now */
+            canCancel: boolean;
+            /** @description true when header and lines may be edited (not cancelled) */
+            canEdit: boolean;
+            /** @description The advance payment, if one was sent */
+            advancePayment: components["schemas"]["PaymentResponse"] | null;
+        };
         CaseDetailResponse: {
             id: number;
             caseNo: number;
@@ -1026,6 +1313,10 @@ export interface components {
             rowVersion: number;
             /** @description Integer minor units */
             subtotal: number;
+            /** @description Bound payments that count + the case FIFO share of unbound ones */
+            paid: number;
+            /** @description total - paid; 0 for a cancelled case */
+            remaining: number;
             /** @description Integer minor units */
             discount: number;
             notes: string | null;
@@ -1078,6 +1369,197 @@ export interface components {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
             rowVersion: number;
             reason?: string | null;
+        };
+        CreatePaymentRequest: {
+            /** @enum {string} */
+            method: "cash" | "cheque" | "transfer";
+            /** @description Integer minor units, at least 1 */
+            amount: number;
+            /** @description Default: today (lab time zone); never in the future */
+            paidAt?: string;
+            notes?: string | null;
+            /** @description Required for method=cheque, forbidden otherwise */
+            cheque?: components["schemas"]["ChequeInput"];
+            doctorId: number;
+            /** @description Bind to a case of this doctor */
+            caseId?: number | null;
+        };
+        PaymentResultResponse: {
+            payment: components["schemas"]["PaymentResponse"];
+            /** @description The doctor balance after this change; positive = owed to the lab */
+            doctorBalance: number;
+        };
+        PaymentTotals: {
+            /** @description Sum of counted payments of the filtered set */
+            counted: number;
+            /** @description Sum of cheques still pending in the filtered set */
+            pendingCheques: number;
+        };
+        PaymentPage: {
+            page: number;
+            pageSize: number;
+            total: number;
+            items: components["schemas"]["PaymentResponse"][];
+            totals: components["schemas"]["PaymentTotals"];
+        };
+        ChequeHistoryResponse: {
+            /** @enum {string|null} */
+            fromStatus: "pending" | "cleared" | "returned" | null;
+            /** @enum {string} */
+            toStatus: "pending" | "cleared" | "returned";
+            statusDate: string;
+            /** Format: date-time */
+            at: string;
+            note: string | null;
+        };
+        PaymentDetailResponse: {
+            id: number;
+            /** @example IN-000001 */
+            voucherNo: string;
+            doctor: components["schemas"]["Ref"];
+            case: components["schemas"]["CaseRef"] | null;
+            /** @enum {string} */
+            method: "cash" | "cheque" | "transfer";
+            /** @description Integer minor units */
+            amount: number;
+            currencyCode: string;
+            paidAt: string;
+            notes: string | null;
+            /** @enum {string} */
+            status: "active" | "void";
+            voidReason: string | null;
+            /** Format: date-time */
+            voidedAt: string | null;
+            /** @description Counts towards the doctor received amount now (SPEC 7.4) */
+            counted: boolean;
+            cheque: components["schemas"]["ChequeResponse"] | null;
+            rowVersion: number;
+            /** Format: date-time */
+            createdAt: string;
+            chequeHistory: components["schemas"]["ChequeHistoryResponse"][];
+        };
+        VoidPaymentRequest: {
+            /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
+            rowVersion: number;
+            reason: string;
+        };
+        ChequePage: {
+            page: number;
+            pageSize: number;
+            total: number;
+            /** @description The payment of each cheque, cheque included */
+            items: components["schemas"]["PaymentResponse"][];
+        };
+        ChequeStatusCounts: {
+            pending: number;
+            cleared: number;
+            returned: number;
+        };
+        ChequeSummaryResponse: {
+            byStatus: components["schemas"]["ChequeStatusCounts"];
+            /** @description Pending, due within 7 days (lab today) */
+            dueSoon: number;
+            /** @description Pending and past due */
+            overdue: number;
+            /** @description Sum of pending cheques */
+            pendingAmount: number;
+        };
+        ChangeChequeStatusRequest: {
+            /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
+            rowVersion: number;
+            /** @enum {string} */
+            status: "pending" | "cleared" | "returned";
+            /** @description Default today; between the payment date and today */
+            statusDate?: string;
+            note?: string | null;
+        };
+        DoctorBalanceResponse: {
+            doctorId: number;
+            /** @description Signed, minor units */
+            openingBalance: number;
+            /** @description Opening balance + sum of non-cancelled case totals */
+            charges: number;
+            /** @description Sum of counted payments */
+            received: number;
+            /** @description Sum of pending cheques (not in received) */
+            pendingCheques: number;
+            /** @description Positive = owed to the lab; negative = the lab owes the doctor */
+            balance: number;
+            /** @enum {string} */
+            direction: "owed_to_lab" | "owed_by_lab" | "settled";
+        };
+        StatementLineResponse: {
+            date: string;
+            /** @enum {string} */
+            kind: "case" | "payment" | "cheque_return";
+            /** @description Case id or payment id */
+            refId: number;
+            /** @description Case number or voucher number */
+            ref: string;
+            /** @description Integer minor units */
+            debit: number;
+            /** @description Integer minor units */
+            credit: number;
+            /** @description Balance after this line, over all of the doctor history */
+            running: number;
+        };
+        StatementResponse: {
+            page: number;
+            pageSize: number;
+            total: number;
+            /** @description Doctor opening balance (before any case) */
+            openingBalance: number;
+            /** @description Balance just before the period */
+            periodOpening: number;
+            /** @description Balance at the end of the period */
+            closing: number;
+            lines: components["schemas"]["StatementLineResponse"][];
+        };
+        CasePaymentsResponse: {
+            caseId: number;
+            total: number;
+            /** @description Bound payments that count + the case FIFO share of unbound ones */
+            paid: number;
+            remaining: number;
+            /** @description Payments bound to the case (any status) */
+            payments: components["schemas"]["PaymentResponse"][];
+        };
+        DebtSummaryResponse: {
+            /** @description Doctors with a balance other than zero */
+            parties: number;
+            owedToLab: number;
+            owedByLab: number;
+            /** @description owedToLab minus owedByLab */
+            net: number;
+        };
+        DebtItem: {
+            doctor: components["schemas"]["Ref"];
+            active: boolean;
+            balance: number;
+            /** @enum {string} */
+            direction: "owed_to_lab" | "owed_by_lab" | "settled";
+            pendingCheques: number;
+        };
+        DebtsResponse: {
+            page: number;
+            pageSize: number;
+            total: number;
+            summary: components["schemas"]["DebtSummaryResponse"];
+            items: components["schemas"]["DebtItem"][];
+        };
+        LedgerSummaryResponse: {
+            /** @description Counted payments in the current month (lab time zone) */
+            receivedThisMonth: number;
+            /** @description All counted payments */
+            receivedTotal: number;
+            /** @description Sum of positive doctor balances */
+            owedToLab: number;
+            pendingChequesCount: number;
+            pendingChequesAmount: number;
+            /** @description Pending cheques due within 7 days */
+            chequesDueSoon: number;
+            /** @description Pending cheques past due */
+            chequesOverdue: number;
         };
         FieldError: {
             /**
@@ -2407,7 +2889,10 @@ export interface operations {
     CasesController_create: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                /** @description Required when "advance" is sent (a UUID per attempt); a replay returns the original case (200) */
+                "Idempotency-Key"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -2417,15 +2902,24 @@ export interface operations {
             };
         };
         responses: {
+            /** @description Replay of an advance request with the same key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateCaseResponse"];
+                };
+            };
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CaseDetailResponse"];
+                    "application/json": components["schemas"]["CreateCaseResponse"];
                 };
             };
-            /** @description error.validation.failed | error.case.* (dates, line position) */
+            /** @description error.validation.failed | error.case.* (dates, line position) | error.idempotency.required | error.payment.* */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -2434,7 +2928,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description error.case.*_inactive | error.case.discount_exceeds_subtotal */
+            /** @description error.case.*_inactive | error.case.discount_exceeds_subtotal | error.payment.exceeds_case_total */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -2695,6 +3189,428 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    PaymentsController_list: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                doctorId?: number;
+                caseId?: number;
+                method?: "cash" | "cheque" | "transfer";
+                status?: "active" | "void";
+                /** @description true: only payments that count now; false: only those that do not */
+                counted?: boolean;
+                /** @description Payment date from (inclusive) */
+                from?: string;
+                /** @description Payment date to (inclusive) */
+                to?: string;
+                /** @description Voucher number, doctor name or cheque number */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentPage"];
+                };
+            };
+        };
+    };
+    PaymentsController_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A UUID per attempt; a replay returns the original result (200) instead of a duplicate */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Replay of an earlier request with the same key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentResultResponse"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentResultResponse"];
+                };
+            };
+            /** @description error.validation.failed | error.idempotency.required | error.payment.* */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.not_found (doctor or case) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.payment.case_doctor_mismatch | case_cancelled | exceeds_case_total | error.cheque.duplicate */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.idempotency.mismatch */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    PaymentsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentDetailResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    PaymentsController_void: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidPaymentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentResultResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.payment.already_void | error.concurrency.stale */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    ChequesController_list: {
+        parameters: {
+            query?: {
+                doctorId?: number;
+                /** @description Due date from (inclusive) */
+                dueFrom?: string;
+                /** @description Due date to (inclusive) */
+                dueTo?: string;
+                /** @description Pending cheques due within 7 days / past due */
+                due?: "soon" | "overdue";
+                /** @description Cheque number, bank, doctor name or voucher number */
+                search?: string;
+                status?: "pending" | "cleared" | "returned";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChequePage"];
+                };
+            };
+        };
+    };
+    ChequesController_summary: {
+        parameters: {
+            query?: {
+                doctorId?: number;
+                /** @description Due date from (inclusive) */
+                dueFrom?: string;
+                /** @description Due date to (inclusive) */
+                dueTo?: string;
+                /** @description Pending cheques due within 7 days / past due */
+                due?: "soon" | "overdue";
+                /** @description Cheque number, bank, doctor name or voucher number */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChequeSummaryResponse"];
+                };
+            };
+        };
+    };
+    ChequesController_changeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeChequeStatusRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentResultResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.cheque.invalid_transition | error.cheque.payment_void | error.concurrency.stale */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    LedgerController_balance: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoctorBalanceResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    LedgerController_statement: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                /** @description First day (inclusive) */
+                from?: string;
+                /** @description Last day (inclusive) */
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatementResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    LedgerController_casePayments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CasePaymentsResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    LedgerController_debts: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                direction?: "owed_to_lab" | "owed_by_lab" | "all";
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebtsResponse"];
+                };
+            };
+        };
+    };
+    LedgerController_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LedgerSummaryResponse"];
                 };
             };
         };
