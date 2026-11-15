@@ -90,10 +90,10 @@ test('Home before the first case: a friendly empty state with a button to add th
   await expect(banner.locator('[data-banner-mark]')).toBeVisible();
   await expect(banner).not.toContainText('بسمة');
   await expect(banner).not.toContainText('Basma');
-  // The action cards are there: two links, five «قريباً».
+  // The action cards are there: five links (B3 added payments, debts and cheques), two «قريباً».
   const cards = page.getByRole('region', { name: 'ماذا تريد أن تسجّل؟' });
-  await expect(cards.locator('a[href]')).toHaveCount(2);
-  await expect(cards.locator('[aria-disabled="true"]')).toHaveCount(5);
+  await expect(cards.locator('a[href]')).toHaveCount(5);
+  await expect(cards.locator('[aria-disabled="true"]')).toHaveCount(2);
   await expectAccessible(page);
   await shot(page, 'home-empty-ar', { fullPage: false });
   await page.getByRole('button', { name: /^English/ }).click();

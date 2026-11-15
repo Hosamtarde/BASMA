@@ -10,8 +10,6 @@ import {
   ScaleIcon,
   ToothIcon,
 } from '@/components/icons';
-import { formatNumber } from '@/i18n/format';
-import { currentLanguage } from '@/i18n/i18n';
 import { cn } from '@/lib/cn';
 
 type CardKey = 'newCase' | 'incoming' | 'outgoing' | 'debts' | 'cheques' | 'invoice' | 'doctors';
@@ -31,10 +29,10 @@ interface CardDef {
  */
 const CARDS: readonly CardDef[] = [
   { key: 'newCase', icon: <ToothIcon />, band: 'bg-band-1', to: '/cases/new' },
-  { key: 'incoming', icon: <IncomingIcon />, band: 'bg-band-2' },
+  { key: 'incoming', icon: <IncomingIcon />, band: 'bg-band-2', to: '/payments' },
   { key: 'outgoing', icon: <OutgoingIcon />, band: 'bg-band-3' },
-  { key: 'debts', icon: <ScaleIcon />, band: 'bg-band-4' },
-  { key: 'cheques', icon: <ChequeIcon />, band: 'bg-band-5' },
+  { key: 'debts', icon: <ScaleIcon />, band: 'bg-band-4', to: '/debts' },
+  { key: 'cheques', icon: <ChequeIcon />, band: 'bg-band-5', to: '/cheques' },
   { key: 'invoice', icon: <InvoiceIcon />, band: 'bg-band-6' },
   { key: 'doctors', icon: <DoctorsIcon />, band: 'bg-band-7', to: '/doctors' },
 ];
@@ -43,9 +41,9 @@ const card =
   'flex min-h-[214px] flex-col items-center overflow-hidden rounded-[46px_46px_12px_12px] border border-border bg-card px-2.5 pt-[18px] text-center text-ink no-underline';
 
 /** «ماذا تريد أن تسجّل؟»: tall cards shaped like shade-guide tabs (direction A). */
-export function ActionCards({ figures }: { figures: Partial<Record<CardKey, number | undefined>> }) {
+/** `figures` are ready-made texts (a count or an amount with its currency sign), formatted by the caller. */
+export function ActionCards({ figures }: { figures: Partial<Record<CardKey, string | undefined>> }) {
   const { t } = useTranslation();
-  const lang = currentLanguage();
   return (
     <section aria-labelledby="actions-title">
       <h2 id="actions-title" className="mt-[26px] mb-3 text-[16px] font-extrabold">
@@ -81,9 +79,9 @@ export function ActionCards({ figures }: { figures: Partial<Record<CardKey, numb
                 {c.to ? (
                   figure !== undefined && (
                     <>
-                      <b className="num block text-[15px] font-extrabold">{formatNumber(figure, lang)}</b>{' '}
+                      <b className="num block text-[15px] font-extrabold">{figure}</b>{' '}
                       <small className="text-[12px] text-ink">
-                        {t(`home.actions.${c.key as 'newCase' | 'doctors'}.figure`)}
+                        {t(`home.actions.${c.key as 'newCase' | 'doctors' | 'incoming' | 'debts' | 'cheques'}.figure`)}
                       </small>
                     </>
                   )
