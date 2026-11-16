@@ -20,6 +20,8 @@ const row = (over: Partial<CaseSummary> = {}): CaseSummary => ({
   deliveredDate: null,
   status: 'design',
   total: 47000,
+  paid: 0,
+  remaining: 47000,
   overdue: false,
   rowVersion: 4,
   ...over,
@@ -84,6 +86,33 @@ describe('CasesPage: opening and acting on a case from the list', () => {
     expect(within(chips).getByRole('button', { name: 'قيد التصميم 3' })).toBeInTheDocument();
     expect(within(chips).getByRole('button', { name: 'ملغاة 1' })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /^المتأخرة فقط/ })).toBeInTheDocument();
+  });
+
+  it('shows paid and remaining per row (B4), «—» for a cancelled case, and no columns without ledger.read', async () => {
+    render([
+      row({ paid: 12000, remaining: 35000 }),
+      row({ id: 42, caseNo: 1289, status: 'cancelled', paid: 0, remaining: 0 }),
+      row({ id: 43, caseNo: 1290, paid: 47000, remaining: 0 }),
+    ]);
+    const table = await screen.findByRole('table', { name: 'الحالات' });
+    expect(await within(table).findByRole('columnheader', { name: 'المدفوع' })).toBeVisible();
+    expect(within(table).getByRole('columnheader', { name: 'المتبقي' })).toBeVisible();
+    const open = within(table).getByRole('link', { name: '1288' }).closest('tr')!;
+    expect(open.querySelector('[data-figure="paid"]')).toHaveTextContent('120.00 ₪');
+    expect(open.querySelector('[data-figure="remaining"]')).toHaveTextContent('350.00 ₪');
+    const cancelled = within(table).getByRole('link', { name: '1289' }).closest('tr')!;
+    expect(cancelled.querySelector('[data-figure="paid"]')).toHaveTextContent('—');
+    expect(cancelled.querySelector('[data-figure="remaining"]')).toHaveTextContent('—');
+    const settled = within(table).getByRole('link', { name: '1290' }).closest('tr')!;
+    expect(settled.querySelector('[data-figure="remaining"]')).toHaveTextContent('0.00 ₪');
+  });
+
+  it('leaves the paid and remaining columns out when the API sends null (no ledger.read)', async () => {
+    render([row({ paid: null, remaining: null })]);
+    const table = await screen.findByRole('table', { name: 'الحالات' });
+    await within(table).findByRole('link', { name: '1288' });
+    expect(within(table).queryByRole('columnheader', { name: 'المدفوع' })).toBeNull();
+    expect(within(table).queryByRole('columnheader', { name: 'المتبقي' })).toBeNull();
   });
 
   it('every row has a labelled «عرض / تعديل» link and the case number is a link', async () => {

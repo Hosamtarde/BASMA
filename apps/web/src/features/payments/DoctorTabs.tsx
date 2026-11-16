@@ -6,6 +6,7 @@ import { useOutletContext } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Spinner } from '@/components/ui/field';
+import { ExportButton } from '@/components/ui/export-button';
 import { Card, DataTable, Pager } from '@/components/ui/list';
 import { Td, Th } from '@/components/ui/table';
 import type { Doctor } from '@/features/doctors/api';
@@ -13,7 +14,7 @@ import { settingsQuery } from '@/features/shell/settings';
 import { todayIn } from '@/i18n/format';
 import { isIsoDate } from '@/lib/dates';
 import { useUrlState } from '@/lib/url-state';
-import { doctorBalanceQuery, paymentsQuery, statementQuery } from './api';
+import { doctorBalanceQuery, exportApi, paymentsQuery, statementQuery } from './api';
 import { PaymentRows, PaymentsHead } from './PaymentsPage';
 import { AddPaymentDialog, VoidPaymentDialog } from './PaymentDialogs';
 import { BalanceText, MoneyCell } from './parts';
@@ -121,6 +122,11 @@ export function DoctorStatementTab() {
             {t('statement.clearFilters')}
           </Button>
         )}
+        <ExportButton
+          needs={['ledger.read']}
+          label={t('statement.exportLabel')}
+          run={() => exportApi.statement(doctor.id, from, to)}
+        />
       </div>
       <p className="mb-3 text-[13px] text-muted">{t('statement.note')}</p>
       {!data ? (
@@ -150,6 +156,7 @@ export function DoctorStatementTab() {
                 <Th kind="number">{t('statement.date')}</Th>
                 <Th>{t('statement.type')}</Th>
                 <Th kind="number">{t('statement.reference')}</Th>
+                <Th>{t('statement.description')}</Th>
                 <Th kind="money">{t('statement.debit')}</Th>
                 <Th kind="money">{t('statement.credit')}</Th>
                 <Th kind="money">{t('statement.balance')}</Th>
@@ -160,7 +167,14 @@ export function DoctorStatementTab() {
               <tr key={`${l.kind}-${l.refId}-${i}`}>
                 <Td kind="number">{l.date}</Td>
                 <Td>{kind(l.kind)}</Td>
-                <Td kind="number">{l.ref}</Td>
+                <Td kind="number">{l.voucher ?? l.ref}</Td>
+                <Td autoDir className="text-muted">
+                  {l.kind === 'case'
+                    ? (l.patientName ?? '—')
+                    : [l.method ? t(`payments.methods.${l.method}`) : '', l.chequeNo ?? '', l.bank ?? '']
+                        .filter((x) => x !== '')
+                        .join(' · ')}
+                </Td>
                 <Td kind="money">{l.debit > 0 ? <MoneyCell minor={l.debit} /> : '—'}</Td>
                 <Td kind="money">{l.credit > 0 ? <MoneyCell minor={l.credit} /> : '—'}</Td>
                 <Td kind="money" className="font-bold">

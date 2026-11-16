@@ -4,7 +4,7 @@ import { api, unwrap } from '@/api/client';
 import type { components, paths } from '@/api/schema.gen';
 import { PAGE_SIZE } from '@/features/catalog/api';
 
-export type CaseSummary = components['schemas']['CaseSummaryResponse'];
+export type CaseSummary = components['schemas']['CaseListItemResponse'];
 export type CaseDetail = components['schemas']['CaseDetailResponse'];
 export type CreateCaseResponse = components['schemas']['CreateCaseResponse'];
 export type CaseLine = components['schemas']['CaseLineResponse'];

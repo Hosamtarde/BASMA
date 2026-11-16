@@ -1,6 +1,7 @@
 import { keepPreviousData, queryOptions } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import { api, unwrap } from '@/api/client';
+import { takeFile } from '@/api/download';
 import type { components, paths } from '@/api/schema.gen';
 import { PAGE_SIZE } from '@/features/catalog/api';
 
@@ -12,6 +13,8 @@ export type PaymentMethod = Payment['method'];
 export type PaymentStatus = Payment['status'];
 export type ChequeStatus = Cheque['status'];
 export type DoctorBalance = components['schemas']['DoctorBalanceResponse'];
+export type DebtBreakdown = components['schemas']['DebtBreakdownResponse'];
+export type ReceiptsSummary = components['schemas']['PaymentSummaryResponse'];
 export type DebtDirection = 'owed_to_lab' | 'owed_by_lab' | 'all';
 
 export const PAYMENT_METHODS: readonly PaymentMethod[] = ['cash', 'cheque', 'transfer'];
@@ -60,7 +63,15 @@ export const paymentKeys = {
   debts: ['payments', 'debts'] as const,
   debtList: (p: DebtListParams) => ['payments', 'debts', p] as const,
   summary: ['payments', 'summary'] as const,
+  breakdown: (doctorId: number, page: number) => ['payments', 'breakdown', doctorId, page] as const,
+  receipts: (p: ReceiptsParams) => ['payments', 'receipts', p] as const,
 };
+
+/** Open cases per page in the breakdown dialog. */
+export const BREAKDOWN_PAGE_SIZE = 10;
+
+/** The receipts summary uses the payments list filters except status and paging. */
+export type ReceiptsParams = Omit<PaymentListParams, 'status' | 'page'>;
 
 export const paymentsQuery = (p: PaymentListParams) =>
   queryOptions({
@@ -157,6 +168,85 @@ export const debtsQuery = (p: DebtListParams) =>
       ),
     placeholderData: keepPreviousData,
   });
+
+/** What makes up a doctor's balance (SPEC §5.11); ties out to `doctorBalanceQuery`. */
+export const debtBreakdownQuery = (doctorId: number, page: number) =>
+  queryOptions({
+    queryKey: paymentKeys.breakdown(doctorId, page),
+    queryFn: () =>
+      unwrap(
+        api.GET('/api/v1/doctors/{id}/debt-breakdown', {
+          params: { path: { id: doctorId }, query: { page, pageSize: BREAKDOWN_PAGE_SIZE } },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+
+/** «تقرير المقبوضات» figures: counted by method on the collection date, memo lines apart. */
+export const receiptsSummaryQuery = (p: ReceiptsParams) =>
+  queryOptions({
+    queryKey: paymentKeys.receipts(p),
+    queryFn: () =>
+      unwrap(
+        api.GET('/api/v1/payments/summary', {
+          params: {
+            query: {
+              search: p.search || undefined,
+              doctorId: p.doctorId,
+              method: p.method,
+              from: p.from,
+              to: p.to,
+            },
+          },
+        }),
+      ),
+    placeholderData: keepPreviousData,
+  });
+
+/** CSV files: built by the API from the same filters as the screen (see ExportButton). */
+export const exportApi = {
+  debts: (p: Pick<DebtListParams, 'search' | 'direction'>) =>
+    takeFile(
+      api.GET('/api/v1/exports/debts', {
+        params: { query: { search: p.search || undefined, direction: p.direction } },
+        parseAs: 'blob',
+      }),
+      'debts.csv',
+    ),
+  breakdown: (doctorId: number) =>
+    takeFile(
+      api.GET('/api/v1/exports/doctors/{id}/debt-breakdown', {
+        params: { path: { id: doctorId } },
+        parseAs: 'blob',
+      }),
+      'debt-breakdown.csv',
+    ),
+  statement: (doctorId: number, from: string, to: string) =>
+    takeFile(
+      api.GET('/api/v1/exports/doctors/{id}/statement', {
+        params: { path: { id: doctorId }, query: { from: from || undefined, to: to || undefined } },
+        parseAs: 'blob',
+      }),
+      'statement.csv',
+    ),
+  payments: (p: Omit<PaymentListParams, 'page'>) =>
+    takeFile(
+      api.GET('/api/v1/exports/payments', {
+        params: {
+          query: {
+            search: p.search || undefined,
+            doctorId: p.doctorId,
+            method: p.method,
+            status: p.status,
+            from: p.from,
+            to: p.to,
+          },
+        },
+        parseAs: 'blob',
+      }),
+      'payments.csv',
+    ),
+};
 
 export const ledgerSummaryQuery = queryOptions({
   queryKey: paymentKeys.summary,

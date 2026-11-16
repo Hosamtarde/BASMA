@@ -262,7 +262,8 @@
     "backToList": "Back to doctors",
     "sections": "Doctor account sections",
     "tabInfo": "Info",
-    "tabPrices": "Special prices"
+    "tabPrices": "Special prices",
+    "balance": "Balance"
   },
   "prices": {
     "intro": "A special price replaces the general price for this doctor on new case lines only; earlier lines keep their price.",
@@ -559,7 +560,9 @@
     "viewCase": "View / Edit case {{no}}",
     "more": "More actions for case {{no}}",
     "menuOpen": "Open case",
-    "menuNone": "No other actions available"
+    "menuNone": "No other actions available",
+    "paid": "Paid",
+    "remaining": "Remaining"
   },
   "caseDetails": {
     "title": "Case {{no}}",
@@ -788,7 +791,9 @@
     "opening": "Balance at the start",
     "closing": "Balance at the end",
     "empty": "No entries in this period.",
-    "note": "A cheque is shown on the day it was cleared; pending cheques are not part of the balance."
+    "note": "A cheque is shown on the day it was cleared; pending cheques are not part of the balance.",
+    "description": "Details",
+    "exportLabel": "Export CSV"
   },
   "doctorPayments": {
     "tab": "Payments",
@@ -810,5 +815,84 @@
     "amount": "Amount",
     "method": "Method",
     "status": "Status"
+  },
+  "export": {
+    "csv": "Export CSV",
+    "busy": "Exporting…",
+    "failed": "The file could not be created. Try again.",
+    "nothing": "There is nothing to export for these filters.",
+    "done_one": "The file was saved ({{count}} row).",
+    "done_other": "The file was saved ({{count}} rows)."
+  },
+  "breakdown": {
+    "title": "What {{name}} owes",
+    "intro": "Every amount below comes from case prices and payments. Open cases are paid oldest first.",
+    "balance": "Balance",
+    "charges": "Opening balance and case prices",
+    "received": "Payments received",
+    "pendingCheques": "Cheques pending collection (not counted)",
+    "openingLine": "Opening balance, still unpaid",
+    "openCases": "Cases with an amount due",
+    "caseNo": "Case no.",
+    "patient": "Patient",
+    "receivedDate": "Received",
+    "status": "Status",
+    "total": "Price",
+    "paid": "Paid",
+    "remaining": "Remaining",
+    "creditLine": "Credit held for the doctor",
+    "equation": "How it adds up",
+    "eqOpening": "Opening balance unpaid",
+    "eqCases": "Cases remaining",
+    "eqCredit": "Credit",
+    "eqBalance": "Balance",
+    "latestPayments": "Latest payments",
+    "allPayments": "All payments of this doctor",
+    "notCounted": "not counted yet",
+    "boundTo": "case {{no}}",
+    "statement": "Statement",
+    "doctorPage": "Doctor page",
+    "exportLabel": "Export CSV",
+    "nothingOwed": "Nothing is owed by this doctor.",
+    "creditOnly": "The lab holds credit for this doctor; there are no open cases.",
+    "loadError": "The breakdown could not be loaded.",
+    "pageLabel": "Open cases"
+  },
+  "receipts": {
+    "title": "Receipts summary",
+    "basis": "By collection date: cash and transfers on their payment date, cheques on the day they cleared.",
+    "counted": "Received",
+    "count_one": "{{count}} payment",
+    "count_other": "{{count}} payments",
+    "pending": "Cheques pending collection",
+    "voided": "Cancelled payments",
+    "last": "Last payment",
+    "none": "No receipts in this period.",
+    "exportLabel": "Export CSV"
+  },
+  "search": {
+    "open": "Search for a doctor or a case…",
+    "shortcut": "Ctrl K",
+    "title": "Search",
+    "label": "Search doctors, cases and payments",
+    "placeholder": "Doctor, patient, case number or voucher",
+    "hint": "Type at least two letters, or a number.",
+    "loading": "Searching…",
+    "empty": "No results for “{{q}}”.",
+    "emptyHint": "Try fewer words, or open the cases list to search there.",
+    "error": "The search failed.",
+    "closest": "Closest matches",
+    "groups": {
+      "doctors": "Doctors",
+      "cases": "Cases",
+      "payments": "Payments"
+    },
+    "viewAll": "Show all ({{count}})",
+    "inactive": "inactive",
+    "caseLine": "Case {{no}}",
+    "voided": "cancelled",
+    "count_one": "{{count}} result",
+    "count_other": "{{count}} results",
+    "description": "Looks in doctors, cases and payments. Use the arrow keys to choose and Enter to open."
   }
 }

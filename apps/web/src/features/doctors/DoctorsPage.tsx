@@ -16,6 +16,7 @@ import {
   StatusSelect,
   useListParams,
 } from '@/components/ui/list';
+import { BalanceText } from '@/features/payments/parts';
 import { Td, Th } from '@/components/ui/table';
 import { doctorApi, doctorKeys, doctorsQuery } from './api';
 import type { Doctor } from './api';
@@ -27,6 +28,8 @@ export function DoctorsPage() {
   const queryClient = useQueryClient();
   const list = useListParams();
   const { data } = useQuery(doctorsQuery({ search: list.search, active: list.active, page: list.page }));
+  // The balance column needs ledger.read; without it the API sends null and the column stays away.
+  const showBalance = data?.items.some((d) => d.balance !== null) ?? false;
   const [editing, setEditing] = useState<Doctor | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState<Doctor | null>(null);
@@ -78,6 +81,7 @@ export function DoctorsPage() {
               <Th>{t('doctors.name')}</Th>
               <Th>{t('doctors.clinic')}</Th>
               <Th kind="number">{t('doctors.phone')}</Th>
+              {showBalance && <Th kind="money">{t('doctors.balance')}</Th>}
               <Th>{t('list.status')}</Th>
               <Th kind="actions">
                 <span className="sr-only">{t('list.actions')}</span>
@@ -97,6 +101,15 @@ export function DoctorsPage() {
               </Td>
               <Td autoDir>{d.clinic}</Td>
               <Td kind="number">{d.phone}</Td>
+              {showBalance && (
+                <Td kind="money" data-figure="balance">
+                  {d.balance === null || d.direction === null ? (
+                    '—'
+                  ) : (
+                    <BalanceText balance={d.balance} direction={d.direction} />
+                  )}
+                </Td>
+              )}
               <Td>
                 <ActiveBadge active={d.active} />
               </Td>

@@ -14,6 +14,7 @@ import {
 } from '@/components/icons';
 import { meQuery } from '@/features/auth/api';
 import { changeLanguage, currentLanguage, rememberLanguage } from '@/i18n/i18n';
+import { GlobalSearch } from '@/features/search/GlobalSearch';
 import { AppShell } from './AppShell';
 import type { NavItem } from './AppShell';
 import { LabBrand } from './LabBrand';
@@ -70,6 +71,7 @@ export function ShellLayout() {
       brand={<LabBrand name={labNameFor(settings, lang)} logoUrl={logoUrl} logoAlt={t('shell.logoAlt')} />}
       nav={nav}
       navBottom={navBottom}
+      topBarStart={<GlobalSearch />}
       topBarEnd={
         <>
           <LanguageSwitch />

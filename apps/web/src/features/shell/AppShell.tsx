@@ -17,6 +17,8 @@ interface AppShellProps {
   nav: NavItem[];
   /** Pinned to the bottom of the sidebar (e.g. settings, once its slice ships). */
   navBottom?: NavItem[];
+  /** The start of the top bar: the global search. */
+  topBarStart?: ReactNode;
   /** Items at the end of the top bar: language switch, user menu. */
   topBarEnd: ReactNode;
   labels: { sidebar: string; mainNav: string; skipToContent: string };
@@ -49,7 +51,7 @@ function NavEntry({ item }: { item: NavItem }) {
  * Direction A shell: gradient sidebar on the reading-start side (right in Arabic), white top bar,
  * content on the surface colour. Layout uses logical properties only, so it mirrors in English.
  */
-export function AppShell({ brand, nav, navBottom = [], topBarEnd, labels, children }: AppShellProps) {
+export function AppShell({ brand, nav, navBottom = [], topBarStart, topBarEnd, labels, children }: AppShellProps) {
   return (
     <div className="grid min-h-dvh grid-cols-1 md:grid-cols-[252px_minmax(0,1fr)]">
       <a
@@ -78,7 +80,7 @@ export function AppShell({ brand, nav, navBottom = [], topBarEnd, labels, childr
       </aside>
       <div className="flex min-w-0 flex-col">
         <header className="sticky top-0 z-10 flex h-[65px] items-center gap-2.5 border-b border-border bg-card px-7">
-          <span className="flex-1" />
+          <div className="min-w-0 flex-1">{topBarStart}</div>
           {topBarEnd}
         </header>
         <main id="main" tabIndex={-1} className="flex-1 px-4 pt-2 pb-24 outline-none md:px-7">

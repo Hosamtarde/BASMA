@@ -216,7 +216,7 @@ describe('DebtsPage', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('shows the four figures, links each doctor to his statement and filters by direction in the address', async () => {
+  it('shows the four figures, opens the breakdown from a name, links the statement and filters by direction in the address', async () => {
     const seen: string[] = [];
     stubApi({
       'GET /api/v1/settings': () => json(200, settingsFixture()),
@@ -235,13 +235,13 @@ describe('DebtsPage', () => {
       },
     });
     const view = renderRoutes([{ path: '/debts', element: <DebtsPage /> }], '/debts');
-    expect(await screen.findByRole('link', { name: 'د. أحمد سالم' })).toHaveAttribute('href', '/doctors/7/statement');
+    expect(await screen.findByRole('link', { name: 'كشف حساب د. أحمد سالم' })).toHaveAttribute('href', '/doctors/7/statement');
     const cards = screen.getByRole('region', { name: 'الديون' });
     // The currency sign arrives with the settings.
     await waitFor(() => expect(cards).toHaveTextContent('800.00 ₪'));
     expect(cards).toHaveTextContent('50.00 ₪');
     expect(cards).toHaveTextContent('750.00 ₪');
-    const credit = screen.getByRole('link', { name: 'د. رنا' }).closest('tr')!;
+    const credit = screen.getByRole('button', { name: 'د. رنا' }).closest('tr')!;
     expect(credit).toHaveTextContent('مستحق عليّ');
     expect(credit).toHaveTextContent('50.00 ₪'); // shown without a sign: the badge says the direction
     await userEvent.click(screen.getByRole('button', { name: 'مستحق عليّ' }));
