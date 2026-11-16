@@ -589,7 +589,7 @@ CREATE TABLE audit_log (
 | Debts + per-doctor breakdown | «الديون» |
 | Doctor account statement (printable, date range) | doctor account / «إنشاء فاتورة → كشف حساب» |
 | Receipts report | «دفعة واردة» page |
-| Expenses report (by category) | «إنشاء دفعة صادرة» page |
+| Expenses report (by category) | «إنشاء دفعة صادرة» page — built in B4b (needs outgoing payments) |
 | Cases by status, overdue cases | Home / cases list |
 | Done-not-invoiced cases | «إنشاء فاتورة» |
 | Cheques due | Cheque register + notifications |
@@ -621,7 +621,8 @@ The look is agreed (§1.1, `docs/design-directions/`). Each slice delivers its A
 | F1 | Screens for B1: doctors (+ special prices), technicians, work types, expense categories, settings and logo | CRUD in both languages, axe clean |
 | F2 | Screens for B2: add case with the tooth chart (§1.1 rules), case list with filters and search, case details with status changes and cancel | Add → list → status → cancel works in both languages |
 | B3 | Payments in/out/void, cheques, idempotency, balance engine (`allocate`, `doctorBalance`) **+ their screens** | Exhaustive unit tests; numbers tie to hand calculations |
-| B4 | Debts + breakdown, doctor statement, receipts/expenses reports, CSV export, global search **+ screens** | Breakdown ties out to the ledger |
+| B4 | Debts + breakdown, doctor statement, receipts report, CSV export (debts, breakdown, statement, payments), global search **+ screens**. The **expenses report moved to B4b** (it needs outgoing payments, which B3 did not build) | Breakdown ties out to the ledger |
+| B4b | **Outgoing payments and expenses** (owner decision, B4 plan O1): «إنشاء دفعة صادرة» (§5.9) with `OUT-` vouchers, expense categories, refunds to doctors (`paid_out` of §7.3 and its rule in `allocate`), cheque direction in the register (§5.13), void for outgoing (§5.10), «تقرير المصاريف» by category with CSV (§10), Home «دفعة صادرة» card. Depends on B3 (payments, cheques, currency lock) and B4 (CSV module, tie-out test) — plan: `docs/plans/b4b-outgoing-expenses.md` | Expenses report ties to the payments; a refund leaves the tie-out of B4 intact |
 | B5 | Delivery flow, cheque status transitions, notifications feed **+ screens** | Cheque rules (§7.4) verified |
 | B6 | Invoices (3 types), immutable snapshots, void, template storage **+ invoice appearance and printing** | Snapshot never changes after later edits |
 | B7 | **Windows installer** (§2.1) including the UI (ADR-0017): bundled API + portable PostgreSQL as services, first-run setup, upgrade + rollback, scheduled backups & tested restore, uninstall that keeps data | Clean Windows VM: install → use → upgrade → restore works |

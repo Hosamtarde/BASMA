@@ -234,8 +234,8 @@ export function PaymentsPage() {
               {t('payments.clearFilters')}
             </Button>
           )}
-          <span className="flex-1" />
           <ExportButton
+            className="ms-auto"
             needs={['payments.read']}
             run={() => exportApi.payments(list)}
             disabledReason={data && data.total === 0 ? t('export.nothing') : null}

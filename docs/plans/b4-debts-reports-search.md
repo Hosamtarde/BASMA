@@ -1,6 +1,6 @@
 # B4 — Debts breakdown, reports, CSV export and global search (plan)
 
-Status: **proposed, waiting for the owner.** Planning only: no code and no migration is written yet.
+Status: **approved by the owner (defaults for O1–O11; O1 = option (b), O4 = no pg_trgm, O2 = comma) and built** on `feat/b4-debts-reports-search`; the last two sections record the measurements and the choices made while building. The expenses report is its own roadmap slice, B4b (`docs/plans/b4b-outgoing-expenses.md`, SPEC §11).
 Branch: `feat/b4-debts-reports-search` (from `main` after PR #11, B3).
 Sources read: SPEC §3, §4, §5.1/5.8/5.9/5.11/5.13/5.17, §6, §6.1, §7, §8, §10, §11, §12; CLAUDE.md; ENGINEERING_STANDARDS §4 (performance); `docs/production-readiness.md` (item 15, S10, S11, S12, S7/S8); `docs/plans/b3-payments.md`; ADR-0011 (installer, portable PostgreSQL); the skills money-ledger, db-migrations, feature-workflow, security-review and the `smile-artec-web-*` set; the B3 code (`LedgerService`, `LedgerRepository`, `payment-rules.ts`, `PaymentsRepository`, `CasesRepository`, `DoctorsRepository`, `DebtsPage`, `url-state.ts`, the demo seed).
 
@@ -121,6 +121,14 @@ The B3 statement (`GET /doctors/{id}/statement`) is correct (running balance ove
 - a **statement tie-out** (C above) is tested; if the B3 query turns out not to satisfy it for some history (for example a cheque cleared, returned, then voided), the fix is part of this slice and gets its own test.
 Patient names on the statement need `cases.read` as well; without it the field is omitted (null) and the line shows the case number only.
 Not in B4: print/PDF of the statement (B6 `كشف حساب`), statement language override.
+
+### 2.4 How to verify a CSV opens correctly in Excel with Arabic (owner confirmation of O2)
+The files are comma separated with a UTF-8 byte order mark. Whether Excel splits the columns on a double-click depends on the **list separator of the Windows regional settings**, which only the owner's computer can answer. Check once after the first export:
+1. Export «الديون» (any filter) from the program and **double-click** the saved file (do not use Data → From text).
+2. **Good:** five columns, Arabic headers readable (الطبيب · الاتجاه · المبلغ (ILS) · …), amounts right-aligned as numbers (select the amount column: the status bar shows a **Sum**), the doctor name starting with `=` or `@` shown as text with a leading `'` if one exists.
+3. **Everything in column A, or Arabic letters turned into `Ø§Ù„…`:** the separator is `;` or the BOM was dropped. Tell me, and the one constant `CSV_DELIMITER` in `apps/api/src/shared/csv/csv.ts` becomes `;` (the small CSV readers inside the e2e tests change with it). A BOM problem would come from a tool in between (some mail or chat programs rewrite files), not from the program.
+4. Also open «تفاصيل المبلغ» → «تصدير CSV»: select the **المتبقي** column; the Sum shown must equal the doctor's balance.
+The byte-level checks (BOM `EF BB BF`, CRLF, quoting, no thousands separators, `.` as decimal mark, Arabic round trip) are in the unit and e2e tests; only the regional-settings question needs a human at the real Excel. Production-readiness S15 stays open until this is done.
 
 ## 3. Receipts and expenses reports — **Needs owner decision O1**
 
@@ -292,3 +300,47 @@ Docs updated in the last commit: SPEC §10/§11 (expenses report moved, if O1 = 
 | O11 | Breakdown scope. | Unpaid and partly paid cases + opening + credit; fully paid cases are not listed (the statement shows them). | List every case with its paid status. |
 
 Credits still cannot be refunded in the app (S10) until the outgoing-payments slice, whichever way O1 goes.
+
+---
+
+## Measured numbers (stage 0 and after the build)
+
+All on this development machine (Windows 11, PostgreSQL 16 in Docker), `GET` through the real HTTP stack including authentication, the dataset of `test/support/large-dataset.ts` (500 doctors, 20 000 cases, 50 000 payments, cheques in every state, 2 % voided, ~3 % cancelled cases, one doctor with 5 000 cases and 10 000 payments; loaded in ~3 s). p50 / p95 in ms.
+
+| Request | Before B4 | After B4 |
+|---|---|---|
+| `GET /cases?pageSize=25` | 25 / 62 | **83 / 101** (with paid and remaining; target p95 ≤ 150) |
+| `GET /cases?pageSize=100` | — | 116 / 183 |
+| `GET /cases?doctorId=<heavy>&pageSize=25` | — | 58 / 130 |
+| statements per `GET /cases` at page size 5 / 25 / 100 | — | **7 / 7 / 7** (asserted equal) |
+| `GET /doctors?pageSize=25` | 9 / 16 | 22 / 31 (with balance) |
+| `GET /doctors/{normal}/balance` | 14 / 23 | — |
+| `GET /doctors/{heavy}/balance` | 61 / 106 | — |
+| `GET /doctors/{heavy}/debt-breakdown` | — | 83 / 131 |
+| `GET /doctors/{normal}/debt-breakdown` | — | 13 / 20 |
+| `GET /payments/summary` (two years) | — | 45 / 51 |
+| `GET /debts` | 27 / 50 | 28 / 38 |
+
+**Search (the O4 gate was p95 > 100 ms):** with the folded `ILIKE` and no new schema, `GET /search` measured p95 **143 ms** (a text matching about half of the cases), 67 ms (no match anywhere), 65 ms (case number), 66 ms (voucher) and **230 ms** (two words, "closest" tiers). The cost was not the scan but running `translate(lower(…))` on every row (~50 ms per pass over the cases). So the gate was crossed and migration 0006 was added, **but without `pg_trgm`**: two generated stored columns hold the folded text (`cases.patient_search`, `doctors.search_text`), computed once per write. Measured on the same data: wide match 57 → 8 ms, no match 47 → 5 ms (per SQL statement); end to end `GET /search` p95 is now **19 ms** (wide match), 11 ms (no match), 14 ms (case number), 24 ms (voucher), 26 ms (closest tiers). A trigram index on top of the column gave a further ~4 ms on a no-match scan, not worth an installer dependency. The conclusion for production-readiness #15 is recorded there.
+
+Not measured: Excel on the owner's computer (§2.4), the portable PostgreSQL build (no extension is needed now), a LAN or several users.
+
+## Decisions taken while unattended
+
+Written during the build, after the owner approved the plan ("defaults are fine" for O1–O11 with the three confirmations above) and asked for stage 0, the backend and the web to run back to back. Each is the safest default and easy to change.
+
+1. **Migration 0006 = generated columns, not `pg_trgm`.** The owner's rule was "add 0006 only if p95 > 100 ms"; the measurement crossed it, so 0006 exists. The plan's outline for 0006 was the trigram variant; the measurements showed that the cost was the per-row function, so the smaller change (two generated columns, no extension, no new index) was taken. O4's "no pg_trgm and no new index" still holds. Migration 0005 (permissions `exports.run`, `search.use`) is as planned.
+2. **The paid / remaining of `GET /cases` is `null` without `ledger.read`**, and the web drops the two columns; the doctors list balance behaves the same. (Plan §4, O8.)
+3. **A route can require several permissions** (`@AlsoRequire(...)`, enforced by the same guard, tested): reading plus `exports.run`, and `cases.read` for the breakdown and its CSV. Plan §2.1, O7.
+4. **The statement CSV omits patient names without `cases.read`** (the description of a case line is empty), instead of refusing the export; the statement screen does the same (`patientName: null`).
+5. **Export audit entries keep filters as flat `filter_<name>` params**; search text is stored only as `filter_hasSearch`. The entry is written in its own transaction after the file is built and before it is sent; if it cannot be written the response is a 500 and no file leaves (tested with a failing trigger).
+6. **Export caps are test seams** (`ExportsService.rowLimit`, `ratePerMinute`), constants in production. The rate limit is in memory per process (production-readiness #13), keyed by user id.
+7. **The receipts summary reads by collection date** (O3) and the page says so in words; the table below keeps filtering by voucher date as in B3.
+8. **Demo data:** the B4 ledger extras (negative opening balance, 30 open cases, credit left by a cancelled case, four spelling variants) are an option (`seedDemo({ extras: true })`, `DEMO_EXTRAS=1`, `E2E_SEED_DEMO_EXTRAS=1`; on for `npm run demo`) so the base demo keeps its 15 doctors and 40 cases and Home's exact-figure tests are unchanged. The API tie-out test runs with the extras (22 doctors).
+9. **The breakdown dialog is URL-driven** (`?doctor=<id>&bp=<page>`); closing it removes both. A doctor's name in «الديون» is now a button (opens the dialog) and the statement is a link in the row; the B3 unit and e2e tests that expected the name to be a statement link were updated for this.
+10. **A failed breakdown or search load is shown inside its dialog** (alert + retry), not as the route error page.
+11. **Search:** doctor name is not a payment match (the doctors group covers it); a one-word query with no match has no "closest" tier (no typo tolerance, S17); the shortcut «/» is ignored while typing in a field.
+12. **Narrow screens:** the cases, doctors, payments and debts lists scroll sideways at 390 px in RTL (found while testing; production-readiness S14, not changed in B4). The new dialogs are tested to fit the screen.
+13. **`GET /cases` and `GET /doctors` response types changed names in OpenAPI** (`CaseListItemResponse`, `DoctorListItemResponse`, extra nullable fields; additive for clients). The web fixtures of the existing list tests got the new fields.
+14. **Test machine note:** the web unit tests must be started from a shell whose working directory is spelled `c:/Projects/...` (when started from a shell whose directory was spelled `/c/Projects/...`, Vitest reported "failed to find the current suite" for every file, apparently because it sees `C:` and `c:` as different paths; the same command passed from `c:/Projects/...`); not a product issue.
+15. **Playwright ran against a throwaway PostgreSQL container** (`b4-e2e-pg`, removed afterwards), never the development database; the API integration and e2e suites use Testcontainers as before.
