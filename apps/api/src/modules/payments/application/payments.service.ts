@@ -302,6 +302,11 @@ export class PaymentsService {
     };
   }
 
+  async receiptsSummary(f: Omit<PaymentFilter, 'status' | 'counted'>) {
+    const r = await this.repo.receiptsSummary(this.db, f);
+    return { ...r, last: r.last ? { ...r.last, voucherNo: formatVoucher(r.last.voucherNo) } : null, basis: 'effective' as const };
+  }
+
   /** Void, never delete (SPEC §7.6). A cleared cheque may be voided too (D9); it reverses its income. */
   async void(id: number, rowVersion: number, reason: string, userId: number): Promise<PaymentResult> {
     const doctorId = await this.repo.doctorIdOf(this.db, id);

@@ -4,7 +4,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { DomainError } from '../../../shared/errors/domain-error';
 import { AuthGuard } from './auth.guard';
-import { AuthenticatedRequest, IS_PUBLIC, REQUIRED_PERMISSION } from './auth.decorators';
+import { AuthenticatedRequest, IS_PUBLIC, REQUIRED_PERMISSION, ALSO_REQUIRED_PERMISSIONS } from './auth.decorators';
 
 const SECRET = 'unit-test-secret-unit-test-secret-1234';
 
@@ -68,5 +68,15 @@ describe('AuthGuard', () => {
     const { ctx, req } = contextFor(meta, `Bearer ${await token(['payments.void'])}`);
     await expect(guard.canActivate(ctx)).resolves.toBe(true);
     expect(req.user).toEqual({ id: 7, permissions: ['payments.void'] });
+  });
+
+  it('requires every extra permission too (read is not enough to export)', async () => {
+    const meta = { [REQUIRED_PERMISSION]: 'payments.read', [ALSO_REQUIRED_PERMISSIONS]: ['exports.run'] };
+    expect(
+      await codeOf(guard.canActivate(contextFor(meta, `Bearer ${await token(['payments.read'])}`).ctx)),
+    ).toBe('error.auth.forbidden');
+    await expect(
+      guard.canActivate(contextFor(meta, `Bearer ${await token(['payments.read', 'exports.run'])}`).ctx),
+    ).resolves.toBe(true);
   });
 });

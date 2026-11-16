@@ -146,6 +146,61 @@ export function allocate(
   return { cases: result, openingRemaining, credit: pool + Math.max(-opening, 0) };
 }
 
+export interface OpenCase extends LedgerCase {
+  paid: number;
+  remaining: number;
+}
+
+export interface Breakdown {
+  /** Non-cancelled cases that still owe something, oldest first (the FIFO order of `allocate`). */
+  openCases: OpenCase[];
+  openingRemaining: number;
+  /** Σ remaining of every open case, not of a page. */
+  casesRemaining: number;
+  credit: number;
+  balance: number;
+  /** openingRemaining + casesRemaining − credit === balance (SPEC §5.11 tie-out). */
+  tiesOut: boolean;
+}
+
+/**
+ * The debts breakdown of one doctor (B4): what makes up his balance. The tie-out
+ * `openingRemaining + Σ remaining − credit = balance` is proven in docs/plans/b4-debts-reports-search.md §1.2
+ * and checked here so a caller can refuse to show numbers that do not add up.
+ */
+export function breakdown(
+  opening: number,
+  cases: readonly LedgerCase[],
+  counted: readonly CountedPayment[],
+): Breakdown {
+  const allocation = allocate(opening, cases, counted);
+  const live = cases
+    .filter((c) => !c.cancelled)
+    .sort((a, b) => a.receivedDate.localeCompare(b.receivedDate) || a.caseNo - b.caseNo);
+  const openCases: OpenCase[] = [];
+  let casesRemaining = 0;
+  for (const c of live) {
+    const share = allocation.cases.get(c.id);
+    if (share && share.remaining > 0) {
+      openCases.push({ ...c, paid: share.paid, remaining: share.remaining });
+      casesRemaining += share.remaining;
+    }
+  }
+  const balance = doctorBalance(
+    opening,
+    cases,
+    counted.reduce((sum, p) => sum + p.amount, 0),
+  );
+  return {
+    openCases,
+    openingRemaining: allocation.openingRemaining,
+    casesRemaining,
+    credit: allocation.credit,
+    balance,
+    tiesOut: allocation.openingRemaining + casesRemaining - allocation.credit === balance,
+  };
+}
+
 export type BalanceDirection = 'owed_to_lab' | 'owed_by_lab' | 'settled';
 
 export const directionOf = (balance: number): BalanceDirection =>

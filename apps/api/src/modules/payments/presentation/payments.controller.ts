@@ -27,13 +27,15 @@ import type { Response } from 'express';
 import { markReplay, requireIdempotencyKey } from '../../../shared/http/idempotency';
 import { ParseIdPipe } from '../../../shared/http/parse-id.pipe';
 import { Permission } from '../../identity/domain/permissions';
-import { CurrentUser, RequirePermission } from '../../identity/presentation/auth.decorators';
+import { AlsoRequire, CurrentUser, RequirePermission } from '../../identity/presentation/auth.decorators';
 import type { AuthUser } from '../../identity/presentation/auth.decorators';
 import { ChequesService } from '../application/cheques.service';
 import { LedgerService } from '../application/ledger.service';
 import { PaymentResult, PaymentsService, PaymentView } from '../application/payments.service';
 import {
+  BreakdownQuery,
   CasePaymentsResponse,
+  DebtBreakdownResponse,
   ChangeChequeStatusRequest,
   ChequeListQuery,
   ChequeFilterQuery,
@@ -49,6 +51,8 @@ import {
   PaymentPage,
   PaymentResponse,
   PaymentResultResponse,
+  PaymentSummaryQuery,
+  PaymentSummaryResponse,
   StatementQuery,
   StatementResponse,
   VoidPaymentRequest,
@@ -155,6 +159,15 @@ export class PaymentsController {
     const { page, pageSize, ...filter } = q;
     const r = await this.service.list(definedOnly(filter), page, pageSize);
     return { ...r, items: r.items.map(toPaymentResponse) };
+  }
+
+  // Declared before ':id' so "summary" is never read as an id.
+  @Get('summary')
+  @RequirePermission(Permission.PaymentsRead)
+  @ApiOperation({ summary: 'Receipts report figures: counted by method, pending cheques, voided, last payment' })
+  @ApiOkResponse({ type: PaymentSummaryResponse })
+  async summary(@Query() q: PaymentSummaryQuery): Promise<PaymentSummaryResponse> {
+    return this.service.receiptsSummary(definedOnly(q));
   }
 
   @Get(':id')
@@ -273,6 +286,21 @@ export class LedgerController {
     return this.ledger.balance(id);
   }
 
+  @Get('doctors/:id/debt-breakdown')
+  @RequirePermission(Permission.LedgerRead)
+  @AlsoRequire(Permission.CasesRead)
+  @ApiOperation({
+    summary: 'What makes up the balance: unpaid opening balance, open cases, credit, and the tie-out',
+  })
+  @ApiOkResponse({ type: DebtBreakdownResponse })
+  @ApiNotFoundResponse({ description: 'error.not_found' })
+  async debtBreakdown(
+    @Param('id', ParseIdPipe) id: number,
+    @Query() q: BreakdownQuery,
+  ): Promise<DebtBreakdownResponse> {
+    return this.ledger.debtBreakdown(id, q.page, q.pageSize);
+  }
+
   @Get('doctors/:id/statement')
   @RequirePermission(Permission.LedgerRead)
   @ApiOperation({
@@ -283,8 +311,12 @@ export class LedgerController {
   async statement(
     @Param('id', ParseIdPipe) id: number,
     @Query() q: StatementQuery,
+    @CurrentUser() user: AuthUser,
   ): Promise<StatementResponse> {
-    return this.ledger.statement(id, q.from, q.to, q.page, q.pageSize);
+    const r = await this.ledger.statement(id, q.from, q.to, q.page, q.pageSize);
+    if (user.permissions.includes(Permission.CasesRead)) return r;
+    // Patient names need cases.read (production-readiness #19).
+    return { ...r, lines: r.lines.map((l) => ({ ...l, patientName: null })) };
   }
 
   @Get('cases/:id/payments')

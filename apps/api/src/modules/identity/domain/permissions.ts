@@ -20,6 +20,10 @@ export const Permission = {
   ChequesRead: 'cheques.read',
   ChequesWrite: 'cheques.write',
   LedgerRead: 'ledger.read',
+  /** Take data out as a file (CSV); on top of the permission to read it (B4). */
+  ExportsRun: 'exports.run',
+  /** Global search; each result group also needs its own read permission (B4). */
+  SearchUse: 'search.use',
 } as const;
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];
