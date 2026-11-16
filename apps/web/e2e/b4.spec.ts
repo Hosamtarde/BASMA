@@ -82,7 +82,7 @@ async function openBreakdown(page: Page, s: Seed, lang: 'ar' | 'en') {
 async function readDownload(d: Download) {
   const path = await d.path();
   const raw = readFileSync(path);
-  const text = raw.toString('utf8').replace(/^﻿/, '');
+  const text = raw.toString('utf8').replace(/^\uFEFF/, '');
   const rows: string[][] = [];
   let row: string[] = [];
   let cell = '';

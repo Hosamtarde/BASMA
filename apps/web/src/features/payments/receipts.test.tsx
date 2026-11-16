@@ -112,7 +112,7 @@ describe('Doctor statement (B4): readable lines and the CSV button', () => {
         }),
       'GET /api/v1/exports/doctors/7/statement': (req) => {
         exportUrl = new URL(req.url).search;
-        return new Response('﻿x', { headers: { 'Content-Disposition': 'attachment; filename="s.csv"', 'X-Export-Rows': '2' } });
+        return new Response('\uFEFFx', { headers: { 'Content-Disposition': 'attachment; filename="s.csv"', 'X-Export-Rows': '2' } });
       },
     });
     URL.createObjectURL = vi.fn(() => 'blob:s');

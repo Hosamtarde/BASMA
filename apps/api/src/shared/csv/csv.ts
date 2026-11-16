@@ -1,7 +1,7 @@
 import { toMoneyInput } from '@app/shared';
 
 /** UTF-8 byte order mark: Excel needs it to read Arabic text correctly (SPEC §10). */
-export const BOM = '﻿';
+export const BOM = '\uFEFF';
 export const CSV_DELIMITER = ',';
 const EOL = '\r\n';
 

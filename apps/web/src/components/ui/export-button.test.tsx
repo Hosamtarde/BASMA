@@ -13,7 +13,7 @@ vi.mock('sonner', () => ({ toast }));
 
 const me = (permissions: string[]) => () =>
   json(200, { id: 1, username: 'owner', permissions, mustChangePassword: false });
-const BOM_CSV = '﻿الطبيب,المبلغ\r\nد. أحمد,12.30\r\n';
+const BOM_CSV = '\uFEFFالطبيب,المبلغ\r\nد. أحمد,12.30\r\n';
 const csv = () =>
   new Response(BOM_CSV, {
     status: 200,
