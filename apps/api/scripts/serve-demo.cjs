@@ -27,5 +27,7 @@ url.pathname = `/${name}_showcase_e2e`;
 process.env.E2E_DATABASE_URL = url.toString();
 process.env.E2E_SEED_OWNER_PASSWORD = password;
 process.env.E2E_SEED_DEMO = '1';
+// The dev demo also gets the B4 ledger extras (negative opening, 30 open cases, credit, spelling variants).
+process.env.E2E_SEED_DEMO_EXTRAS = '1';
 process.env.E2E_PORT = process.env.DEMO_PORT ?? '4330';
 require('./serve-e2e.cjs');

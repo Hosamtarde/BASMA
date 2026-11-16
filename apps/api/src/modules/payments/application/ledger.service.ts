@@ -125,8 +125,9 @@ export class LedgerService {
    * that still owes something, the credit, and the proof that they add up to `GET /doctors/{id}/balance`.
    * Refuses to answer (500, logged) if they do not: wrong numbers must never reach the screen.
    */
-  async debtBreakdown(doctorId: number, page: number, pageSize: number) {
-    const input = await this.repo.doctorInput(this.db, doctorId);
+  /** The breakdown of one doctor, checked against his balance; shared by the screen and the CSV. */
+  async computeBreakdown(doctorId: number, db: Database | Tx = this.db) {
+    const input = await this.repo.doctorInput(db, doctorId);
     if (!input) throw notFound();
     const fig = this.figures(input);
     const b = breakdown(input.opening, input.cases, input.counted);
@@ -136,6 +137,16 @@ export class LedgerService {
       );
       throw new Error('debt breakdown invariant failed'); // the filter answers 500 error.internal
     }
+    return { input, fig, b };
+  }
+
+  /** Patient name and status of cases (the breakdown names the cases it lists). */
+  caseNames(ids: readonly number[], db: Database | Tx = this.db) {
+    return this.repo.casesByIds(db, ids);
+  }
+
+  async debtBreakdown(doctorId: number, page: number, pageSize: number) {
+    const { input, fig, b } = await this.computeBreakdown(doctorId);
     const pageRows = b.openCases.slice(offsetOf({ page, pageSize }), offsetOf({ page, pageSize }) + pageSize);
     const [names, latest] = await Promise.all([
       this.repo.casesByIds(this.db, pageRows.map((c) => c.id)),

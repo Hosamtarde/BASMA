@@ -87,7 +87,7 @@ export async function loadDataset(pool: Pool, size: DatasetSize = TARGET_SIZE): 
     );
     await c.query(
       `INSERT INTO cheque_status_history (cheque_id, from_status, to_status, status_date)
-       SELECT id, 'pending', 'cleared', status_date FROM cheques WHERE status IN ('cleared','returned') AND id % 3 <> 0`,
+       SELECT id, 'pending', 'cleared', status_date FROM cheques WHERE status = 'cleared' OR (status = 'returned' AND id % 3 <> 0)`,
     );
     await c.query(
       `INSERT INTO cheque_status_history (cheque_id, from_status, to_status, status_date)

@@ -24,6 +24,11 @@ export interface SeedOptions {
   username: string;
   password: string;
   log?: (line: string) => void;
+  /**
+   * Adds the B4 ledger extras (negative opening balance, 30 open cases, a credit left by a cancelled
+   * case, Arabic spelling variants). Off by default so the base demo keeps its 15 doctors / 40 cases.
+   */
+  extras?: boolean;
 }
 
 export interface SeedReport {
@@ -36,6 +41,7 @@ export interface SeedReport {
   cases: number;
   byStatus: Record<DemoStatus, number>;
   overdue: number;
+  extras?: { doctors: number; cases: number };
 }
 
 export class DemoSeedRefused extends Error {}
@@ -105,6 +111,63 @@ function stepsTo(status: DemoStatus): DemoStatus[] {
     default:
       return [];
   }
+}
+
+/** Extra doctors that exercise the debts breakdown and the search (B4); see docs/plans/b4-debts-reports-search.md §7. */
+async function seedLedgerExtras(
+  api: Api,
+  ctx: {
+    workTypeId: number;
+    timeZone: string;
+    pay: (body: Record<string, unknown>) => Promise<PaidAnswer>;
+    log: (line: string) => void;
+  },
+): Promise<{ doctors: number; cases: number }> {
+  let doctors = 0;
+  let cases = 0;
+  const newDoctor = async (name: string, openingBalance: number, clinic: string) => {
+    doctors += 1;
+    return (await api.call<Created>('POST', '/doctors', { name, clinic, openingBalance })).id;
+  };
+  const newCase = async (doctorId: number, patientName: string, daysAgo: number, unitPrice?: number) => {
+    cases += 1;
+    return api.call<Created>('POST', '/cases', {
+      doctorId,
+      patientName,
+      receivedDate: labDate(ctx.timeZone, daysAgo),
+      expectedDate: labDate(ctx.timeZone, daysAgo - 14),
+      status: 'design',
+      lines: [{ toothNo: 11, workTypeId: ctx.workTypeId, ...(unitPrice ? { unitPrice } : {}) }],
+    });
+  };
+  const today = labDate(ctx.timeZone, 0);
+
+  // A negative opening balance (the lab owes him) and one partly paid case.
+  const negative = await newDoctor('د. إيمان الرصيد السالب', -35_000, 'عيادة الاختبار');
+  const c = await newCase(negative, 'مريض تجريبي سالب', 5, 80_000);
+  await ctx.pay({ doctorId: negative, caseId: c.id, method: 'cash', amount: 30_000, paidAt: today });
+
+  // Many open cases (breakdown paging, a longer export), one payment that clears only the oldest.
+  const many = await newDoctor('د. ماجد كثير الحالات', 0, 'مركز الحالات الكثيرة');
+  for (let i = 0; i < 30; i += 1) await newCase(many, `مريض متعدد ${i + 1}`, 60 - i, 20_000 + (i % 5) * 1_000);
+  await ctx.pay({ doctorId: many, method: 'cash', amount: 70_000, paidAt: today });
+
+  // A payment bound to a case that was then cancelled stays as account credit («مستحق عليّ»).
+  const credit = await newDoctor('د. ندى الملغاة', 0, 'عيادة الرصيد الدائن');
+  const cancelled = await newCase(credit, 'مريض ملغى', 3, 50_000);
+  await ctx.pay({ doctorId: credit, caseId: cancelled.id, method: 'transfer', amount: 50_000, paidAt: today });
+  await api.call('POST', `/cases/${cancelled.id}/cancel`, {
+    rowVersion: cancelled.rowVersion,
+    reason: 'ألغاها الطبيب (تجريبي).',
+  });
+
+  // Spelling variants for the search: hamza and ta marbuta, ya and alef maqsura.
+  await newDoctor('د. أحمد الهمزة', 0, 'عيادة الهمزة');
+  await newDoctor('د. احمد الهمزة الثانية', 0, 'عيادة بدون همزة');
+  await newDoctor('د. فاطمة الخطيب', 0, 'عيادة التاء المربوطة');
+  await newDoctor('د. مصطفى الألف المقصورة', 0, 'عيادة الياء');
+  ctx.log(`B4 extras: ${doctors} doctors, ${cases} cases`);
+  return { doctors, cases };
 }
 
 export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
@@ -313,6 +376,10 @@ export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
   await pay({ doctorId: doctorIds[DOCTORS.length - 1], method: 'cash', amount: 1_500_000, paidAt: today });
   log(`Payments: ${payments} (${cheques} cheques)`);
 
+  const extras = options.extras
+    ? await seedLedgerExtras(api, { workTypeId: workTypeIds[0] as number, timeZone, pay, log })
+    : undefined;
+
   return {
     payments,
     cheques,
@@ -323,5 +390,6 @@ export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
     cases: PLAN.length,
     byStatus,
     overdue,
+    ...(extras ? { extras } : {}),
   };
 }

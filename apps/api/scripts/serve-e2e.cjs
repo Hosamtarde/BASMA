@@ -48,7 +48,7 @@ async function seedDemoData(baseUrl, url, password) {
   const { assertDemoDatabase } = require('./demo/guard.ts');
   const { seedDemo } = require('./demo/seed.ts');
   assertDemoDatabase(url);
-  const report = await seedDemo({ baseUrl, username: 'owner', password });
+  const report = await seedDemo({ baseUrl, username: 'owner', password, extras: process.env.E2E_SEED_DEMO_EXTRAS === '1' });
   process.stdout.write(`Demo data added: ${JSON.stringify(report)}
 `);
 }
