@@ -8,7 +8,7 @@ const LOGO = fileURLToPath(new URL('../../../assets/logo-clean.png', import.meta
 
 /**
  * Home (direction A): live counts from GET /cases/summary in the pipeline and the donut, overdue,
- * links into the filtered case list, the seven action cards (two live, five «قريباً»), the latest
+ * links into the filtered case list, the seven action cards (five live after B3, two «قريباً»), the latest
  * cases, and the logo in the banner. The empty state is checked in first-run.spec.ts (the only
  * installation guaranteed to have no cases). Counts are compared before and after seeding, since
  * other files share this installation.
@@ -123,7 +123,15 @@ test('action cards: live ones are links, «قريباً» ones are unavailable a
   const doctors = cards.getByRole('link', { name: /^الأطباء/ });
   await expect(add).toHaveAttribute('href', '/cases/new');
   await expect(doctors).toHaveAttribute('href', '/doctors');
-  for (const name of ['دفعة واردة', 'دفعة صادرة', 'الديون', 'سجل الشيكات', 'إنشاء فاتورة']) {
+  // B3: incoming payments, debts and the cheque register are live links now.
+  for (const [name, href] of [
+    ['دفعة واردة', '/payments'],
+    ['الديون', '/debts'],
+    ['سجل الشيكات', '/cheques'],
+  ] as const) {
+    await expect(cards.getByRole('link', { name: new RegExp(`^${name}`) })).toHaveAttribute('href', href);
+  }
+  for (const name of ['دفعة صادرة', 'إنشاء فاتورة']) {
     const card = cards.getByRole('link', { name: new RegExp(`^${name}`) });
     await expect(card).toHaveAttribute('aria-disabled', 'true');
     await expect(card).not.toHaveAttribute('href');
@@ -131,13 +139,16 @@ test('action cards: live ones are links, «قريباً» ones are unavailable a
     await expect(card).toContainText('في تحديث قادم');
     await expect(card.locator('.knob-soon')).toBeVisible();
   }
-  // Keyboard: from the first card, Tab goes straight to the doctors card (no trap, no dead stop).
-  await add.focus();
+  // Keyboard: Tab skips the unavailable cards (no trap, no dead stop).
+  await cards.getByRole('link', { name: /^دفعة واردة/ }).focus();
+  await page.keyboard.press('Tab');
+  await expect(cards.getByRole('link', { name: /^الديون/ })).toBeFocused();
+  await cards.getByRole('link', { name: /^سجل الشيكات/ }).focus();
   await page.keyboard.press('Tab');
   await expect(doctors).toBeFocused();
   // A disabled card does nothing when clicked.
   // (force: Playwright never clicks an aria-disabled element on its own.)
-  await cards.getByRole('link', { name: /^دفعة واردة/ }).click({ force: true });
+  await cards.getByRole('link', { name: /^دفعة صادرة/ }).click({ force: true });
   await expect(page).toHaveURL(/\/$/);
   await add.click();
   await expect(page).toHaveURL(/\/cases\/new$/);

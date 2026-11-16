@@ -6,6 +6,7 @@ import { PAGE_SIZE } from '@/features/catalog/api';
 
 export type CaseSummary = components['schemas']['CaseSummaryResponse'];
 export type CaseDetail = components['schemas']['CaseDetailResponse'];
+export type CreateCaseResponse = components['schemas']['CreateCaseResponse'];
 export type CaseLine = components['schemas']['CaseLineResponse'];
 export type CaseHistory = components['schemas']['CaseHistoryResponse'];
 export type CaseStatus = CaseSummary['status'];
@@ -115,7 +116,14 @@ const byId = (id: number) => ({ params: { path: { id } } });
 
 /** Every write returns the whole case with its new rowVersion; callers store it (chaining). */
 export const caseApi = {
-  create: (body: CreateCase) => unwrap(api.POST('/api/v1/cases', { body })),
+  /** `key` (an Idempotency-Key) is required by the API when the body carries an advance payment. */
+  create: (body: CreateCase, key?: string) =>
+    unwrap(
+      api.POST('/api/v1/cases', {
+        body,
+        params: { header: key ? { 'Idempotency-Key': key } : {} },
+      }),
+    ),
   update: (id: number, body: UpdateCase) => unwrap(api.PATCH('/api/v1/cases/{id}', { ...byId(id), body })),
   addLines: (id: number, rowVersion: number, lines: CaseLineInput[]) =>
     unwrap(api.POST('/api/v1/cases/{id}/lines', { ...byId(id), body: { rowVersion, lines } })),

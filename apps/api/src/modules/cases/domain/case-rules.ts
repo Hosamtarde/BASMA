@@ -36,8 +36,16 @@ export function checkTransition(from: CaseStatus, to: CaseStatus): TransitionChe
   return to === 'in_progress' || to === 'ready' || to === 'delivered' ? 'ok' : 'invalid';
 }
 
-/** Cancel only before delivery; not from returned in B2 (to revisit with payments in B3). Final. */
-export const canCancel = (status: CaseStatus): boolean => PRE_DELIVERY.includes(status);
+/**
+ * Cancel before delivery, and (owner decision D2, B3) from 'returned' with a mandatory reason: a case the
+ * doctor never takes back would otherwise be a debt nobody can remove. Final. Payments bound to a
+ * cancelled case stay as account credit (SPEC §5.6).
+ */
+export const canCancel = (status: CaseStatus): boolean =>
+  PRE_DELIVERY.includes(status) || status === 'returned';
+
+/** A reason is mandatory when cancelling a case that was already delivered once (D2). */
+export const cancelNeedsReason = (status: CaseStatus): boolean => status === 'returned';
 
 /** Every case can be edited (header, lines, status) until it is cancelled; cancelled is final. */
 export const canEdit = (status: CaseStatus): boolean => status !== 'cancelled';

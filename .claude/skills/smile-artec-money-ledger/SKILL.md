@@ -16,3 +16,8 @@ description: Use whenever touching payments, cheques, invoices, case totals, dis
 
 ## Required test matrix
 cash/cheque × pending/cleared/returned/void · bound vs unbound · FIFO order & ties · overpayment (credit → "owed by me") · refund to doctor · opening balance (±) · cancelled case · discount · rounding with 0/2/3 decimals · invoice void restores un-invoiced state · concurrent payments on the same doctor · duplicate idempotency key.
+
+## Where it lives (B3)
+- Pure rules: `apps/api/src/modules/payments/domain/payment-rules.ts` (`isCounted`, cheque transitions, `allocate`, `doctorBalance`, `requestHash`). SQL twin of `isCounted`: `countedWhere()` and the `balancesCte` in `infrastructure/`; `test/integration/payments-schema.spec.ts` compares them over the whole matrix.
+- Lock order for every money write (ADR-0010): currency SHARE → doctor row `FOR NO KEY UPDATE` → case row `FOR SHARE` (when bound) → counters. Void and cheque status take the doctor lock first too.
+- Decisions: the positive opening balance is the oldest FIFO item (D4); payments bound to a cancelled case become account credit; a returned case may be cancelled with a reason (D2); cheque `cleared → returned` is allowed, `returned` is final (D3); a cleared cheque's payment may be voided (D9). See `docs/plans/b3-payments.md`.

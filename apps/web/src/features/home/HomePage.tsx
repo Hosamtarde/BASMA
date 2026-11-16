@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/field';
 import { caseCountsQuery, latestCasesQuery } from '@/features/cases/api';
 import { doctorsQuery } from '@/features/doctors/api';
+import { ledgerSummaryQuery } from '@/features/payments/api';
+import { useCurrency } from '@/features/shell/currency';
 import { labNameFor, settingsQuery, useLogoUrl } from '@/features/shell/settings';
-import { formatIsoDate, formatWeekday, todayIn } from '@/i18n/format';
+import { formatIsoDate, formatNumber, formatWeekday, todayIn } from '@/i18n/format';
 import { currentLanguage } from '@/i18n/i18n';
 import { cn } from '@/lib/cn';
 import { ActionCards } from './ActionCards';
@@ -34,6 +36,10 @@ export function HomePage() {
   const { data: counts } = useQuery(caseCountsQuery());
   const { data: latest } = useQuery(latestCasesQuery(LATEST));
   const { data: doctors } = useQuery(doctorsQuery({ search: '', active: true, page: 1 }));
+  const { data: ledger } = useQuery(ledgerSummaryQuery);
+  const currency = useCurrency();
+  const money = (minor: number | undefined) =>
+    minor === undefined ? undefined : `${currency.format(minor)} ${currency.symbol}`;
   const today = todayIn(settings.labProfile?.timeZone ?? 'UTC');
   const labName = labNameFor(settings, lang);
   const subtitle = bannerSubtitle(settings, lang);
@@ -117,7 +123,15 @@ export function HomePage() {
         <Pipeline counts={counts} />
       )}
 
-      <ActionCards figures={{ newCase: counts?.byStatus.ready, doctors: doctors?.total }} />
+      <ActionCards
+        figures={{
+          newCase: counts ? formatNumber(counts.byStatus.ready, lang) : undefined,
+          doctors: doctors ? formatNumber(doctors.total, lang) : undefined,
+          incoming: money(ledger?.receivedThisMonth),
+          debts: money(ledger?.owedToLab),
+          cheques: ledger ? formatNumber(ledger.chequesDueSoon + ledger.chequesOverdue, lang) : undefined,
+        }}
+      />
 
       {counts && (
         // Direction A's three panels; latest cases takes the full row on medium screens.
@@ -126,7 +140,7 @@ export function HomePage() {
             <h2 id="key-numbers-title" className={panelTitle}>
               {t('home.keyNumbers.title')}
             </h2>
-            <KeyNumbers counts={counts} activeDoctors={doctors?.total} />
+            <KeyNumbers counts={counts} activeDoctors={doctors?.total} ledger={ledger} />
           </section>
           <section aria-labelledby="donut-title" className={panel}>
             <h2 id="donut-title" className={panelTitle}>

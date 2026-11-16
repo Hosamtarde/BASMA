@@ -46,7 +46,10 @@
     "doctors": "Doctors",
     "settings": "Settings",
     "newCase": "New case",
-    "cases": "Cases"
+    "cases": "Cases",
+    "incoming": "Incoming payment",
+    "debts": "Debts",
+    "cheques": "Cheque register"
   },
   "home": {
     "title": "Home",
@@ -68,7 +71,8 @@
       },
       "incoming": {
         "title": "Incoming payment",
-        "body": "Record an amount received from a doctor"
+        "body": "Record an amount received from a doctor",
+        "figure": "received this month"
       },
       "outgoing": {
         "title": "Outgoing payment",
@@ -76,11 +80,13 @@
       },
       "debts": {
         "title": "Debts",
-        "body": "Amounts owed to and by the lab"
+        "body": "Amounts owed to and by the lab",
+        "figure": "owed to the lab"
       },
       "cheques": {
         "title": "Cheque register",
-        "body": "Incoming and outgoing cheques and their due dates"
+        "body": "Incoming and outgoing cheques and their due dates",
+        "figure": "cheques due soon"
       },
       "invoice": {
         "title": "Create invoice",
@@ -97,7 +103,10 @@
       "doctors": "Active doctors",
       "cases": "Cases",
       "ready": "Ready for delivery",
-      "overdue": "Overdue cases"
+      "overdue": "Overdue cases",
+      "income": "Received this month",
+      "owed": "Owed to the lab",
+      "chequesPending": "Cheques pending"
     },
     "donut": {
       "title": "Overview of all cases",
@@ -514,7 +523,14 @@
     "addAnother": "Add another case",
     "openCase": "Open the case",
     "quickTechnician": "Add technician",
-    "technicianAdded": "The technician has been added."
+    "technicianAdded": "The technician has been added.",
+    "advanceTitle": "Advance payment",
+    "advanceHint": "Optional. An advance is recorded as a payment linked to this case.",
+    "advanceAmount": "Advance amount",
+    "advanceMethod": "Payment method",
+    "advanceTooBig": "The advance cannot be larger than the case total.",
+    "advanceNeedsTotal": "Add at least one work line before taking an advance.",
+    "savedAdvance": "Advance {{voucher}} recorded."
   },
   "cases": {
     "title": "Cases",
@@ -559,7 +575,6 @@
     "subtotal": "Lines subtotal",
     "discount": "Discount",
     "total": "Total",
-    "paymentsLater": "Paid and remaining amounts appear here once payments are added.",
     "notes": "Notes",
     "noNotes": "No notes.",
     "history": "Status history",
@@ -616,5 +631,184 @@
       "noStatus": "The status cannot be changed now.",
       "noEdit": "This case cannot be edited now."
     }
+  },
+  "payments": {
+    "title": "Incoming payment",
+    "intro": "Record money received from a doctor, then review the receipts below.",
+    "newTitle": "New payment",
+    "doctor": "Doctor",
+    "currentBalance": "Current balance",
+    "amount": "Amount",
+    "method": "Payment method",
+    "methods": {
+      "cash": "Cash",
+      "cheque": "Cheque",
+      "transfer": "Bank transfer"
+    },
+    "chequeNo": "Cheque number",
+    "bank": "Bank",
+    "dueDate": "Due date",
+    "paidAt": "Payment date",
+    "caseLabel": "Linked case",
+    "noCase": "Not linked to a case",
+    "caseOption": "Case {{no}} · {{patient}} · {{total}}",
+    "notes": "Notes",
+    "submit": "Record payment",
+    "saved": "Payment {{voucher}} recorded. New balance: {{balance}}.",
+    "savedChequeNote": "The cheque counts only once it is cleared.",
+    "reportTitle": "Receipts",
+    "search": "Search voucher, doctor or cheque number",
+    "doctorFilter": "Filter by doctor",
+    "allDoctors": "All doctors",
+    "methodFilter": "Method",
+    "allMethods": "All methods",
+    "statusFilter": "Status",
+    "allStatuses": "All",
+    "from": "From",
+    "to": "To",
+    "clearFilters": "Clear filters",
+    "voucher": "Voucher",
+    "date": "Date",
+    "case": "Case",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusVoid": "Cancelled",
+    "countedYes": "Counted",
+    "countedNo": "Not counted yet",
+    "chequeInfo": "Cheque {{no}} · {{bank}}",
+    "empty": "No payments recorded yet.",
+    "totalCounted": "Counted receipts",
+    "totalPending": "Cheques pending collection",
+    "void": "Cancel payment",
+    "voidWhy": "This payment is already cancelled.",
+    "voidTitle": "Cancel payment {{voucher}}?",
+    "voidBody": "The payment stays in the records, marked as cancelled with your reason, and the doctor’s balance is restored. This cannot be undone.",
+    "voidReason": "Reason for cancelling",
+    "voidConfirm": "Cancel payment",
+    "voidKeep": "Keep the payment",
+    "voidDone": "Payment {{voucher}} has been cancelled.",
+    "voidedReason": "Cancelled: {{reason}}",
+    "errors": {
+      "amountPositive": "Enter an amount greater than zero.",
+      "chequeNoRequired": "Enter the cheque number.",
+      "bankRequired": "Enter the bank.",
+      "dueRequired": "Enter the cheque due date.",
+      "dateFuture": "The payment date cannot be in the future."
+    },
+    "open": "Add payment",
+    "forDoctor": "Payment from {{name}}",
+    "forCase": "Payment for case {{no}}"
+  },
+  "cheques": {
+    "title": "Cheque register",
+    "intro": "Cheques received from doctors. A cheque counts as money received only once it is cleared.",
+    "search": "Search cheque number, bank, doctor or voucher",
+    "statusGroup": "Cheque status",
+    "all": "All",
+    "pending": "Pending collection",
+    "cleared": "Cleared",
+    "returned": "Returned",
+    "from": "Due from",
+    "to": "Due to",
+    "dueGroup": "Due date",
+    "dueAny": "Any date",
+    "dueSoon": "Due within 7 days",
+    "dueOverdue": "Overdue",
+    "clearFilters": "Clear filters",
+    "chequeNo": "Cheque",
+    "bank": "Bank",
+    "doctor": "Doctor",
+    "amount": "Amount",
+    "due": "Due date",
+    "status": "Status",
+    "payment": "Payment",
+    "soonMarker": "Due soon",
+    "overdueMarker": "Overdue",
+    "empty": "No cheques recorded yet.",
+    "noResults": "No cheques match the filters.",
+    "changeStatus": "Change status",
+    "noChange": "This cheque has no further status changes.",
+    "voidNoChange": "The payment of this cheque is cancelled.",
+    "statusDialogTitle": "Change the status of cheque {{no}}",
+    "newStatus": "New status",
+    "statusDate": "Status date",
+    "note": "Note",
+    "confirm": "Save status",
+    "done": "Cheque {{no}} is now “{{status}}”.",
+    "summary": "Pending: {{amount}}",
+    "returnedWarning": "A returned cheque cannot be changed again. The amount returns to the doctor’s debt."
+  },
+  "debts": {
+    "title": "Debts",
+    "banner": "Every amount due is computed automatically from case prices and payments, and recorded against the doctor. Open a doctor to see exactly how the amount is made up.",
+    "parties": "Doctors with a balance",
+    "owedToLab": "Owed to the lab",
+    "owedByLab": "Owed by the lab",
+    "net": "Net",
+    "search": "Search doctors",
+    "filterGroup": "Direction",
+    "filterAll": "All",
+    "filterToLab": "Owed to the lab",
+    "filterByLab": "Owed by the lab",
+    "doctor": "Doctor",
+    "direction": "Direction",
+    "amount": "Amount",
+    "pendingCheques": "Pending cheques",
+    "toLab": "Owed to the lab",
+    "byLab": "Owed by the lab",
+    "empty": "No doctor has a balance.",
+    "noResults": "No doctor matches the search.",
+    "openStatement": "Statement of {{name}}",
+    "clearFilters": "Clear filters"
+  },
+  "balance": {
+    "title": "Account balance",
+    "toLab": "Owed to the lab",
+    "byLab": "Owed by the lab",
+    "settled": "Settled",
+    "pendingCheques": "Pending cheques (not counted): {{amount}}"
+  },
+  "statement": {
+    "tab": "Statement",
+    "title": "Statement of account — {{name}}",
+    "from": "From",
+    "to": "To",
+    "clearFilters": "Clear dates",
+    "date": "Date",
+    "type": "Type",
+    "reference": "Reference",
+    "debit": "Debit",
+    "credit": "Credit",
+    "balance": "Balance",
+    "kinds": {
+      "case": "Case",
+      "payment": "Payment received",
+      "cheque_return": "Cheque returned"
+    },
+    "opening": "Balance at the start",
+    "closing": "Balance at the end",
+    "empty": "No entries in this period.",
+    "note": "A cheque is shown on the day it was cleared; pending cheques are not part of the balance."
+  },
+  "doctorPayments": {
+    "tab": "Payments",
+    "title": "Payments of {{name}}",
+    "add": "Add payment",
+    "empty": "No payments from this doctor yet."
+  },
+  "casePayments": {
+    "title": "Payments",
+    "total": "Case total",
+    "paid": "Paid",
+    "remaining": "Remaining",
+    "none": "No payments linked to this case.",
+    "add": "Payment for this case",
+    "addWhy": "A cancelled case cannot take new payments.",
+    "pendingNote": "A pending cheque is not counted as paid until it is cleared.",
+    "creditNote": "This case is cancelled; its payments stay in the doctor’s account as credit.",
+    "voucher": "Voucher",
+    "amount": "Amount",
+    "method": "Method",
+    "status": "Status"
   }
 }

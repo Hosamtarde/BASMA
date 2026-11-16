@@ -536,7 +536,7 @@ describe('Cases (e2e)', () => {
       }
     });
 
-    it('cannot cancel after delivery or from returned (B2)', async () => {
+    it('cannot cancel after delivery; from returned only with a reason (D2, B3)', async () => {
       let c = (await post('/cases', baseCase()).expect(201)).body as Detail;
       c = (await post(`/cases/${c.id}/status`, { rowVersion: c.rowVersion, to: 'delivered' }).expect(200))
         .body as Detail;
@@ -548,8 +548,17 @@ describe('Cases (e2e)', () => {
       });
       c = (await post(`/cases/${c.id}/status`, { rowVersion: c.rowVersion, to: 'returned' }).expect(200))
         .body as Detail;
-      expect(c).toMatchObject({ allowedStatuses: ['in_progress', 'ready', 'delivered'], canCancel: false });
-      await post(`/cases/${c.id}/cancel`, { rowVersion: c.rowVersion }).expect(409);
+      expect(c).toMatchObject({ allowedStatuses: ['in_progress', 'ready', 'delivered'], canCancel: true });
+      const noReason = await post(`/cases/${c.id}/cancel`, { rowVersion: c.rowVersion }).expect(400);
+      expect(noReason.body.error.code).toBe('error.case.reason_required');
+      await post(`/cases/${c.id}/cancel`, { rowVersion: c.rowVersion, reason: '   ' }).expect(400);
+      c = (
+        await post(`/cases/${c.id}/cancel`, {
+          rowVersion: c.rowVersion,
+          reason: 'doctor will not take it',
+        }).expect(200)
+      ).body as Detail;
+      expect(c).toMatchObject({ status: 'cancelled', canCancel: false, canEdit: false });
     });
   });
 

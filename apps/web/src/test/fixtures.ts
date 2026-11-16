@@ -28,3 +28,35 @@ export function settingsFixture(overrides: Partial<Settings> = {}): Settings {
     ...overrides,
   };
 }
+
+/** The payments panel of a case (GET /cases/{id}/payments) with nothing bound to it. */
+export const emptyCasePayments = (caseId: number, total: number) => ({
+  caseId,
+  total,
+  paid: 0,
+  remaining: total,
+  payments: [],
+});
+
+/** Home figures (GET /ledger/summary) like the API's. */
+export const ledgerSummaryFixture = (over: Record<string, number> = {}) => ({
+  receivedThisMonth: 125000,
+  receivedTotal: 300000,
+  owedToLab: 450000,
+  pendingChequesCount: 2,
+  pendingChequesAmount: 70000,
+  chequesDueSoon: 1,
+  chequesOverdue: 1,
+  ...over,
+});
+
+/** A doctor's balance (GET /doctors/{id}/balance). */
+export const balanceFixture = (doctorId: number, balance = 0) => ({
+  doctorId,
+  openingBalance: 0,
+  charges: Math.max(balance, 0),
+  received: 0,
+  pendingCheques: 0,
+  balance,
+  direction: balance > 0 ? 'owed_to_lab' : balance < 0 ? 'owed_by_lab' : 'settled',
+});

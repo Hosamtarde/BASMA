@@ -72,7 +72,18 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
     numbers.getByRole('link', { name: `جاهزة للتسليم ${c.byStatus.ready}`, exact: true }),
   ).toBeVisible();
   await expect(numbers.getByRole('link', { name: `حالات متأخرة ${c.overdue}`, exact: true })).toBeVisible();
-  await expect(numbers).not.toContainText('₪');
+  // The money figures are the ledger's own (B3): the demo seed records payments and cheques.
+  const token = await apiToken(page.request);
+  const ledger = (await (
+    await page.request.get('/api/v1/ledger/summary', { headers: { Authorization: `Bearer ${token}` } })
+  ).json()) as { receivedThisMonth: number; owedToLab: number; pendingChequesCount: number };
+  const money = (minor: number) => `${(minor / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} ₪`;
+  expect(ledger.receivedThisMonth).toBeGreaterThan(0);
+  expect(ledger.owedToLab).toBeGreaterThan(0);
+  await expect(numbers.getByRole('link', { name: `المقبوض هذا الشهر ${money(ledger.receivedThisMonth)}`, exact: true })).toBeVisible();
+  await expect(numbers.getByRole('link', { name: `المستحق للمختبر ${money(ledger.owedToLab)}`, exact: true })).toBeVisible();
+  await expect(numbers.getByRole('link', { name: `شيكات قيد التحصيل ${ledger.pendingChequesCount}`, exact: true })).toBeVisible();
+  await expect(numbers).not.toContainText(/المصاريف|الفواتير/);
 
   // Thin ring, one arc per status (all seven exist in the demo), nothing written in the centre.
   await expect(
@@ -96,14 +107,18 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
 
   // «قريباً» cards: brand knob and figure band like the live ones, never focusable.
   const cards = page.getByRole('region', { name: 'ماذا تريد أن تسجّل؟' });
-  const soon = cards.getByRole('link', { name: /^دفعة واردة/ });
+  const soon = cards.getByRole('link', { name: /^دفعة صادرة/ });
   await expect(soon).toHaveAttribute('aria-disabled', 'true');
   await expect(soon).toContainText('قريباً');
   await expect(soon).toContainText('في تحديث قادم');
   await expect(soon.locator('.knob-soon')).toBeVisible();
-  await cards.getByRole('link', { name: /^إضافة حالة جديدة/ }).focus();
+  await cards.getByRole('link', { name: /^سجل الشيكات/ }).focus();
   await page.keyboard.press('Tab');
   await expect(cards.getByRole('link', { name: /^الأطباء/ })).toBeFocused();
+  // The built money cards carry real figures from the demo ledger.
+  await expect(cards.getByRole('link', { name: /^دفعة واردة/ })).toContainText('مقبوضة هذا الشهر');
+  await expect(cards.getByRole('link', { name: /^الديون/ })).toContainText('مستحقة للمختبر');
+  await expect(cards.getByRole('link', { name: /^سجل الشيكات/ })).toContainText('شيكات تستحق قريبًا');
 
   // No focus ring in the screenshot.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -117,7 +132,7 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
   await expect(keyNumbers(page).getByRole('link', { name: 'Active doctors 15', exact: true })).toBeVisible();
   await expect(keyNumbers(page).getByRole('link', { name: 'Cases 40', exact: true })).toBeVisible();
   await expect(
-    page.getByRole('region', { name: 'What do you want to record?' }).getByRole('link', { name: /^Debts/ }),
+    page.getByRole('region', { name: 'What do you want to record?' }).getByRole('link', { name: /^Outgoing payment/ }),
   ).toContainText('Soon');
   await expectAccessible(page);
   await shot(page, 'home-demo-en', { fullPage: false });

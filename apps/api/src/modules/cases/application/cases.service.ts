@@ -6,10 +6,16 @@ import { DB } from '../../../shared/db/database';
 import type { Database, Tx } from '../../../shared/db/database';
 import { notFound } from '../../../shared/errors/common-errors';
 import { DomainError } from '../../../shared/errors/domain-error';
+import { isUniqueViolation } from '../../../shared/db/pg-errors';
 import { LabCalendar } from '../../settings/application/lab-calendar.service';
+import { LedgerService } from '../../payments/application/ledger.service';
+import { AdvancePayment, PaymentsService, PaymentView } from '../../payments/application/payments.service';
+import { requestHash } from '../../payments/domain/payment-rules';
+import { PaymentsRepository } from '../../payments/infrastructure/payments.repository';
 import {
   Area,
   canCancel,
+  cancelNeedsReason,
   canEdit,
   CaseCounts,
   CaseStatus,
@@ -61,9 +67,19 @@ export type CaseHeaderPatch = Partial<
 
 export interface CaseDetail extends CaseRow {
   subtotal: number;
+  /** Bound payments that count + the FIFO share of unbound ones (SPEC §7.3); 0 when cancelled. */
+  paid: number;
+  remaining: number;
   overdue: boolean;
   items: CaseItemRow[];
   history: HistoryRow[];
+}
+
+/** Result of creating a case: the case, its advance payment (if any) and whether it was a replay. */
+export interface CreatedCase {
+  detail: CaseDetail;
+  advance: PaymentView | null;
+  replayed: boolean;
 }
 
 export interface CaseSummary extends CaseRow {
@@ -85,6 +101,9 @@ export class CasesService {
     private readonly repo: CasesRepository,
     private readonly calendar: LabCalendar,
     private readonly audit: AuditWriter,
+    private readonly payments: PaymentsService,
+    private readonly paymentsRepo: PaymentsRepository,
+    private readonly ledger: LedgerService,
   ) {}
 
   async list(
@@ -114,12 +133,86 @@ export class CasesService {
       this.repo.history(this.db, id),
       this.calendar.today(),
     ]);
-    return { ...found, subtotal: subtotalOf(items), overdue: isOverdue(found, today), items, history };
+    const figures =
+      found.status === 'cancelled' ? undefined : await this.ledger.caseFigures(found.doctorId, id);
+    return {
+      ...found,
+      subtotal: subtotalOf(items),
+      paid: figures?.paid ?? 0,
+      remaining: figures?.remaining ?? 0,
+      overdue: isOverdue(found, today),
+      items,
+      history,
+    };
   }
 
-  async create(input: NewCase, userId: number): Promise<CaseDetail> {
-    const id = await this.db.transaction(async (tx) => {
+  /**
+   * Creates a case; with `advance` the payment is created in the SAME transaction and bound to the
+   * case (SPEC §5.3), under the caller's Idempotency-Key. A replay returns the original case.
+   */
+  async create(
+    input: NewCase,
+    userId: number,
+    advance?: { payment: AdvancePayment; key: string },
+  ): Promise<CreatedCase> {
+    let hash = '';
+    if (advance) {
+      // The request as sent (omitted dates stay omitted), so a replay after midnight still matches.
+      hash = requestHash({ ...input, advance: advance.payment });
+      const replay = await this.replayOf(advance.key, hash);
+      if (replay) return replay;
+    }
+    let id: number;
+    try {
+      id = await this.createInTx(input, userId, advance && { ...advance, hash });
+    } catch (error) {
+      if (advance && isUniqueViolation(error, 'payments_idempotency_key_uq')) {
+        const raced = await this.replayOf(advance.key, hash);
+        if (raced) return raced;
+      }
+      throw error;
+    }
+    if (id < 0) {
+      const raced = advance && (await this.replayOf(advance.key, hash));
+      if (raced) return raced;
+      throw notFound();
+    }
+    return { detail: await this.get(id), advance: await this.advanceOf(id), replayed: false };
+  }
+
+  private async replayOf(key: string, hash: string): Promise<CreatedCase | undefined> {
+    const existing = await this.paymentsRepo.byIdempotencyKey(this.db, key);
+    if (!existing) return undefined;
+    if (existing.requestHash !== hash || existing.caseId === null) {
+      throw err('error.idempotency.mismatch', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+    return {
+      detail: await this.get(existing.caseId),
+      advance: await this.advanceOf(existing.caseId),
+      replayed: true,
+    };
+  }
+
+  private async advanceOf(caseId: number): Promise<PaymentView | null> {
+    const rows = await this.paymentsRepo.list(this.db, { caseId }, 1, 1);
+    const first = rows.items[0];
+    return first ? ((await this.payments.view([first]))[0] ?? null) : null;
+  }
+
+  /** Returns the new case id, or minus the id of an earlier case when the key won a race. */
+  private async createInTx(
+    input: NewCase,
+    userId: number,
+    advance?: { payment: AdvancePayment; key: string; hash: string },
+  ): Promise<number> {
+    return this.db.transaction(async (tx) => {
       await lockCurrencyForMoneyWrite(tx);
+      // Same lock order as a plain payment (ADR-0010): currency → doctor → counters.
+      if (advance) {
+        await this.paymentsRepo.lockDoctor(tx, input.doctorId);
+        const earlier = await this.paymentsRepo.byIdempotencyKey(tx, advance.key);
+        if (earlier?.caseId) return -earlier.caseId;
+      }
       const today = await this.calendar.today(tx);
       const receivedDate = input.receivedDate ?? today;
       this.checkHeaderDates(receivedDate, input.expectedDate, today);
@@ -169,9 +262,18 @@ export class CasesService {
         entityId: caseId,
         params: { caseNo, doctor: doctor.name, lines: lines.length, total },
       });
+      if (advance) {
+        await this.payments.insert(
+          tx,
+          { ...advance.payment, doctorId: input.doctorId },
+          doctor.name,
+          userId,
+          { key: advance.key, hash: advance.hash },
+          { caseId, caseNo, caseTotal: total },
+        );
+      }
       return caseId;
     });
-    return this.get(id);
   }
 
   /** Header edit. The doctor never changes after creation (owner decision B2). */
@@ -363,12 +465,15 @@ export class CasesService {
     return this.get(id);
   }
 
-  /** Final. Only before delivery; not from "returned" in B2 (revisit with payments, B3). */
+  /** Final. Before delivery, or from "returned" with a reason (D2). Bound payments stay as account credit. */
   async cancel(id: number, rowVersion: number, reason: string | null, userId: number): Promise<CaseDetail> {
     await this.db.transaction(async (tx) => {
       const current = this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion));
       if (!canCancel(current.status)) {
         throw err('error.case.cannot_cancel', HttpStatus.CONFLICT, { status: current.status });
+      }
+      if (cancelNeedsReason(current.status) && !reason?.trim()) {
+        throw err('error.case.reason_required', HttpStatus.BAD_REQUEST);
       }
       await this.repo.updateCase(tx, id, { status: 'cancelled', deliveredDate: null }, userId);
       await this.repo.insertHistory(tx, id, {
@@ -383,7 +488,12 @@ export class CasesService {
         action: 'case.cancelled',
         entity: 'case',
         entityId: id,
-        params: { caseNo: current.caseNo },
+        params: {
+          caseNo: current.caseNo,
+          fromStatus: current.status,
+          total: current.total,
+          boundPayments: await this.ledger.boundActiveTotal(id, tx),
+        },
       });
     });
     return this.get(id);

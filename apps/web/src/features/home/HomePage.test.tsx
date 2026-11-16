@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetSessionForTests, session } from '@/api/session';
 import type { CaseCounts, CaseSummary } from '@/features/cases/api';
 import { initI18n } from '@/i18n/i18n';
-import { settingsFixture } from '@/test/fixtures';
+import { ledgerSummaryFixture, settingsFixture } from '@/test/fixtures';
 import { json, renderRoutes, stubApi } from '@/test/render';
 import { HomePage } from './HomePage';
 
@@ -47,6 +47,7 @@ function render(c: CaseCounts, latest: CaseSummary[] = [], settings = settingsFi
     'GET /api/v1/cases/summary': () => json(200, c),
     'GET /api/v1/cases': () => json(200, page(latest)),
     'GET /api/v1/doctors': () => json(200, page([], 4)),
+    'GET /api/v1/ledger/summary': () => json(200, ledgerSummaryFixture()),
   });
   const view = renderRoutes(
     [
@@ -114,7 +115,7 @@ describe('HomePage', () => {
     expect(banner).not.toHaveTextContent('Test Lab');
   });
 
-  it('key numbers: only real figures (doctors, cases, ready, overdue), each opening its list', async () => {
+  it('key numbers: only real figures (cases, doctors and the ledger), each opening its list', async () => {
     render(counts({ design: 3, ready: 2, delivered: 4 }, 1), [summary()]);
     const panel = (await screen.findByRole('heading', { name: 'الأرقام الرئيسية' })).closest('section')!;
     await waitFor(() =>
@@ -132,8 +133,18 @@ describe('HomePage', () => {
       'href',
       '/cases?overdue=1',
     );
-    expect(within(panel).getAllByRole('link')).toHaveLength(4);
-    expect(panel).not.toHaveTextContent(/₪|الدخل|المصاريف|الفواتير/);
+    // The ledger figures (B3): received this month, owed to the lab, cheques pending.
+    expect(within(panel).getByRole('link', { name: /^المقبوض هذا الشهر/ })).toHaveAttribute('href', '/payments');
+    await waitFor(() =>
+      expect(within(panel).getByRole('link', { name: /^المقبوض هذا الشهر/ })).toHaveTextContent('1,250.00 ₪'),
+    );
+    expect(within(panel).getByRole('link', { name: /^المستحق للمختبر/ })).toHaveAttribute('href', '/debts');
+    expect(within(panel).getByRole('link', { name: /^شيكات قيد التحصيل/ })).toHaveAttribute(
+      'href',
+      '/cheques?status=pending',
+    );
+    expect(within(panel).getAllByRole('link')).toHaveLength(7);
+    expect(panel).not.toHaveTextContent(/المصاريف|الفواتير/);
   });
 
   it('pipeline: a live count per stage and overdue, each linking to the filtered case list', async () => {
@@ -170,14 +181,24 @@ describe('HomePage', () => {
     expect(legend.querySelector('svg text')).toBeNull();
   });
 
-  it('action cards: built ones are links with live figures; the others are unavailable, not focusable', async () => {
+  it('action cards: built ones are links with live figures; outgoing and invoice are unavailable, not focusable', async () => {
     render(counts({ ready: 7 }), [summary()]);
     const cards = (await screen.findByRole('heading', { name: 'ماذا تريد أن تسجّل؟' })).closest('section')!;
     const add = within(cards).getByRole('link', { name: /^إضافة حالة جديدة/ });
     expect(add).toHaveAttribute('href', '/cases/new');
     await waitFor(() => expect(add).toHaveTextContent('7 جاهزة للتسليم'));
     expect(within(cards).getByRole('link', { name: /^الأطباء/ })).toHaveAttribute('href', '/doctors');
-    for (const name of ['دفعة واردة', 'دفعة صادرة', 'الديون', 'سجل الشيكات', 'إنشاء فاتورة']) {
+    // B3: incoming payments, debts and cheques are built, with live figures.
+    const incoming = within(cards).getByRole('link', { name: /^دفعة واردة/ });
+    expect(incoming).toHaveAttribute('href', '/payments');
+    await waitFor(() => expect(incoming).toHaveTextContent('1,250.00 ₪ مقبوضة هذا الشهر'));
+    const debts = within(cards).getByRole('link', { name: /^الديون/ });
+    expect(debts).toHaveAttribute('href', '/debts');
+    expect(debts).toHaveTextContent('4,500.00 ₪ مستحقة للمختبر');
+    const cheques = within(cards).getByRole('link', { name: /^سجل الشيكات/ });
+    expect(cheques).toHaveAttribute('href', '/cheques');
+    expect(cheques).toHaveTextContent('2 شيكات تستحق قريبًا');
+    for (const name of ['دفعة صادرة', 'إنشاء فاتورة']) {
       const card = within(cards).getByRole('link', { name: new RegExp(`^${name}`) });
       expect(card).toHaveAttribute('aria-disabled', 'true');
       expect(card).not.toHaveAttribute('href');

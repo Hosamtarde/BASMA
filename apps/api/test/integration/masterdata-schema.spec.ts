@@ -51,6 +51,8 @@ describe('B1 master-data migration (PostgreSQL 16)', () => {
     expect(rows).toEqual([
       { name: 'case_no', start_value: '1', next_value: '1' },
       { name: 'invoice_no', start_value: '1', next_value: '1' },
+      // Added by B3 (0004): voucher numbers IN-000001…, not owner-settable.
+      { name: 'payment_in_no', start_value: '1', next_value: '1' },
     ]);
   });
 

@@ -22,6 +22,7 @@ import { AddLinesDialog, CancelCaseDialog, EditCaseDialog, LineDialog, StatusDia
 import { useLineName } from './DraftLinesTable';
 import { ShadeSwatch } from './shade/ShadeGuideDialog';
 import { shadeColor } from './shade/shades';
+import { CasePaymentsPanel } from '@/features/payments/CasePaymentsPanel';
 import { OverdueMarker, STATUS_STYLE, StatusBadge } from './status';
 
 function Info({ label, children }: { label: string; children: React.ReactNode }) {
@@ -150,6 +151,10 @@ export function CaseDetailsPage() {
             </dl>
           </Card>
           <LinesCard detail={detail} onAdd={() => setDialog('lines')} />
+          <Card>
+            <h2 className="mb-3 text-[17px] font-extrabold">{t('casePayments.title')}</h2>
+            <CasePaymentsPanel detail={detail} />
+          </Card>
           <Card>
             <h2 className="mb-2 text-[17px] font-extrabold">{t('caseDetails.notes')}</h2>
             {detail.notes ? (
@@ -296,7 +301,6 @@ function LinesCard({ detail, onAdd }: { detail: CaseDetail; onAdd: () => void })
           <Money value={currency.format(detail.total)} symbol={currency.symbol} />
         </dd>
       </dl>
-      <p className="mt-2 text-[13px] text-muted">{t('caseDetails.paymentsLater')}</p>
       <LineDialog
         detail={detail}
         line={editing}

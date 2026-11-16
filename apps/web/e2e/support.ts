@@ -106,3 +106,19 @@ export async function startEdge(el: import('@playwright/test').Locator, lang: 'a
   const e = await textEdges(el);
   return lang === 'ar' ? e.right : e.left;
 }
+
+/** POST with an Idempotency-Key (payments, advance); a fresh key per call unless one is given. */
+export async function apiPostKey<T>(
+  request: APIRequestContext,
+  token: string,
+  path: string,
+  data: unknown,
+  key: string = crypto.randomUUID(),
+): Promise<T> {
+  const res = await request.post(`/api/v1${path}`, {
+    data,
+    headers: { Authorization: `Bearer ${token}`, 'Idempotency-Key': key },
+  });
+  expect(res.status(), await res.text()).toBe(201);
+  return (await res.json()) as T;
+}

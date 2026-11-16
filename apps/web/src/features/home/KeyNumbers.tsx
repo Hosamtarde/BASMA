@@ -1,23 +1,41 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import type { CaseCounts } from '@/features/cases/api';
+import type { components } from '@/api/schema.gen';
+import { useCurrency } from '@/features/shell/currency';
 import { formatNumber } from '@/i18n/format';
 import { currentLanguage } from '@/i18n/i18n';
 
-type KeyNumber = 'doctors' | 'cases' | 'ready' | 'overdue';
+type KeyNumber = 'doctors' | 'cases' | 'ready' | 'overdue' | 'income' | 'owed' | 'chequesPending';
+type LedgerSummary = components['schemas']['LedgerSummaryResponse'];
 
 /**
  * «الأرقام الرئيسية» (direction A): only figures the system really has today, each opening the
  * matching list. Receivables, income, expenses and invoices join with their slices (B3–B6).
  */
-export function KeyNumbers({ counts, activeDoctors }: { counts: CaseCounts; activeDoctors?: number }) {
+export function KeyNumbers({
+  counts,
+  activeDoctors,
+  ledger,
+}: {
+  counts: CaseCounts;
+  activeDoctors?: number;
+  ledger?: LedgerSummary | undefined;
+}) {
+  const currency = useCurrency();
+  const money = (minor: number | undefined) =>
+    minor === undefined ? undefined : `${currency.format(minor)} ${currency.symbol}`;
   const { t } = useTranslation();
   const lang = currentLanguage();
-  const items: { key: KeyNumber; value: number | undefined; to: string }[] = [
-    { key: 'doctors', value: activeDoctors, to: '/doctors' },
-    { key: 'cases', value: counts.total, to: '/cases' },
-    { key: 'ready', value: counts.byStatus.ready, to: '/cases?status=ready' },
-    { key: 'overdue', value: counts.overdue, to: '/cases?overdue=1' },
+  const count = (n: number | undefined) => (n === undefined ? undefined : formatNumber(n, lang));
+  const items: { key: KeyNumber; value: string | undefined; to: string }[] = [
+    { key: 'doctors', value: count(activeDoctors), to: '/doctors' },
+    { key: 'cases', value: count(counts.total), to: '/cases' },
+    { key: 'ready', value: count(counts.byStatus.ready), to: '/cases?status=ready' },
+    { key: 'overdue', value: count(counts.overdue), to: '/cases?overdue=1' },
+    { key: 'income', value: money(ledger?.receivedThisMonth), to: '/payments' },
+    { key: 'owed', value: money(ledger?.owedToLab), to: '/debts' },
+    { key: 'chequesPending', value: count(ledger?.pendingChequesCount), to: '/cheques?status=pending' },
   ];
   return (
     <ul className="m-0 grid list-none grid-cols-2 gap-x-4 gap-y-1 p-0">
@@ -35,7 +53,7 @@ export function KeyNumbers({ counts, activeDoctors }: { counts: CaseCounts; acti
                 <span className="sr-only">{t('common.loading')}</span>
               </span>
             ) : (
-              <b className="num self-start text-[18px] font-extrabold">{formatNumber(i.value, lang)}</b>
+              <b className="num self-start text-[18px] font-extrabold">{i.value}</b>
             )}
           </Link>
         </li>

@@ -19,6 +19,7 @@ import { cn } from '@/lib/cn';
 import { msg, rawMsg, renderMessage } from '@/lib/form-messages';
 import { doctorApi, doctorKeys, doctorPricesQuery, doctorQuery } from './api';
 import type { Doctor, DoctorPrice } from './api';
+import { DoctorBalanceCard } from '@/features/payments/DoctorTabs';
 import { DoctorFormDialog } from './DoctorFormDialog';
 
 const tabClass = ({ isActive }: { isActive: boolean }) =>
@@ -95,12 +96,19 @@ export function DoctorPage() {
           </Button>
         )}
       </div>
+      <DoctorBalanceCard doctor={doctor} />
       <nav aria-label={t('doctors.sections')} className="mb-4 flex gap-1 border-b border-border">
         <NavLink to={`/doctors/${doctor.id}`} end className={tabClass}>
           {t('doctors.tabInfo')}
         </NavLink>
         <NavLink to={`/doctors/${doctor.id}/prices`} className={tabClass}>
           {t('doctors.tabPrices')}
+        </NavLink>
+        <NavLink to={`/doctors/${doctor.id}/payments`} className={tabClass}>
+          {t('doctorPayments.tab')}
+        </NavLink>
+        <NavLink to={`/doctors/${doctor.id}/statement`} className={tabClass}>
+          {t('statement.tab')}
         </NavLink>
       </nav>
       <Outlet context={doctor} />

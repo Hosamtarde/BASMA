@@ -27,6 +27,8 @@ const row = (over: Partial<CaseSummary> = {}): CaseSummary => ({
 const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   ...row(),
   subtotal: 47000,
+  paid: 0,
+  remaining: 47000,
   discount: 0,
   notes: null,
   lines: [],
