@@ -27,6 +27,7 @@ import { ListQuery } from '../../../shared/http/pagination';
 import { Permission } from '../../identity/domain/permissions';
 import { CurrentUser, RequirePermission } from '../../identity/presentation/auth.decorators';
 import type { AuthUser } from '../../identity/presentation/auth.decorators';
+import { LedgerService } from '../../payments/application/ledger.service';
 import { DoctorsService } from '../application/doctors.service';
 import type { DoctorPriceRow, DoctorRecord } from '../infrastructure/doctors.repository';
 import {
@@ -61,15 +62,29 @@ const toPrice = (r: DoctorPriceRow): DoctorPriceResponse => ({
 @ApiBearerAuth()
 @Controller('doctors')
 export class DoctorsController {
-  constructor(private readonly service: DoctorsService) {}
+  constructor(
+    private readonly service: DoctorsService,
+    private readonly ledger: LedgerService,
+  ) {}
 
   @Get()
   @RequirePermission(Permission.DoctorsRead)
   @ApiOperation({ summary: 'List doctors; search matches name, phone or clinic' })
   @ApiOkResponse({ type: DoctorPage })
-  async list(@Query() q: ListQuery): Promise<DoctorPage> {
+  async list(@Query() q: ListQuery, @CurrentUser() user: AuthUser): Promise<DoctorPage> {
     const page = await this.service.list(q);
-    return { ...page, items: page.items.map(toDoctor) };
+    // One grouped statement for the page, only for callers who may read the ledger (B4).
+    const balances = user.permissions.includes(Permission.LedgerRead)
+      ? await this.ledger.balancesOf(page.items.map((d) => d.id))
+      : undefined;
+    return {
+      ...page,
+      items: page.items.map((d) => ({
+        ...toDoctor(d),
+        balance: balances ? (balances.get(d.id)?.balance ?? 0) : null,
+        direction: balances ? (balances.get(d.id)?.direction ?? 'settled') : null,
+      })),
+    };
   }
 
   @Post()

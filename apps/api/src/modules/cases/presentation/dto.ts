@@ -224,8 +224,19 @@ export class CaseSummaryResponse {
   @ApiProperty() rowVersion!: number;
 }
 
+export class CaseListItemResponse extends CaseSummaryResponse {
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Bound payments that count + the FIFO share of unbound ones; null without ledger.read',
+  })
+  paid!: number | null;
+  @ApiProperty({ type: Number, nullable: true, description: 'total - paid; 0 when cancelled; null without ledger.read' })
+  remaining!: number | null;
+}
+
 export class CaseSummaryPage extends PageMeta {
-  @ApiProperty({ type: [CaseSummaryResponse] }) items!: CaseSummaryResponse[];
+  @ApiProperty({ type: [CaseListItemResponse] }) items!: CaseListItemResponse[];
 }
 
 class CaseLineResponse {

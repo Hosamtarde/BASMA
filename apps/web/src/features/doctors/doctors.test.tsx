@@ -15,6 +15,8 @@ const doctor = (over: object = {}) => ({
   clinic: 'عيادة الأمل',
   notes: null,
   openingBalance: 0,
+  balance: null,
+  direction: null,
   active: true,
   rowVersion: 4,
   ...over,
@@ -39,6 +41,40 @@ describe('DoctorsPage and the doctor dialog', () => {
     expect(within(row).getByRole('link', { name: 'د. أحمد سالم' })).toHaveAttribute('href', '/doctors/7');
     expect(row).toHaveTextContent('عيادة الأمل');
     expect(row).toHaveTextContent('059 111 2222');
+  });
+
+  it('shows the balance with its direction (B4), and no balance column without ledger.read', async () => {
+    stubApi({
+      'GET /api/v1/settings': () => json(200, settingsFixture()),
+      'GET /api/v1/doctors': () =>
+        json(
+          200,
+          page([
+            doctor({ balance: 32000, direction: 'owed_to_lab' }),
+            doctor({ id: 8, name: 'د. رنا', balance: -5000, direction: 'owed_by_lab' }),
+            doctor({ id: 9, name: 'د. سامي', balance: 0, direction: 'settled' }),
+          ]),
+        ),
+    });
+    const view = renderRoutes([{ path: '/doctors', element: <DoctorsPage /> }], '/doctors');
+    const table = await screen.findByRole('table', { name: 'الأطباء' });
+    expect(await within(table).findByRole('columnheader', { name: 'الرصيد' })).toBeVisible();
+    const row = (name: string) => within(table).getByRole('link', { name }).closest('tr')!;
+    expect(row('د. أحمد سالم')).toHaveTextContent('320.00 ₪');
+    expect(row('د. أحمد سالم')).toHaveTextContent('مستحق للمختبر');
+    expect(row('د. رنا')).toHaveTextContent('50.00 ₪');
+    expect(row('د. رنا')).toHaveTextContent('مستحق على المختبر');
+    expect(row('د. سامي')).toHaveTextContent('مسدَّد');
+    view.unmount();
+
+    stubApi({
+      'GET /api/v1/settings': () => json(200, settingsFixture()),
+      'GET /api/v1/doctors': () => json(200, page([doctor()])),
+    });
+    renderRoutes([{ path: '/doctors', element: <DoctorsPage /> }], '/doctors');
+    const plain = await screen.findByRole('table', { name: 'الأطباء' });
+    await within(plain).findByRole('link', { name: 'د. أحمد سالم' });
+    expect(within(plain).queryByRole('columnheader', { name: 'الرصيد' })).toBeNull();
   });
 
   it('sends a signed opening balance in minor units and shows a duplicate name on the name field', async () => {

@@ -6,6 +6,7 @@ import { Link } from 'react-router';
 import { ActionButton } from '@/components/ui/action-button';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
+import { ExportButton } from '@/components/ui/export-button';
 import { Card, DataTable, PageHeader, Pager, SearchBox } from '@/components/ui/list';
 import { Td, Th } from '@/components/ui/table';
 import { DoctorPicker } from '@/features/cases/pickers';
@@ -15,11 +16,12 @@ import { todayIn } from '@/i18n/format';
 import { cn } from '@/lib/cn';
 import { isIsoDate } from '@/lib/dates';
 import { useUrlState } from '@/lib/url-state';
-import { PAYMENT_METHODS, paymentsQuery } from './api';
+import { exportApi, PAYMENT_METHODS, paymentsQuery } from './api';
 import type { Payment, PaymentListParams, PaymentMethod } from './api';
 import { PaymentForm } from './PaymentForm';
 import { VoidPaymentDialog } from './PaymentDialogs';
 import { MoneyCell, PaymentStatusBadge } from './parts';
+import { ReceiptsSummary } from './ReceiptsSummary';
 
 type Key = 'q' | 'doctor' | 'method' | 'status' | 'from' | 'to' | 'page';
 type Filters = Record<Key, string>;
@@ -232,6 +234,12 @@ export function PaymentsPage() {
               {t('payments.clearFilters')}
             </Button>
           )}
+          <ExportButton
+            className="ms-auto"
+            needs={['payments.read']}
+            run={() => exportApi.payments(list)}
+            disabledReason={data && data.total === 0 ? t('export.nothing') : null}
+          />
         </div>
         {data && (
           <p className="flex flex-wrap gap-x-6 gap-y-1 text-[14px]" data-testid="payment-totals">
@@ -250,6 +258,7 @@ export function PaymentsPage() {
           </p>
         )}
       </Card>
+      <ReceiptsSummary params={{ search: list.search, doctorId: list.doctorId, method: list.method, from: list.from, to: list.to }} />
       <Card className="px-3 py-2">
         <DataTable
           caption={t('payments.reportTitle')}

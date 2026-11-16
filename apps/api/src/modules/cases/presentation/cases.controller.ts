@@ -107,9 +107,9 @@ export class CasesController {
     summary: 'Cases, newest first; filters: status, doctor, overdue, received date range, search',
   })
   @ApiOkResponse({ type: CaseSummaryPage })
-  async list(@Query() q: CaseListQueryDto): Promise<CaseSummaryPage> {
-    const page = await this.service.list(definedOnly(q));
-    return { ...page, items: page.items.map(toSummary) };
+  async list(@Query() q: CaseListQueryDto, @CurrentUser() user: AuthUser): Promise<CaseSummaryPage> {
+    const page = await this.service.list(definedOnly(q), user.permissions.includes(Permission.LedgerRead));
+    return { ...page, items: page.items.map((c) => ({ ...toSummary(c), paid: c.paid, remaining: c.remaining })) };
   }
 
   // Declared before ':id' so "summary" is never read as an id.

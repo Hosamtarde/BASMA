@@ -228,7 +228,7 @@ test('the payments filters live in the address: reload, back and forward keep th
   await expect(page.getByTestId('payment-totals')).toContainText('30.00 ₪');
 });
 
-test('debts: the figures tie to the doctor account; a row opens his statement (ar, axe)', async ({
+test('debts: the figures tie to the doctor account; the row links to his statement (ar, axe)', async ({
   page,
   request,
 }) => {
@@ -251,7 +251,8 @@ test('debts: the figures tie to the doctor account; a row opens his statement (a
   await expect(page.getByText('لا يوجد طبيب يطابق البحث.')).toBeVisible();
   await page.getByRole('button', { name: 'الكل', exact: true }).click();
 
-  await row.getByRole('link', { name: s.doctor.name }).click();
+  // B4: the name opens the breakdown (see b4.spec.ts); the statement stays one click away in the row.
+  await row.getByRole('link', { name: `كشف حساب ${s.doctor.name}` }).click();
   await expect(page).toHaveURL(new RegExp(`/doctors/${s.doctor.id}/statement`));
   await expect(page.getByTestId('doctor-balance')).toContainText('200.00 ₪');
   const statement = page.getByRole('table', { name: new RegExp('كشف حساب') });

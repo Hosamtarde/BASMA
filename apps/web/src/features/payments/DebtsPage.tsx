@@ -3,24 +3,26 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, DataTable, PageHeader, Pager, SearchBox } from '@/components/ui/list';
+import { ExportButton } from '@/components/ui/export-button';
 import { Td, Th } from '@/components/ui/table';
 import { formatNumber } from '@/i18n/format';
 import { currentLanguage } from '@/i18n/i18n';
 import { cn } from '@/lib/cn';
 import { useUrlState } from '@/lib/url-state';
-import { debtsQuery } from './api';
+import { debtsQuery, exportApi } from './api';
 import type { DebtDirection, DebtListParams } from './api';
+import { DebtBreakdownDialog } from './DebtBreakdownDialog';
 import { MoneyCell } from './parts';
 
-type Key = 'q' | 'dir' | 'page';
+type Key = 'q' | 'dir' | 'page' | 'doctor' | 'bp';
 type Filters = Record<Key, string>;
-const KEYS: Key[] = ['q', 'dir', 'page'];
+const KEYS: Key[] = ['q', 'dir', 'page', 'doctor', 'bp'];
 const parse = (p: URLSearchParams): Filters => Object.fromEntries(KEYS.map((k) => [k, p.get(k) ?? ''])) as Filters;
 function serialize(f: Filters): URLSearchParams {
   const out = new URLSearchParams();
   for (const k of KEYS) {
     const v = f[k].trim();
-    if (v !== '' && !(k === 'page' && v === '1')) out.set(k, v);
+    if (v !== '' && !((k === 'page' || k === 'bp') && v === '1')) out.set(k, v);
   }
   return out;
 }
@@ -38,7 +40,7 @@ function SummaryCard({ label, value, tone }: { label: string; value: React.React
   );
 }
 
-/** «الديون» (SPEC §5.11): four figures and the doctors with a balance; a row opens the doctor's statement. */
+/** «الديون» (SPEC §5.11): four figures and the doctors with a balance; a name opens the breakdown, with the statement one click away. */
 export function DebtsPage() {
   const { t } = useTranslation();
   const lang = currentLanguage();
@@ -48,9 +50,13 @@ export function DebtsPage() {
     direction: (DIRECTIONS as string[]).includes(f.dir) ? (f.dir as DebtDirection) : 'all',
     page: Math.max(1, Number.parseInt(f.page || '1', 10) || 1),
   };
-  const update = (patch: Partial<Filters>) =>
-    setFilters((prev) => ({ ...prev, ...patch, ...('page' in patch ? {} : { page: '' }) }));
   const { data } = useQuery(debtsQuery(list));
+  const update = (patch: Partial<Filters>) =>
+    setFilters((prev) => ({ ...prev, ...patch, ...('page' in patch || 'doctor' in patch || 'bp' in patch ? {} : { page: '' }) }));
+  const openId = Number.parseInt(f.doctor, 10);
+  const open = Number.isSafeInteger(openId) && openId > 0 ? openId : undefined;
+  const openName = data?.items.find((d) => d.doctor.id === open)?.doctor.name ?? '';
+  const bpage = Math.max(1, Number.parseInt(f.bp || '1', 10) || 1);
   const filtered = list.search !== '' || list.direction !== 'all';
   const label: Record<DebtDirection, string> = {
     all: t('debts.filterAll'),
@@ -101,6 +107,12 @@ export function DebtsPage() {
             {t('debts.clearFilters')}
           </Button>
         )}
+        <ExportButton
+          className="ms-auto"
+          needs={['ledger.read']}
+          run={() => exportApi.debts(list)}
+          disabledReason={data && data.total === 0 ? t('export.nothing') : null}
+        />
       </Card>
       <Card className="px-3 py-2">
         <DataTable
@@ -113,18 +125,23 @@ export function DebtsPage() {
               <Th>{t('debts.direction')}</Th>
               <Th kind="money">{t('debts.amount')}</Th>
               <Th kind="money">{t('debts.pendingCheques')}</Th>
+              <Th kind="actions">
+                <span className="sr-only">{t('list.actions')}</span>
+              </Th>
             </>
           }
         >
           {data?.items.map((d) => (
             <tr key={d.doctor.id} data-debt={d.doctor.id}>
               <Td autoDir className="font-bold">
-                <Link
-                  to={`/doctors/${d.doctor.id}/statement`}
-                  className="text-ink underline-offset-4 hover:underline"
+                <button
+                  type="button"
+                  className="cursor-pointer text-start font-bold text-ink underline-offset-4 hover:underline"
+                  aria-haspopup="dialog"
+                  onClick={() => update({ doctor: String(d.doctor.id), bp: '' })}
                 >
                   {d.doctor.name}
-                </Link>
+                </button>
               </Td>
               <Td>
                 <span
@@ -142,11 +159,27 @@ export function DebtsPage() {
               <Td kind="money" className="text-muted">
                 {d.pendingCheques > 0 ? <MoneyCell minor={d.pendingCheques} /> : '—'}
               </Td>
+              <Td kind="actions">
+                <Button asChild variant="ghost" size="sm">
+                  <Link to={`/doctors/${d.doctor.id}/statement`} aria-label={t('debts.openStatement', { name: d.doctor.name })}>
+                    {t('breakdown.statement')}
+                  </Link>
+                </Button>
+              </Td>
             </tr>
           ))}
         </DataTable>
         {data && <Pager page={list.page} pageSize={data.pageSize} total={data.total} onPage={(page) => update({ page: String(page) })} />}
       </Card>
+      {open !== undefined && (
+        <DebtBreakdownDialog
+          key={open}
+          doctor={{ id: open, name: openName }}
+          page={bpage}
+          onPage={(p) => update({ bp: String(p) })}
+          onClose={() => update({ doctor: '', bp: '' })}
+        />
+      )}
     </>
   );
 }

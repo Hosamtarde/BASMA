@@ -480,6 +480,63 @@ export class PaymentsRepository {
     };
   }
 
+  /**
+   * Receipts report figures (SPEC §5.8, B4 O3). Counted money is placed on its EFFECTIVE date — a cash or
+   * transfer payment on its payment date, a cheque on the day it cleared — so a month here equals Home's
+   * «received this month». Pending cheques and voided payments are memo lines by payment date.
+   */
+  async receiptsSummary(db: Executor, f: Omit<PaymentFilter, 'status' | 'counted'>) {
+    const base = paymentWhere({ ...f, from: undefined, to: undefined });
+    const eff = sql`(case when ${payments.method} = 'cheque' then ${cheques.statusDate} else ${payments.paidAt} end)`;
+    const inEff = and(f.from ? sql`${eff} >= ${f.from}::date` : undefined, f.to ? sql`${eff} <= ${f.to}::date` : undefined);
+    const inPaid = and(
+      f.from ? gte(payments.paidAt, f.from) : undefined,
+      f.to ? lte(payments.paidAt, f.to) : undefined,
+    );
+    const counted = and(countedWhere(), inEff);
+    const sumIf = (cond: SQL | undefined) =>
+      sql<string>`coalesce(sum(${payments.amount}) filter (where ${cond ?? sql`true`}), 0)`;
+    const cntIf = (cond: SQL | undefined) => sql<string>`count(*) filter (where ${cond ?? sql`true`})`;
+    const [agg] = await db
+      .select({
+        countedAmount: sumIf(counted),
+        countedCount: cntIf(counted),
+        cash: sumIf(and(counted, eq(payments.method, 'cash'))),
+        transfer: sumIf(and(counted, eq(payments.method, 'transfer'))),
+        cheque: sumIf(and(counted, eq(payments.method, 'cheque'))),
+        pendingAmount: sumIf(and(eq(payments.status, 'active'), eq(cheques.status, 'pending'), inPaid)),
+        pendingCount: cntIf(and(eq(payments.status, 'active'), eq(cheques.status, 'pending'), inPaid)),
+        voidAmount: sumIf(and(eq(payments.status, 'void'), inPaid)),
+        voidCount: cntIf(and(eq(payments.status, 'void'), inPaid)),
+      })
+      .from(payments)
+      .innerJoin(doctors, eq(doctors.id, payments.doctorId))
+      .leftJoin(cheques, eq(cheques.paymentId, payments.id))
+      .where(base);
+    const [last] = await db
+      .select({ voucherNo: payments.voucherNo, paidAt: payments.paidAt, amount: payments.amount })
+      .from(payments)
+      .innerJoin(doctors, eq(doctors.id, payments.doctorId))
+      .leftJoin(cheques, eq(cheques.paymentId, payments.id))
+      .where(and(base, eq(payments.status, 'active'), inPaid))
+      .orderBy(desc(payments.paidAt), desc(payments.id))
+      .limit(1);
+    return {
+      counted: {
+        amount: Number(agg?.countedAmount ?? 0),
+        count: Number(agg?.countedCount ?? 0),
+        byMethod: {
+          cash: Number(agg?.cash ?? 0),
+          transfer: Number(agg?.transfer ?? 0),
+          cheque: Number(agg?.cheque ?? 0),
+        },
+      },
+      pendingCheques: { count: Number(agg?.pendingCount ?? 0), amount: Number(agg?.pendingAmount ?? 0) },
+      voided: { count: Number(agg?.voidCount ?? 0), amount: Number(agg?.voidAmount ?? 0) },
+      last: last ?? null,
+    };
+  }
+
   // ---- cheque register ----
 
   private chequeWhere(f: ChequeFilter, today: string, soonUntil: string): SQL | undefined {

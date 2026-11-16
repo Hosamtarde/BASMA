@@ -12,6 +12,6 @@ import { ChequesController, LedgerController, PaymentsController } from './prese
   imports: [SettingsModule],
   controllers: [PaymentsController, ChequesController, LedgerController],
   providers: [PaymentsService, ChequesService, LedgerService, PaymentsRepository, LedgerRepository],
-  exports: [PaymentsService, LedgerService, PaymentsRepository],
+  exports: [PaymentsService, LedgerService, PaymentsRepository, LedgerRepository],
 })
 export class PaymentsModule {}

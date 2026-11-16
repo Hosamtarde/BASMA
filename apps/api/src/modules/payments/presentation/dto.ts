@@ -133,6 +133,23 @@ export class PaymentListQuery extends PagingQuery {
   search?: string;
 }
 
+/** Filters of the receipts summary: the payments list without paging, status and counted. */
+export class PaymentSummaryQuery {
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) doctorId?: number;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) caseId?: number;
+  @ApiPropertyOptional({ enum: PAYMENT_METHODS }) @IsOptional() @IsIn(PAYMENT_METHODS) method?: PaymentMethod;
+  @ApiPropertyOptional({ description: 'First day (inclusive); counted money by its effective date' })
+  @IsOptional()
+  @IsDateOnly()
+  from?: string;
+  @ApiPropertyOptional({ description: 'Last day (inclusive)' }) @IsOptional() @IsDateOnly() to?: string;
+  @ApiPropertyOptional({ description: 'Voucher number, doctor name or cheque number', maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+}
+
 export class ChequeFilterQuery {
   @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) doctorId?: number;
   @ApiPropertyOptional({ description: 'Due date from (inclusive)' })
@@ -175,6 +192,8 @@ export class StatementQuery extends PagingQuery {
   @ApiPropertyOptional({ description: 'First day (inclusive)' }) @IsOptional() @IsDateOnly() from?: string;
   @ApiPropertyOptional({ description: 'Last day (inclusive)' }) @IsOptional() @IsDateOnly() to?: string;
 }
+
+export class BreakdownQuery extends PagingQuery {}
 
 export class DebtsQuery extends PagingQuery {
   @ApiPropertyOptional({ enum: ['owed_to_lab', 'owed_by_lab', 'all'], default: 'all' })
@@ -294,12 +313,28 @@ class StatementLineResponse {
   @ApiProperty(amountDoc) debit!: number;
   @ApiProperty(amountDoc) credit!: number;
   @ApiProperty({ description: 'Balance after this line, over all of the doctor history' }) running!: number;
+  @ApiProperty({ type: String, nullable: true, example: 'IN-000012', description: 'Payment and cheque-return lines' })
+  voucher!: string | null;
+  @ApiProperty({ type: String, nullable: true, description: 'Case lines; null without cases.read' })
+  patientName!: string | null;
+  @ApiProperty({ enum: PAYMENT_METHODS, nullable: true }) method!: PaymentMethod | null;
+  @ApiProperty({ type: String, nullable: true }) chequeNo!: string | null;
+  @ApiProperty({ type: String, nullable: true }) bank!: string | null;
+  @ApiProperty({ type: Number, nullable: true, description: 'Case number the payment is bound to' })
+  boundCaseNo!: number | null;
+}
+
+class StatementTotals {
+  @ApiProperty(amountDoc) debit!: number;
+  @ApiProperty(amountDoc) credit!: number;
 }
 
 export class StatementResponse extends PageMeta {
   @ApiProperty({ description: 'Doctor opening balance (before any case)' }) openingBalance!: number;
   @ApiProperty({ description: 'Balance just before the period' }) periodOpening!: number;
   @ApiProperty({ description: 'Balance at the end of the period' }) closing!: number;
+  @ApiProperty({ type: StatementTotals, description: 'Debit and credit totals of the chosen range' })
+  totals!: StatementTotals;
   @ApiProperty({ type: [StatementLineResponse] }) lines!: StatementLineResponse[];
 }
 
@@ -342,4 +377,85 @@ export class CasePaymentsResponse {
   @ApiProperty() remaining!: number;
   @ApiProperty({ type: [PaymentResponse], description: 'Payments bound to the case (any status)' })
   payments!: PaymentResponse[];
+}
+
+// ---- Debts breakdown (B4, SPEC §5.11) ----
+
+class BreakdownTieOut {
+  @ApiProperty({ description: 'Unpaid part of a positive opening balance' }) openingRemaining!: number;
+  @ApiProperty({ description: 'Sum of remaining over ALL open cases, not of the page' }) casesRemaining!: number;
+  @ApiProperty({ description: 'Money the lab holds for the doctor (overpayment, negative opening balance)' })
+  credit!: number;
+  @ApiProperty({ description: 'openingRemaining + casesRemaining - credit; equals GET /doctors/{id}/balance' })
+  balance!: number;
+}
+
+class BreakdownCase {
+  @ApiProperty() id!: number;
+  @ApiProperty() caseNo!: number;
+  @ApiProperty() patientName!: string;
+  @ApiProperty() receivedDate!: string;
+  @ApiProperty() status!: string;
+  @ApiProperty(amountDoc) total!: number;
+  @ApiProperty(amountDoc) paid!: number;
+  @ApiProperty({ ...amountDoc, description: 'Always above 0 here' }) remaining!: number;
+}
+
+class BreakdownOpenCases extends PageMeta {
+  @ApiProperty({ description: 'Number of open cases (all pages)' }) count!: number;
+  @ApiProperty({ description: 'Sum of remaining of all open cases (all pages)' }) remaining!: number;
+  @ApiProperty({ type: [BreakdownCase], description: 'Oldest first (received date, then case number)' })
+  items!: BreakdownCase[];
+}
+
+class BreakdownPayment {
+  @ApiProperty() id!: number;
+  @ApiProperty({ example: 'IN-000001' }) voucherNo!: string;
+  @ApiProperty() paidAt!: string;
+  @ApiProperty({ enum: PAYMENT_METHODS }) method!: PaymentMethod;
+  @ApiProperty(amountDoc) amount!: number;
+  @ApiProperty({ description: 'False for a cheque not cleared yet' }) counted!: boolean;
+  @ApiProperty({ type: Number, nullable: true }) boundCaseNo!: number | null;
+}
+
+export class DebtBreakdownResponse {
+  @ApiProperty({ type: Ref }) doctor!: Ref;
+  @ApiProperty({ type: DoctorBalanceResponse }) figures!: DoctorBalanceResponse;
+  @ApiProperty() openingRemaining!: number;
+  @ApiProperty() credit!: number;
+  @ApiProperty({ type: BreakdownTieOut }) tieOut!: BreakdownTieOut;
+  @ApiProperty({ type: BreakdownOpenCases }) openCases!: BreakdownOpenCases;
+  @ApiProperty({ type: [BreakdownPayment], description: 'Latest 10 active payments, newest first' })
+  latestPayments!: BreakdownPayment[];
+}
+
+// ---- Receipts summary (B4) ----
+
+class ByMethod {
+  @ApiProperty(amountDoc) cash!: number;
+  @ApiProperty(amountDoc) transfer!: number;
+  @ApiProperty(amountDoc) cheque!: number;
+}
+class CountedSummary {
+  @ApiProperty(amountDoc) amount!: number;
+  @ApiProperty() count!: number;
+  @ApiProperty({ type: ByMethod }) byMethod!: ByMethod;
+}
+class CountAmount {
+  @ApiProperty() count!: number;
+  @ApiProperty(amountDoc) amount!: number;
+}
+class LastPayment {
+  @ApiProperty({ example: 'IN-000001' }) voucherNo!: string;
+  @ApiProperty() paidAt!: string;
+  @ApiProperty(amountDoc) amount!: number;
+}
+export class PaymentSummaryResponse {
+  @ApiProperty({ type: CountedSummary, description: 'Money that counts, on its effective date (a cheque: the day it cleared)' })
+  counted!: CountedSummary;
+  @ApiProperty({ type: CountAmount, description: 'Memo: cheques not cleared yet, by payment date' })
+  pendingCheques!: CountAmount;
+  @ApiProperty({ type: CountAmount, description: 'Memo: voided payments, by payment date' }) voided!: CountAmount;
+  @ApiProperty({ type: LastPayment, nullable: true }) last!: LastPayment | null;
+  @ApiProperty({ enum: ['effective'] }) basis!: 'effective';
 }

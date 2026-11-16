@@ -98,6 +98,8 @@ export function CasesPage() {
     ...doctorQuery(list.doctorId ?? 0),
     enabled: list.doctorId !== undefined,
   });
+  // Paid / remaining come with ledger.read; without it the API sends null and the columns stay away.
+  const showFigures = data?.items.some((c) => c.paid !== null) ?? false;
   const filtered =
     list.search !== '' || list.status || list.doctorId || list.overdue || from !== '' || to !== '';
 
@@ -209,6 +211,8 @@ export function CasesPage() {
               <Th kind="number">{t('cases.expected')}</Th>
               <Th>{t('cases.status')}</Th>
               <Th kind="money">{t('cases.total')}</Th>
+              {showFigures && <Th kind="money">{t('cases.paid')}</Th>}
+              {showFigures && <Th kind="money">{t('cases.remaining')}</Th>}
               <Th kind="actions">
                 <span className="sr-only">{t('list.actions')}</span>
               </Th>
@@ -252,6 +256,24 @@ export function CasesPage() {
               >
                 <Money value={currency.format(c.total)} symbol={currency.symbol} />
               </Td>
+              {showFigures && (
+                <Td kind="money" className="py-2! text-muted" data-figure="paid">
+                  {c.status === 'cancelled' || c.paid === null ? '—' : <Money value={currency.format(c.paid)} symbol={currency.symbol} />}
+                </Td>
+              )}
+              {showFigures && (
+                <Td
+                  kind="money"
+                  className={cn('py-2!', (c.remaining ?? 0) > 0 ? 'font-bold text-warning-ink' : 'text-muted')}
+                  data-figure="remaining"
+                >
+                  {c.status === 'cancelled' || c.remaining === null ? (
+                    '—'
+                  ) : (
+                    <Money value={currency.format(c.remaining)} symbol={currency.symbol} />
+                  )}
+                </Td>
+              )}
               <Td kind="actions" className="py-1.5!">
                 <ViewCaseButton id={c.id} caseNo={c.caseNo} />
                 <CaseRowMenu id={c.id} caseNo={c.caseNo} onAction={setAction} />

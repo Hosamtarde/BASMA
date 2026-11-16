@@ -36,6 +36,20 @@
       "when": 1794777932429,
       "tag": "0004_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794838032519,
+      "tag": "0005_exports_search_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794839764476,
+      "tag": "0006_search_columns",
+      "breakpoints": true
     }
   ]
 }

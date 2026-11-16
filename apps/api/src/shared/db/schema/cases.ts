@@ -10,6 +10,7 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { FOLD_FROM, FOLD_TO } from '../../text/search-fold';
 import { technicians, workTypes } from './catalog';
 import { aggregateColumns, amountColumn, idColumn, MAX_AMOUNT_MINOR } from './columns';
 import { doctors } from './doctors';
@@ -41,6 +42,10 @@ export const cases = pgTable(
     /** Cached Σ case_items.unit_price − discount, recomputed in every write transaction (SPEC §7.3). */
     total: amountColumn('total').notNull().default(0),
     notes: text('notes'),
+    /** Folded patient name for the global search (B4); generated, never written. */
+    patientSearch: text('patient_search').generatedAlwaysAs(
+      sql.raw(`translate(lower(patient_name), '${FOLD_FROM}', '${FOLD_TO}')`),
+    ),
     ...aggregateColumns(),
   },
   (t) => [

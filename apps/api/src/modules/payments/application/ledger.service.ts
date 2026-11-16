@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DB } from '../../../shared/db/database';
 import type { Database, Tx } from '../../../shared/db/database';
 import { notFound } from '../../../shared/errors/common-errors';
@@ -9,6 +9,9 @@ import { LabCalendar } from '../../settings/application/lab-calendar.service';
 import {
   allocate,
   BalanceDirection,
+  breakdown,
+  formatVoucher,
+  PaymentMethod,
   CHEQUE_DUE_SOON_DAYS,
   directionOf,
   doctorBalance,
@@ -36,6 +39,8 @@ export interface CaseFigures {
 /** Balances and per-case figures. Computed at read time, never stored (SPEC §7.3). */
 @Injectable()
 export class LedgerService {
+  private readonly logger = new Logger(LedgerService.name);
+
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly repo: LedgerRepository,
@@ -73,6 +78,120 @@ export class LedgerService {
     return share ? { ...share } : undefined;
   }
 
+  /**
+   * Paid and remaining for the cases of ONE page of a list: the doctors on the page are loaded in four
+   * statements whatever the page size, `allocate` runs once per doctor. A cancelled case has 0 / 0.
+   */
+  async figuresForCases(
+    rows: readonly { id: number; doctorId: number; status: string }[],
+    db: Database | Tx = this.db,
+  ): Promise<Map<number, CaseFigures>> {
+    const out = new Map<number, CaseFigures>();
+    const inputs = await this.repo.doctorInputs(db, [...new Set(rows.map((r) => r.doctorId))]);
+    const allocations = new Map<number, ReturnType<typeof allocate>>();
+    for (const r of rows) {
+      const input = inputs.get(r.doctorId);
+      if (!input || r.status === 'cancelled') {
+        out.set(r.id, { paid: 0, remaining: 0 });
+        continue;
+      }
+      let a = allocations.get(r.doctorId);
+      if (!a) {
+        a = allocate(input.opening, input.cases, input.counted);
+        allocations.set(r.doctorId, a);
+      }
+      const share = a.cases.get(r.id);
+      out.set(r.id, share ? { ...share } : { paid: 0, remaining: 0 });
+    }
+    return out;
+  }
+
+  /** Balance and direction of one page of doctors (the doctors list), one statement. */
+  async balancesOf(
+    doctorIds: readonly number[],
+    db: Database | Tx = this.db,
+  ): Promise<Map<number, { balance: number; direction: BalanceDirection }>> {
+    const raw = await this.repo.balancesOf(db, doctorIds);
+    const out = new Map<number, { balance: number; direction: BalanceDirection }>();
+    for (const id of doctorIds) {
+      const b = raw.get(id)?.balance ?? 0;
+      out.set(id, { balance: b, direction: directionOf(b) });
+    }
+    return out;
+  }
+
+  /**
+   * What makes up a doctor's balance (SPEC §5.11): the unpaid part of the opening balance, every case
+   * that still owes something, the credit, and the proof that they add up to `GET /doctors/{id}/balance`.
+   * Refuses to answer (500, logged) if they do not: wrong numbers must never reach the screen.
+   */
+  /** The breakdown of one doctor, checked against his balance; shared by the screen and the CSV. */
+  async computeBreakdown(doctorId: number, db: Database | Tx = this.db) {
+    const input = await this.repo.doctorInput(db, doctorId);
+    if (!input) throw notFound();
+    const fig = this.figures(input);
+    const b = breakdown(input.opening, input.cases, input.counted);
+    if (!b.tiesOut || b.balance !== fig.balance) {
+      this.logger.error(
+        `debt breakdown does not tie out for doctor ${doctorId}: opening ${b.openingRemaining} + cases ${b.casesRemaining} - credit ${b.credit} != balance ${fig.balance}`,
+      );
+      throw new Error('debt breakdown invariant failed'); // the filter answers 500 error.internal
+    }
+    return { input, fig, b };
+  }
+
+  /** Patient name and status of cases (the breakdown names the cases it lists). */
+  caseNames(ids: readonly number[], db: Database | Tx = this.db) {
+    return this.repo.casesByIds(db, ids);
+  }
+
+  async debtBreakdown(doctorId: number, page: number, pageSize: number) {
+    const { input, fig, b } = await this.computeBreakdown(doctorId);
+    const pageRows = b.openCases.slice(offsetOf({ page, pageSize }), offsetOf({ page, pageSize }) + pageSize);
+    const [names, latest] = await Promise.all([
+      this.repo.casesByIds(this.db, pageRows.map((c) => c.id)),
+      this.repo.latestPayments(this.db, doctorId, 10),
+    ]);
+    return {
+      doctor: { id: doctorId, name: input.doctorName },
+      figures: fig,
+      openingRemaining: b.openingRemaining,
+      credit: b.credit,
+      tieOut: {
+        openingRemaining: b.openingRemaining,
+        casesRemaining: b.casesRemaining,
+        credit: b.credit,
+        balance: fig.balance,
+      },
+      openCases: {
+        count: b.openCases.length,
+        remaining: b.casesRemaining,
+        page,
+        pageSize,
+        total: b.openCases.length,
+        items: pageRows.map((c) => ({
+          id: c.id,
+          caseNo: c.caseNo,
+          patientName: names.get(c.id)?.patientName ?? '',
+          receivedDate: c.receivedDate,
+          status: names.get(c.id)?.status ?? '',
+          total: c.total,
+          paid: c.paid,
+          remaining: c.remaining,
+        })),
+      },
+      latestPayments: latest.map((p) => ({
+        id: p.id,
+        voucherNo: formatVoucher(p.voucherNo),
+        paidAt: p.paidAt,
+        method: p.method as PaymentMethod,
+        amount: p.amount,
+        counted: Boolean(p.counted),
+        boundCaseNo: p.caseNo,
+      })),
+    };
+  }
+
   async boundActiveTotal(caseId: number, db: Database | Tx = this.db): Promise<number> {
     return this.repo.boundActiveTotal(db, caseId);
   }
@@ -98,7 +217,11 @@ export class LedgerService {
       openingBalance: input.opening,
       periodOpening: r.periodOpening,
       closing: r.periodOpening + r.periodNet,
-      lines: r.lines,
+      totals: { debit: r.totalDebit, credit: r.totalCredit },
+      lines: r.lines.map((l) => ({
+        ...l,
+        voucher: l.kind === 'case' ? null : formatVoucher(Number(l.ref)),
+      })),
       page,
       pageSize,
       total: r.total,

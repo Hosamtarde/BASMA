@@ -54,8 +54,19 @@ export class DoctorResponse {
   @ApiProperty() rowVersion!: number;
 }
 
+export class DoctorListItemResponse extends DoctorResponse {
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Current balance, signed (positive = owed to the lab); null without ledger.read',
+  })
+  balance!: number | null;
+  @ApiProperty({ enum: ['owed_to_lab', 'owed_by_lab', 'settled'], nullable: true })
+  direction!: 'owed_to_lab' | 'owed_by_lab' | 'settled' | null;
+}
+
 export class DoctorPage extends PageMeta {
-  @ApiProperty({ type: [DoctorResponse] }) items!: DoctorResponse[];
+  @ApiProperty({ type: [DoctorListItemResponse] }) items!: DoctorListItemResponse[];
 }
 
 export class SetDoctorPriceRequest {

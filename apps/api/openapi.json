@@ -2699,6 +2699,91 @@
         ]
       }
     },
+    "/api/v1/payments/summary": {
+      "get": {
+        "operationId": "PaymentsController_summary",
+        "parameters": [
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "caseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "method",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cash",
+                "cheque",
+                "transfer"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "First day (inclusive); counted money by its effective date",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Last day (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Voucher number, doctor name or cheque number",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Receipts report figures: counted by method, pending cheques, voided, last payment",
+        "tags": [
+          "payments"
+        ]
+      }
+    },
     "/api/v1/payments/{id}": {
       "get": {
         "operationId": "PaymentsController_get",
@@ -3109,6 +3194,73 @@
         ]
       }
     },
+    "/api/v1/doctors/{id}/debt-breakdown": {
+      "get": {
+        "operationId": "LedgerController_debtBreakdown",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DebtBreakdownResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What makes up the balance: unpaid opening balance, open cases, credit, and the tie-out",
+        "tags": [
+          "ledger"
+        ]
+      }
+    },
     "/api/v1/doctors/{id}/statement": {
       "get": {
         "operationId": "LedgerController_statement",
@@ -3336,6 +3488,470 @@
         "summary": "Figures for Home: received this month, owed to the lab, cheques",
         "tags": [
           "ledger"
+        ]
+      }
+    },
+    "/api/v1/exports/debts": {
+      "get": {
+        "operationId": "ExportsController_debts",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "description": "Language of the headers and labels; default: Accept-Language, then Arabic",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ar",
+                "en"
+              ]
+            }
+          },
+          {
+            "name": "direction",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "all",
+              "type": "string",
+              "enum": [
+                "owed_to_lab",
+                "owed_by_lab",
+                "all"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "error.export.too_large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Debts as CSV: one row per doctor with a balance (same filters as the screen)",
+        "tags": [
+          "exports"
+        ]
+      }
+    },
+    "/api/v1/exports/doctors/{id}/debt-breakdown": {
+      "get": {
+        "operationId": "ExportsController_breakdown",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "description": "Language of the headers and labels; default: Accept-Language, then Arabic",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ar",
+                "en"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "error.export.too_large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Debt breakdown of one doctor as CSV; the Remaining column sums to the balance",
+        "tags": [
+          "exports"
+        ]
+      }
+    },
+    "/api/v1/exports/doctors/{id}/statement": {
+      "get": {
+        "operationId": "ExportsController_statement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "description": "Language of the headers and labels; default: Accept-Language, then Arabic",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ar",
+                "en"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "First day (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Last day (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "error.export.too_large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Account statement of one doctor as CSV, for the chosen date range",
+        "tags": [
+          "exports"
+        ]
+      }
+    },
+    "/api/v1/exports/payments": {
+      "get": {
+        "operationId": "ExportsController_payments",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "description": "Language of the headers and labels; default: Accept-Language, then Arabic",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ar",
+                "en"
+              ]
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "caseId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "method",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cash",
+                "cheque",
+                "transfer"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "void"
+              ]
+            }
+          },
+          {
+            "name": "counted",
+            "required": false,
+            "in": "query",
+            "description": "true: only payments that count now; false: only those that do not",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Payment date from (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Payment date to (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Voucher number, doctor name or cheque number",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "error.export.too_large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Payments (receipts report) as CSV with the filters of the payments list",
+        "tags": [
+          "exports"
+        ]
+      }
+    },
+    "/api/v1/search": {
+      "get": {
+        "operationId": "SearchController_search",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "What to look for; trimmed",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Hits per group",
+            "schema": {
+              "minimum": 1,
+              "maximum": 10,
+              "default": 5,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed (empty or longer than 100 characters)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Global search: doctors, cases and payments; a group the caller cannot read is omitted",
+        "tags": [
+          "search"
         ]
       }
     }
@@ -3904,7 +4520,7 @@
           "rowVersion"
         ]
       },
-      "DoctorResponse": {
+      "DoctorListItemResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -3935,6 +4551,20 @@
           },
           "rowVersion": {
             "type": "number"
+          },
+          "balance": {
+            "type": "number",
+            "nullable": true,
+            "description": "Current balance, signed (positive = owed to the lab); null without ledger.read"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "owed_to_lab",
+              "owed_by_lab",
+              "settled"
+            ],
+            "nullable": true
           }
         },
         "required": [
@@ -3945,7 +4575,9 @@
           "notes",
           "openingBalance",
           "active",
-          "rowVersion"
+          "rowVersion",
+          "balance",
+          "direction"
         ]
       },
       "DoctorPage": {
@@ -3963,7 +4595,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/DoctorResponse"
+              "$ref": "#/components/schemas/DoctorListItemResponse"
             }
           }
         },
@@ -4006,6 +4638,50 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "DoctorResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "clinic": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "openingBalance": {
+            "type": "number",
+            "description": "Signed, integer minor units: > 0 the doctor owes the lab, < 0 the lab owes the doctor",
+            "example": 0
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "rowVersion": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "clinic",
+          "notes",
+          "openingBalance",
+          "active",
+          "rowVersion"
         ]
       },
       "UpdateDoctorRequest": {
@@ -4467,7 +5143,7 @@
           "name"
         ]
       },
-      "CaseSummaryResponse": {
+      "CaseListItemResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -4524,6 +5200,16 @@
           },
           "rowVersion": {
             "type": "number"
+          },
+          "paid": {
+            "type": "number",
+            "nullable": true,
+            "description": "Bound payments that count + the FIFO share of unbound ones; null without ledger.read"
+          },
+          "remaining": {
+            "type": "number",
+            "nullable": true,
+            "description": "total - paid; 0 when cancelled; null without ledger.read"
           }
         },
         "required": [
@@ -4538,7 +5224,9 @@
           "status",
           "total",
           "overdue",
-          "rowVersion"
+          "rowVersion",
+          "paid",
+          "remaining"
         ]
       },
       "CaseSummaryPage": {
@@ -4556,7 +5244,7 @@
           "items": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CaseSummaryResponse"
+              "$ref": "#/components/schemas/CaseListItemResponse"
             }
           }
         },
@@ -5628,6 +6316,142 @@
           "totals"
         ]
       },
+      "ByMethod": {
+        "type": "object",
+        "properties": {
+          "cash": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "transfer": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "cheque": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "cash",
+          "transfer",
+          "cheque"
+        ]
+      },
+      "CountedSummary": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "count": {
+            "type": "number"
+          },
+          "byMethod": {
+            "$ref": "#/components/schemas/ByMethod"
+          }
+        },
+        "required": [
+          "amount",
+          "count",
+          "byMethod"
+        ]
+      },
+      "CountAmount": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "count",
+          "amount"
+        ]
+      },
+      "LastPayment": {
+        "type": "object",
+        "properties": {
+          "voucherNo": {
+            "type": "string",
+            "example": "IN-000001"
+          },
+          "paidAt": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "voucherNo",
+          "paidAt",
+          "amount"
+        ]
+      },
+      "PaymentSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "counted": {
+            "description": "Money that counts, on its effective date (a cheque: the day it cleared)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountedSummary"
+              }
+            ]
+          },
+          "pendingCheques": {
+            "description": "Memo: cheques not cleared yet, by payment date",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountAmount"
+              }
+            ]
+          },
+          "voided": {
+            "description": "Memo: voided payments, by payment date",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountAmount"
+              }
+            ]
+          },
+          "last": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LastPayment"
+              }
+            ]
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "effective"
+            ]
+          }
+        },
+        "required": [
+          "counted",
+          "pendingCheques",
+          "voided",
+          "last",
+          "basis"
+        ]
+      },
       "ChequeHistoryResponse": {
         "type": "object",
         "properties": {
@@ -5940,6 +6764,218 @@
           "direction"
         ]
       },
+      "BreakdownTieOut": {
+        "type": "object",
+        "properties": {
+          "openingRemaining": {
+            "type": "number",
+            "description": "Unpaid part of a positive opening balance"
+          },
+          "casesRemaining": {
+            "type": "number",
+            "description": "Sum of remaining over ALL open cases, not of the page"
+          },
+          "credit": {
+            "type": "number",
+            "description": "Money the lab holds for the doctor (overpayment, negative opening balance)"
+          },
+          "balance": {
+            "type": "number",
+            "description": "openingRemaining + casesRemaining - credit; equals GET /doctors/{id}/balance"
+          }
+        },
+        "required": [
+          "openingRemaining",
+          "casesRemaining",
+          "credit",
+          "balance"
+        ]
+      },
+      "BreakdownCase": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "caseNo": {
+            "type": "number"
+          },
+          "patientName": {
+            "type": "string"
+          },
+          "receivedDate": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "total": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "paid": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "remaining": {
+            "type": "number",
+            "description": "Always above 0 here",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "caseNo",
+          "patientName",
+          "receivedDate",
+          "status",
+          "total",
+          "paid",
+          "remaining"
+        ]
+      },
+      "BreakdownOpenCases": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "count": {
+            "type": "number",
+            "description": "Number of open cases (all pages)"
+          },
+          "remaining": {
+            "type": "number",
+            "description": "Sum of remaining of all open cases (all pages)"
+          },
+          "items": {
+            "description": "Oldest first (received date, then case number)",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BreakdownCase"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "count",
+          "remaining",
+          "items"
+        ]
+      },
+      "BreakdownPayment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "voucherNo": {
+            "type": "string",
+            "example": "IN-000001"
+          },
+          "paidAt": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "cheque",
+              "transfer"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "counted": {
+            "type": "boolean",
+            "description": "False for a cheque not cleared yet"
+          },
+          "boundCaseNo": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "voucherNo",
+          "paidAt",
+          "method",
+          "amount",
+          "counted",
+          "boundCaseNo"
+        ]
+      },
+      "DebtBreakdownResponse": {
+        "type": "object",
+        "properties": {
+          "doctor": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "figures": {
+            "$ref": "#/components/schemas/DoctorBalanceResponse"
+          },
+          "openingRemaining": {
+            "type": "number"
+          },
+          "credit": {
+            "type": "number"
+          },
+          "tieOut": {
+            "$ref": "#/components/schemas/BreakdownTieOut"
+          },
+          "openCases": {
+            "$ref": "#/components/schemas/BreakdownOpenCases"
+          },
+          "latestPayments": {
+            "description": "Latest 10 active payments, newest first",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BreakdownPayment"
+            }
+          }
+        },
+        "required": [
+          "doctor",
+          "figures",
+          "openingRemaining",
+          "credit",
+          "tieOut",
+          "openCases",
+          "latestPayments"
+        ]
+      },
+      "StatementTotals": {
+        "type": "object",
+        "properties": {
+          "debit": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "credit": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "debit",
+          "credit"
+        ]
+      },
       "StatementLineResponse": {
         "type": "object",
         "properties": {
@@ -5975,6 +7011,39 @@
           "running": {
             "type": "number",
             "description": "Balance after this line, over all of the doctor history"
+          },
+          "voucher": {
+            "type": "string",
+            "nullable": true,
+            "example": "IN-000012",
+            "description": "Payment and cheque-return lines"
+          },
+          "patientName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Case lines; null without cases.read"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "cheque",
+              "transfer"
+            ],
+            "nullable": true
+          },
+          "chequeNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "bank": {
+            "type": "string",
+            "nullable": true
+          },
+          "boundCaseNo": {
+            "type": "number",
+            "nullable": true,
+            "description": "Case number the payment is bound to"
           }
         },
         "required": [
@@ -5984,7 +7053,13 @@
           "ref",
           "debit",
           "credit",
-          "running"
+          "running",
+          "voucher",
+          "patientName",
+          "method",
+          "chequeNo",
+          "bank",
+          "boundCaseNo"
         ]
       },
       "StatementResponse": {
@@ -6011,6 +7086,14 @@
             "type": "number",
             "description": "Balance at the end of the period"
           },
+          "totals": {
+            "description": "Debit and credit totals of the chosen range",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/StatementTotals"
+              }
+            ]
+          },
           "lines": {
             "type": "array",
             "items": {
@@ -6025,6 +7108,7 @@
           "openingBalance",
           "periodOpening",
           "closing",
+          "totals",
           "lines"
         ]
       },
@@ -6185,6 +7269,224 @@
           "pendingChequesAmount",
           "chequesDueSoon",
           "chequesOverdue"
+        ]
+      },
+      "DoctorHitResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "clinic": {
+            "type": "string",
+            "nullable": true
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "clinic",
+          "active"
+        ]
+      },
+      "DoctorGroup": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "All matches, not only the ones returned"
+          },
+          "closest": {
+            "type": "boolean",
+            "description": "True when nothing matched the whole text and these are the closest matches"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DoctorHitResponse"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "closest",
+          "items"
+        ]
+      },
+      "CaseHitResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "caseNo": {
+            "type": "number"
+          },
+          "patientName": {
+            "type": "string"
+          },
+          "doctorName": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "receivedDate": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "caseNo",
+          "patientName",
+          "doctorName",
+          "status",
+          "receivedDate"
+        ]
+      },
+      "CaseGroup": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "All matches, not only the ones returned"
+          },
+          "closest": {
+            "type": "boolean",
+            "description": "True when nothing matched the whole text and these are the closest matches"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CaseHitResponse"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "closest",
+          "items"
+        ]
+      },
+      "PaymentHitResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "voucher": {
+            "type": "string",
+            "example": "IN-000001"
+          },
+          "doctorName": {
+            "type": "string"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "cheque",
+              "transfer"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units"
+          },
+          "paidAt": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "void"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "voucher",
+          "doctorName",
+          "method",
+          "amount",
+          "paidAt",
+          "status"
+        ]
+      },
+      "PaymentGroup": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "All matches, not only the ones returned"
+          },
+          "closest": {
+            "type": "boolean",
+            "description": "True when nothing matched the whole text and these are the closest matches"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PaymentHitResponse"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "closest",
+          "items"
+        ]
+      },
+      "SearchGroups": {
+        "type": "object",
+        "properties": {
+          "doctors": {
+            "description": "Absent without doctors.read",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DoctorGroup"
+              }
+            ]
+          },
+          "cases": {
+            "description": "Absent without cases.read",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CaseGroup"
+              }
+            ]
+          },
+          "payments": {
+            "description": "Absent without payments.read",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentGroup"
+              }
+            ]
+          }
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "description": "The text searched, normalised"
+          },
+          "groups": {
+            "$ref": "#/components/schemas/SearchGroups"
+          }
+        },
+        "required": [
+          "q",
+          "groups"
         ]
       },
       "FieldError": {

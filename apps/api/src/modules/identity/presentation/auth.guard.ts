@@ -3,7 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { DomainError } from '../../../shared/errors/domain-error';
 import { AccessTokenPayload } from '../application/token.service';
-import { AuthenticatedRequest, IS_PUBLIC, REQUIRED_PERMISSION } from './auth.decorators';
+import { ALSO_REQUIRED_PERMISSIONS, AuthenticatedRequest, IS_PUBLIC, REQUIRED_PERMISSION } from './auth.decorators';
 
 /** Global guard: authenticates the bearer token, then checks the route's declared permission. */
 @Injectable()
@@ -26,7 +26,8 @@ export class AuthGuard implements CanActivate {
     req.user = { id: userId, permissions: payload.perms };
 
     const required = this.reflector.getAllAndOverride<string | undefined>(REQUIRED_PERMISSION, targets);
-    if (!required || !payload.perms.includes(required)) {
+    const also = this.reflector.getAllAndOverride<string[] | undefined>(ALSO_REQUIRED_PERMISSIONS, targets) ?? [];
+    if (!required || !payload.perms.includes(required) || !also.every((c) => payload.perms.includes(c))) {
       throw new DomainError('error.auth.forbidden', HttpStatus.FORBIDDEN);
     }
     return true;

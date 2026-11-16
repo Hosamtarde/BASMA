@@ -86,6 +86,12 @@ export interface CaseSummary extends CaseRow {
   overdue: boolean;
 }
 
+/** A list row; paid / remaining are null when the caller may not read the ledger (B4). */
+export interface CaseListItem extends CaseSummary {
+  paid: number | null;
+  remaining: number | null;
+}
+
 const err = (code: string, status: HttpStatus, params: Record<string, string | number> = {}) =>
   new DomainError(code, status, params);
 
@@ -108,11 +114,19 @@ export class CasesService {
 
   async list(
     q: CaseListQuery,
-  ): Promise<{ items: CaseSummary[]; page: number; pageSize: number; total: number }> {
+    withFigures = false,
+  ): Promise<{ items: CaseListItem[]; page: number; pageSize: number; total: number }> {
     const today = await this.calendar.today();
     const { items, total } = await this.repo.list(this.db, q, today);
+    // One batch for the whole page (four statements however many rows), never one per row.
+    const figures = withFigures ? await this.ledger.figuresForCases(items) : undefined;
     return {
-      items: items.map((c) => ({ ...c, overdue: isOverdue(c, today) })),
+      items: items.map((c) => ({
+        ...c,
+        overdue: isOverdue(c, today),
+        paid: figures ? (figures.get(c.id)?.paid ?? 0) : null,
+        remaining: figures ? (figures.get(c.id)?.remaining ?? 0) : null,
+      })),
       page: q.page,
       pageSize: q.pageSize,
       total,

@@ -92,7 +92,7 @@ async function main(): Promise<void> {
       console.log(`Created the owner "${username}" (first-run setup).`);
     }
     console.log(`Seeding demo data into "${name}"…`);
-    const report = await seedDemo({ baseUrl, username, password, log: (l) => console.log(`  ${l}`) });
+    const report = await seedDemo({ baseUrl, username, password, extras: process.env.DEMO_EXTRAS === '1', log: (l) => console.log(`  ${l}`) });
     console.log(`Done: ${JSON.stringify(report)}`);
   } finally {
     await app.close();
