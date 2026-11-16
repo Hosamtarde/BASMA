@@ -565,6 +565,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/payments/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Receipts report figures: counted by method, pending cheques, voided, last payment */
+        get: operations["PaymentsController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/{id}": {
         parameters: {
             query?: never;
@@ -665,6 +682,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/doctors/{id}/debt-breakdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What makes up the balance: unpaid opening balance, open cases, credit, and the tie-out */
+        get: operations["LedgerController_debtBreakdown"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/doctors/{id}/statement": {
         parameters: {
             query?: never;
@@ -725,6 +759,91 @@ export interface paths {
         };
         /** Figures for Home: received this month, owed to the lab, cheques */
         get: operations["LedgerController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/debts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Debts as CSV: one row per doctor with a balance (same filters as the screen) */
+        get: operations["ExportsController_debts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/doctors/{id}/debt-breakdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Debt breakdown of one doctor as CSV; the Remaining column sums to the balance */
+        get: operations["ExportsController_breakdown"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/doctors/{id}/statement": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Account statement of one doctor as CSV, for the chosen date range */
+        get: operations["ExportsController_statement"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Payments (receipts report) as CSV with the filters of the payments list */
+        get: operations["ExportsController_payments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Global search: doctors, cases and payments; a group the caller cannot read is omitted */
+        get: operations["SearchController_search"];
         put?: never;
         post?: never;
         delete?: never;
@@ -918,7 +1037,7 @@ export interface components {
             /** @description The doctor-refund category cannot be deactivated */
             active?: boolean;
         };
-        DoctorResponse: {
+        DoctorListItemResponse: {
             id: number;
             name: string;
             phone: string | null;
@@ -931,12 +1050,16 @@ export interface components {
             openingBalance: number;
             active: boolean;
             rowVersion: number;
+            /** @description Current balance, signed (positive = owed to the lab); null without ledger.read */
+            balance: number | null;
+            /** @enum {string|null} */
+            direction: "owed_to_lab" | "owed_by_lab" | "settled" | null;
         };
         DoctorPage: {
             page: number;
             pageSize: number;
             total: number;
-            items: components["schemas"]["DoctorResponse"][];
+            items: components["schemas"]["DoctorListItemResponse"][];
         };
         CreateDoctorRequest: {
             /** @example د. أحمد سالم */
@@ -950,6 +1073,20 @@ export interface components {
              * @example 0
              */
             openingBalance: number;
+        };
+        DoctorResponse: {
+            id: number;
+            name: string;
+            phone: string | null;
+            clinic: string | null;
+            notes: string | null;
+            /**
+             * @description Signed, integer minor units: > 0 the doctor owes the lab, < 0 the lab owes the doctor
+             * @example 0
+             */
+            openingBalance: number;
+            active: boolean;
+            rowVersion: number;
         };
         UpdateDoctorRequest: {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
@@ -1088,7 +1225,7 @@ export interface components {
             id: number;
             name: string;
         };
-        CaseSummaryResponse: {
+        CaseListItemResponse: {
             id: number;
             caseNo: number;
             doctor: components["schemas"]["Ref"];
@@ -1104,12 +1241,16 @@ export interface components {
             /** @description Computed with the lab’s today (time zone setting) */
             overdue: boolean;
             rowVersion: number;
+            /** @description Bound payments that count + the FIFO share of unbound ones; null without ledger.read */
+            paid: number | null;
+            /** @description total - paid; 0 when cancelled; null without ledger.read */
+            remaining: number | null;
         };
         CaseSummaryPage: {
             page: number;
             pageSize: number;
             total: number;
-            items: components["schemas"]["CaseSummaryResponse"][];
+            items: components["schemas"]["CaseListItemResponse"][];
         };
         CaseStatusCounts: {
             waiting: number;
@@ -1402,6 +1543,43 @@ export interface components {
             items: components["schemas"]["PaymentResponse"][];
             totals: components["schemas"]["PaymentTotals"];
         };
+        ByMethod: {
+            /** @description Integer minor units */
+            cash: number;
+            /** @description Integer minor units */
+            transfer: number;
+            /** @description Integer minor units */
+            cheque: number;
+        };
+        CountedSummary: {
+            /** @description Integer minor units */
+            amount: number;
+            count: number;
+            byMethod: components["schemas"]["ByMethod"];
+        };
+        CountAmount: {
+            count: number;
+            /** @description Integer minor units */
+            amount: number;
+        };
+        LastPayment: {
+            /** @example IN-000001 */
+            voucherNo: string;
+            paidAt: string;
+            /** @description Integer minor units */
+            amount: number;
+        };
+        PaymentSummaryResponse: {
+            /** @description Money that counts, on its effective date (a cheque: the day it cleared) */
+            counted: components["schemas"]["CountedSummary"];
+            /** @description Memo: cheques not cleared yet, by payment date */
+            pendingCheques: components["schemas"]["CountAmount"];
+            /** @description Memo: voided payments, by payment date */
+            voided: components["schemas"]["CountAmount"];
+            last: components["schemas"]["LastPayment"] | null;
+            /** @enum {string} */
+            basis: "effective";
+        };
         ChequeHistoryResponse: {
             /** @enum {string|null} */
             fromStatus: "pending" | "cleared" | "returned" | null;
@@ -1488,6 +1666,69 @@ export interface components {
             /** @enum {string} */
             direction: "owed_to_lab" | "owed_by_lab" | "settled";
         };
+        BreakdownTieOut: {
+            /** @description Unpaid part of a positive opening balance */
+            openingRemaining: number;
+            /** @description Sum of remaining over ALL open cases, not of the page */
+            casesRemaining: number;
+            /** @description Money the lab holds for the doctor (overpayment, negative opening balance) */
+            credit: number;
+            /** @description openingRemaining + casesRemaining - credit; equals GET /doctors/{id}/balance */
+            balance: number;
+        };
+        BreakdownCase: {
+            id: number;
+            caseNo: number;
+            patientName: string;
+            receivedDate: string;
+            status: string;
+            /** @description Integer minor units */
+            total: number;
+            /** @description Integer minor units */
+            paid: number;
+            /** @description Always above 0 here */
+            remaining: number;
+        };
+        BreakdownOpenCases: {
+            page: number;
+            pageSize: number;
+            total: number;
+            /** @description Number of open cases (all pages) */
+            count: number;
+            /** @description Sum of remaining of all open cases (all pages) */
+            remaining: number;
+            /** @description Oldest first (received date, then case number) */
+            items: components["schemas"]["BreakdownCase"][];
+        };
+        BreakdownPayment: {
+            id: number;
+            /** @example IN-000001 */
+            voucherNo: string;
+            paidAt: string;
+            /** @enum {string} */
+            method: "cash" | "cheque" | "transfer";
+            /** @description Integer minor units */
+            amount: number;
+            /** @description False for a cheque not cleared yet */
+            counted: boolean;
+            boundCaseNo: number | null;
+        };
+        DebtBreakdownResponse: {
+            doctor: components["schemas"]["Ref"];
+            figures: components["schemas"]["DoctorBalanceResponse"];
+            openingRemaining: number;
+            credit: number;
+            tieOut: components["schemas"]["BreakdownTieOut"];
+            openCases: components["schemas"]["BreakdownOpenCases"];
+            /** @description Latest 10 active payments, newest first */
+            latestPayments: components["schemas"]["BreakdownPayment"][];
+        };
+        StatementTotals: {
+            /** @description Integer minor units */
+            debit: number;
+            /** @description Integer minor units */
+            credit: number;
+        };
         StatementLineResponse: {
             date: string;
             /** @enum {string} */
@@ -1502,6 +1743,19 @@ export interface components {
             credit: number;
             /** @description Balance after this line, over all of the doctor history */
             running: number;
+            /**
+             * @description Payment and cheque-return lines
+             * @example IN-000012
+             */
+            voucher: string | null;
+            /** @description Case lines; null without cases.read */
+            patientName: string | null;
+            /** @enum {string|null} */
+            method: "cash" | "cheque" | "transfer" | null;
+            chequeNo: string | null;
+            bank: string | null;
+            /** @description Case number the payment is bound to */
+            boundCaseNo: number | null;
         };
         StatementResponse: {
             page: number;
@@ -1513,6 +1767,8 @@ export interface components {
             periodOpening: number;
             /** @description Balance at the end of the period */
             closing: number;
+            /** @description Debit and credit totals of the chosen range */
+            totals: components["schemas"]["StatementTotals"];
             lines: components["schemas"]["StatementLineResponse"][];
         };
         CasePaymentsResponse: {
@@ -1560,6 +1816,67 @@ export interface components {
             chequesDueSoon: number;
             /** @description Pending cheques past due */
             chequesOverdue: number;
+        };
+        DoctorHitResponse: {
+            id: number;
+            name: string;
+            clinic: string | null;
+            active: boolean;
+        };
+        DoctorGroup: {
+            /** @description All matches, not only the ones returned */
+            total: number;
+            /** @description True when nothing matched the whole text and these are the closest matches */
+            closest: boolean;
+            items: components["schemas"]["DoctorHitResponse"][];
+        };
+        CaseHitResponse: {
+            id: number;
+            caseNo: number;
+            patientName: string;
+            doctorName: string;
+            status: string;
+            receivedDate: string;
+        };
+        CaseGroup: {
+            /** @description All matches, not only the ones returned */
+            total: number;
+            /** @description True when nothing matched the whole text and these are the closest matches */
+            closest: boolean;
+            items: components["schemas"]["CaseHitResponse"][];
+        };
+        PaymentHitResponse: {
+            id: number;
+            /** @example IN-000001 */
+            voucher: string;
+            doctorName: string;
+            /** @enum {string} */
+            method: "cash" | "cheque" | "transfer";
+            /** @description Integer minor units */
+            amount: number;
+            paidAt: string;
+            /** @enum {string} */
+            status: "active" | "void";
+        };
+        PaymentGroup: {
+            /** @description All matches, not only the ones returned */
+            total: number;
+            /** @description True when nothing matched the whole text and these are the closest matches */
+            closest: boolean;
+            items: components["schemas"]["PaymentHitResponse"][];
+        };
+        SearchGroups: {
+            /** @description Absent without doctors.read */
+            doctors?: components["schemas"]["DoctorGroup"];
+            /** @description Absent without cases.read */
+            cases?: components["schemas"]["CaseGroup"];
+            /** @description Absent without payments.read */
+            payments?: components["schemas"]["PaymentGroup"];
+        };
+        SearchResponse: {
+            /** @description The text searched, normalised */
+            q: string;
+            groups: components["schemas"]["SearchGroups"];
         };
         FieldError: {
             /**
@@ -3298,6 +3615,35 @@ export interface operations {
             };
         };
     };
+    PaymentsController_summary: {
+        parameters: {
+            query?: {
+                doctorId?: number;
+                caseId?: number;
+                method?: "cash" | "cheque" | "transfer";
+                /** @description First day (inclusive); counted money by its effective date */
+                from?: string;
+                /** @description Last day (inclusive) */
+                to?: string;
+                /** @description Voucher number, doctor name or cheque number */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentSummaryResponse"];
+                };
+            };
+        };
+    };
     PaymentsController_get: {
         parameters: {
             query?: never;
@@ -3505,6 +3851,39 @@ export interface operations {
             };
         };
     };
+    LedgerController_debtBreakdown: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DebtBreakdownResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     LedgerController_statement: {
         parameters: {
             query?: {
@@ -3611,6 +3990,243 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LedgerSummaryResponse"];
+                };
+            };
+        };
+    };
+    ExportsController_debts: {
+        parameters: {
+            query?: {
+                /** @description Language of the headers and labels; default: Accept-Language, then Arabic */
+                lang?: "ar" | "en";
+                direction?: "owed_to_lab" | "owed_by_lab" | "all";
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description error.export.too_large */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.rate_limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    ExportsController_breakdown: {
+        parameters: {
+            query?: {
+                /** @description Language of the headers and labels; default: Accept-Language, then Arabic */
+                lang?: "ar" | "en";
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.export.too_large */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.rate_limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    ExportsController_statement: {
+        parameters: {
+            query?: {
+                /** @description Language of the headers and labels; default: Accept-Language, then Arabic */
+                lang?: "ar" | "en";
+                /** @description First day (inclusive) */
+                from?: string;
+                /** @description Last day (inclusive) */
+                to?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.export.too_large */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.rate_limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    ExportsController_payments: {
+        parameters: {
+            query?: {
+                /** @description Language of the headers and labels; default: Accept-Language, then Arabic */
+                lang?: "ar" | "en";
+                doctorId?: number;
+                caseId?: number;
+                method?: "cash" | "cheque" | "transfer";
+                status?: "active" | "void";
+                /** @description true: only payments that count now; false: only those that do not */
+                counted?: boolean;
+                /** @description Payment date from (inclusive) */
+                from?: string;
+                /** @description Payment date to (inclusive) */
+                to?: string;
+                /** @description Voucher number, doctor name or cheque number */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description error.export.too_large */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.rate_limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    SearchController_search: {
+        parameters: {
+            query: {
+                /** @description What to look for; trimmed */
+                q: string;
+                /** @description Hits per group */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description error.validation.failed (empty or longer than 100 characters) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

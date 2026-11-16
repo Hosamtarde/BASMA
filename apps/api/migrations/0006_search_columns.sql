@@ -1,0 +1,2 @@
+ALTER TABLE "doctors" ADD COLUMN "search_text" text GENERATED ALWAYS AS (translate(lower(btrim(name || ' ' || coalesce(clinic, ''))), 'أإآٱىةـًٌٍَُِّْٰ', 'اااايه')) STORED;--> statement-breakpoint
+ALTER TABLE "cases" ADD COLUMN "patient_search" text GENERATED ALWAYS AS (translate(lower(patient_name), 'أإآٱىةـًٌٍَُِّْٰ', 'اااايه')) STORED;

@@ -9,6 +9,7 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import { FOLD_FROM, FOLD_TO } from '../../text/search-fold';
 import { workTypes } from './catalog';
 import { aggregateColumns, amountColumn, idColumn, MAX_AMOUNT_MINOR } from './columns';
 import { users } from './identity';
@@ -26,6 +27,10 @@ export const doctors = pgTable(
     /** Signed, minor units: > 0 the doctor owed the lab before the system started. */
     openingBalance: amountColumn('opening_balance').notNull().default(0),
     active: boolean('active').notNull().default(true),
+    /** Folded name + clinic for the global search (B4); generated, never written. */
+    searchText: text('search_text').generatedAlwaysAs(
+      sql.raw(`translate(lower(btrim(name || ' ' || coalesce(clinic, ''))), '${FOLD_FROM}', '${FOLD_TO}')`),
+    ),
     ...aggregateColumns(),
   },
   (t) => [

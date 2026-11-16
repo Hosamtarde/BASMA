@@ -191,6 +191,12 @@ describe('ledger at the SPEC scale (20 000 cases / 50 000 payments)', () => {
     expect(await time('GET /doctors/{heavy}/debt-breakdown', 10, () => get(`/api/v1/doctors/${doctorIds[0]}/debt-breakdown`).expect(200))).toBeLessThan(guard);
     expect(await time('GET /doctors/{normal}/debt-breakdown', 20, (i) => get(`/api/v1/doctors/${doctorIds[20 + i]}/debt-breakdown`).expect(200))).toBeLessThan(guard);
     expect(await time('GET /payments/summary', 10, () => get('/api/v1/payments/summary?from=2025-01-01&to=2026-12-31').expect(200))).toBeLessThan(guard);
+    const q = (text: string) => get('/api/v1/search?q=' + encodeURIComponent(text)).expect(200);
+    expect(await time('GET /search?q=<patient text, matches many>', 20, () => q('Patient 1'))).toBeLessThan(guard);
+    expect(await time('GET /search?q=<no match, full scan of every group>', 20, () => q('zzzzqq'))).toBeLessThan(guard);
+    expect(await time('GET /search?q=<case number>', 20, (i) => q(String(100 + i)))).toBeLessThan(guard);
+    expect(await time('GET /search?q=<voucher>', 20, (i) => q('IN-' + String(1000 + i)))).toBeLessThan(guard);
+    expect(await time('GET /search?q=<two words, closest tiers>', 20, () => q('Clinic Dr'))).toBeLessThan(guard);
     expect(await time('GET /debts', 10, () => get('/api/v1/debts?pageSize=25').expect(200))).toBeLessThan(guard);
   });
 });
