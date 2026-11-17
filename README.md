@@ -17,7 +17,7 @@ First run: `POST /api/v1/setup` creates the owner account (works once), then `PO
 
 ## Demo data (development only)
 Fictional Arabic sample data (15 doctors, 8 work types, 3 technicians, 40 cases over six weeks)
-for demos and visual checks, created through the real API. Never part of the build or installer.
+for demos and visual checks, created through the real API. Never part of the build or installer..
 ```
 # .env: DEMO_OWNER_PASSWORD=<at least 10 characters>
 npm run demo              # build + fresh <db>_showcase_e2e full of demo data on http://127.0.0.1:4330 (owner / DEMO_OWNER_PASSWORD)
