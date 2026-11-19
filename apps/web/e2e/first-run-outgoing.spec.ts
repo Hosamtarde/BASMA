@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { AR, expectAccessible, expectDirection, shot, signIn } from './support';
+import type { Page } from '@playwright/test';
+import { AR, apiToken, expectAccessible, expectDirection, setLanguage, shot, signIn } from './support';
 
 /**
  * Project "first-run-outgoing": its own empty database. The first-run file locks the currency with
@@ -10,7 +11,27 @@ test.describe.configure({ mode: 'serial' });
 
 const OWNER = { username: 'owner', password: 'first-pass-1234' };
 
-test('setup creates the owner; the expenses page of a new installation is empty but ready to use (ar, axe)', async ({ page }) => {
+/**
+ * The UI language flips at once but is saved for the installation by a request that follows. A test
+ * that ends (and closes its page) before that request lands leaves the installation in the wrong
+ * language for the next test; so every switch waits for its own save (an event, not a delay).
+ */
+async function switchLanguage(page: Page, button: RegExp): Promise<void> {
+  const saved = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && r.url().endsWith('/api/v1/settings/language') && r.ok(),
+  );
+  await page.getByRole('button', { name: button }).click();
+  await saved;
+}
+
+test('setup creates the owner; the expenses page of a new installation is empty but ready to use (ar, axe)', async ({ page, request }) => {
+  // This file lives once in an installation's life: a retry cannot repeat the wizard. Say so
+  // plainly instead of timing out on a form that no longer exists.
+  const status = await request.get('/api/v1/setup/status');
+  expect(
+    ((await status.json()) as { setupRequired: boolean }).setupRequired,
+    'the installation is already set up: this is a retry; fix the first failure, it cannot pass again',
+  ).toBe(true);
   await page.goto('/setup');
   await page.getByRole('textbox', { name: 'اسم المستخدم', exact: true }).fill(OWNER.username);
   await page.getByRole('textbox', { name: 'كلمة المرور', exact: true }).fill(OWNER.password);
@@ -31,19 +52,21 @@ test('setup creates the owner; the expenses page of a new installation is empty 
   await shot(page, 'outgoing-empty-ar');
 
   // English too.
-  await page.getByRole('button', { name: /^English/ }).click();
+  await switchLanguage(page, /^English/);
   await expectDirection(page, 'en');
   await expect(page.getByText('No expenses recorded yet.')).toBeVisible();
   await expectAccessible(page);
   await shot(page, 'outgoing-empty-en');
-  await page.getByRole('button', { name: /^العربية/ }).click();
+  // Back to Arabic, and wait until the installation has saved it: the next test starts in Arabic.
+  await switchLanguage(page, /^العربية/);
   await expectDirection(page, 'ar');
 });
 
-test('currency: editable until the first outgoing payment, then locked with the explanation', async ({ page }) => {
+test('currency: editable until the first outgoing payment, then locked with the explanation', async ({ page, request }) => {
   await page.goto('/login');
   await signIn(page, OWNER.username, OWNER.password, AR);
   await expect(page.getByRole('complementary')).toBeVisible();
+  await setLanguage(page, 'ar'); // whatever the installation has saved, this test reads Arabic
 
   await page.getByRole('link', { name: 'الإعدادات' }).click();
   const code = page.getByRole('textbox', { name: 'رمز العملة', exact: true });
@@ -54,10 +77,15 @@ test('currency: editable until the first outgoing payment, then locked with the 
   await page.getByRole('link', { name: 'دفعة صادرة', exact: true }).click();
   const form = page.getByRole('form', { name: 'مصروف جديد' });
   const category = form.getByRole('combobox', { name: /^الفئة/ });
-  await expect(category.getByRole('option')).not.toHaveCount(1); // the seeded categories arrived
-  const options = await category.getByRole('option').allTextContents();
-  const expenseCategory = options.find((o) => o !== '' && !o.includes('اختر') && !o.includes('استرداد'));
+  // The expected category comes from the API (not from reading the box while it may still be
+  // empty), and the box is then waited on until that very option has arrived.
+  const token = await apiToken(request, OWNER.password);
+  const list = (await (
+    await request.get('/api/v1/expense-categories?active=true&pageSize=100', { headers: { Authorization: `Bearer ${token}` } })
+  ).json()) as { items: { name: string; isDoctor: boolean }[] };
+  const expenseCategory = list.items.find((c) => !c.isDoctor)?.name;
   expect(expenseCategory, 'a seeded expense category').toBeDefined();
+  await expect(category.getByRole('option', { name: expenseCategory!, exact: true })).toBeAttached();
   await category.selectOption({ label: expenseCategory! });
   await form.getByRole('textbox', { name: /^المدفوع له/ }).fill('مؤجّر');
   await form.getByRole('textbox', { name: /^المبلغ/ }).fill('500');
