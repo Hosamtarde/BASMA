@@ -15,6 +15,7 @@ import { CURRENCY, CurrencySetting } from '../../settings/domain/settings-rules'
 import { LedgerService } from '../../payments/application/ledger.service';
 import { directionOf, formatVoucher, isCounted } from '../../payments/domain/payment-rules';
 import { LedgerRepository } from '../../payments/infrastructure/ledger.repository';
+import { OutgoingFilter, OutgoingRepository } from '../../payments/infrastructure/outgoing.repository';
 import { PaymentFilter, PaymentsRepository } from '../../payments/infrastructure/payments.repository';
 
 /** One file holds at most this many data rows (SPEC §6: 20 000 cases / 50 000 payments). */
@@ -57,6 +58,7 @@ export class ExportsService {
     private readonly ledger: LedgerService,
     private readonly ledgerRepo: LedgerRepository,
     private readonly paymentsRepo: PaymentsRepository,
+    private readonly outgoingRepo: OutgoingRepository,
   ) {}
 
   // ---------------------------------------------------------------- public reports
@@ -114,11 +116,13 @@ export class ExportsService {
         withCurrency(t, 'csv.col.total', currency),
         withCurrency(t, 'csv.col.paid', currency),
         withCurrency(t, 'csv.col.remaining', currency),
+        // B4b: last, so the B4 column positions stay; filled on refund rows only.
+        t('csv.col.voucher'),
       ]);
       const d = currency.decimals;
       // The Remaining column sums to the doctor balance: open it in Excel and select the column.
       if (b.openingRemaining > 0) {
-        table.add([text(t('csv.type.opening')), empty, empty, empty, empty, empty, empty, money(b.openingRemaining, d)]);
+        table.add([text(t('csv.type.opening')), empty, empty, empty, empty, empty, empty, money(b.openingRemaining, d), empty]);
       }
       for (const c of b.openCases) {
         const info = names.get(c.id);
@@ -131,10 +135,25 @@ export class ExportsService {
           money(c.total, d),
           money(c.paid, d),
           money(c.remaining, d),
+          empty,
+        ]);
+      }
+      // A refund the doctor's money no longer covers (B4b): date = its effective date, paid = covered.
+      for (const r of b.openRefunds) {
+        table.add([
+          text(t('csv.type.refund')),
+          empty,
+          empty,
+          date(r.date),
+          empty,
+          money(r.amount, d),
+          money(r.covered, d),
+          money(r.remaining, d),
+          text(formatVoucher(r.voucherNo, 'out')),
         ]);
       }
       if (b.credit > 0) {
-        table.add([text(t('csv.type.credit')), empty, empty, empty, empty, empty, empty, money(-b.credit, d)]);
+        table.add([text(t('csv.type.credit')), empty, empty, empty, empty, empty, empty, money(-b.credit, d), empty]);
       }
       return { table };
     });
@@ -193,7 +212,11 @@ export class ExportsService {
           table.add([
             date(l.date),
             text(t(`csv.type.${l.kind}`)),
-            text(isCase ? l.ref : formatVoucher(Number(l.ref))),
+            text(
+              isCase
+                ? l.ref
+                : formatVoucher(Number(l.ref), l.kind === 'refund' || l.kind === 'refund_cheque_return' ? 'out' : 'in'),
+            ),
             text(description),
             money(l.debit, d),
             money(l.credit, d),
@@ -263,6 +286,108 @@ export class ExportsService {
       }
       return { table };
     });
+  }
+
+  /** Outgoing payments (the expenses report table, B4b §4.2) with the filters of the list. */
+  async outgoingPayments(userId: number, f: OutgoingFilter, lang: Language): Promise<ExportFile> {
+    const { search, ...rest } = f;
+    return this.produce(
+      userId,
+      'outgoing_payments',
+      lang,
+      'outgoing-payments',
+      { ...clean(rest), hasSearch: Boolean(search) },
+      async (tx, t, currency) => {
+        const filter: OutgoingFilter = { ...rest, ...(search ? { search } : {}) };
+        const first = await this.outgoingRepo.list(tx, filter, 1, BATCH);
+        this.assertWithinLimit(first.total);
+        const items = [...first.items];
+        for (let page = 2; items.length < first.total; page += 1) {
+          const next = await this.outgoingRepo.list(tx, filter, page, BATCH);
+          if (next.items.length === 0) break;
+          items.push(...next.items);
+        }
+        const d = currency.decimals;
+        const table = new CsvTable([
+          t('csv.col.voucher'),
+          t('csv.col.payment_date'),
+          t('csv.col.paid_out_date'),
+          t('csv.col.category'),
+          t('csv.col.payee'),
+          t('csv.col.method'),
+          t('csv.col.cheque_no'),
+          t('csv.col.bank'),
+          t('csv.col.due_date'),
+          withCurrency(t, 'csv.col.amount', currency),
+          t('csv.col.status'),
+          t('csv.col.counted'),
+          t('csv.col.cheque_status'),
+          t('csv.col.void_reason'),
+          t('csv.col.notes'),
+        ]);
+        for (const p of items) {
+          const counted = isCounted({ status: p.status, method: p.method, chequeStatus: p.cheque?.status ?? null });
+          const effective: Cell = !counted ? empty : p.cheque ? date(p.cheque.statusDate) : date(p.paidAt);
+          table.add([
+            text(formatVoucher(p.voucherNo, 'out')),
+            date(p.paidAt),
+            effective,
+            text(p.categoryName),
+            text(p.kind === 'doctor_refund' ? (p.doctorName ?? '') : (p.payee ?? '')),
+            text(t(`payment.method.${p.method}`)),
+            text(p.cheque?.chequeNo ?? ''),
+            text(p.cheque?.bank ?? ''),
+            p.cheque ? date(p.cheque.dueDate) : empty,
+            money(p.amount, d),
+            text(t(`payment.status.${p.status}`)),
+            text(t(counted ? 'csv.yes' : 'csv.no')),
+            text(p.cheque ? t(`cheque.status.${p.cheque.status}`) : ''),
+            text(p.voidReason ?? ''),
+            text(p.notes ?? ''),
+          ]);
+        }
+        return { table };
+      },
+    );
+  }
+
+  /**
+   * The expenses report by category (SPEC §5.9 «تقرير المصاريف» by category): one row per category with
+   * activity in the period, counted money on its effective date, pending cheques as memo. No totals row
+   * (B4 rule: it would break sorting and pivoting).
+   */
+  async expensesByCategory(userId: number, range: { from?: string; to?: string }, lang: Language): Promise<ExportFile> {
+    return this.produce(
+      userId,
+      'expenses_by_category',
+      lang,
+      `expenses-by-category${range.from ? `-from-${range.from}` : ''}${range.to ? `-to-${range.to}` : ''}`,
+      { from: range.from ?? null, to: range.to ?? null },
+      async (tx, t, currency) => {
+        const s = await this.outgoingRepo.summary(tx, range);
+        this.assertWithinLimit(s.byCategory.length);
+        const d = currency.decimals;
+        const table = new CsvTable([
+          t('csv.col.category'),
+          t('csv.col.kind'),
+          t('csv.col.count'),
+          withCurrency(t, 'csv.col.counted_amount', currency),
+          t('csv.col.pending_out_cheques_count'),
+          withCurrency(t, 'csv.col.pending_out_cheques', currency),
+        ]);
+        for (const c of s.byCategory) {
+          table.add([
+            text(c.name),
+            text(t(`outgoing.kind.${c.kind}`)),
+            int(c.count),
+            money(c.amount, d),
+            int(c.pendingCheques.count),
+            money(c.pendingCheques.amount, d),
+          ]);
+        }
+        return { table };
+      },
+    );
   }
 
   // ---------------------------------------------------------------- shared flow

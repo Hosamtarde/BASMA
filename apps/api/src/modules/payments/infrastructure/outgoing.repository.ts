@@ -345,6 +345,88 @@ export class OutgoingRepository {
       .orderBy(asc(chequeStatusHistory.at), asc(chequeStatusHistory.id));
   }
 
+  /**
+   * The expenses report figures (SPEC §5.9, §10; B4b X4/X5). Counted money is placed on its EFFECTIVE
+   * date (a cheque on the day it cleared), so a month here equals Home's «outgoing this month»; pending
+   * cheques and voided payments are memo lines by payment date. Same filters as the list except status,
+   * counted and paging. Totals per category include categories that are now inactive.
+   */
+  async summary(db: Executor, f: Omit<OutgoingFilter, 'status' | 'counted'>) {
+    const base = outgoingWhere({ ...f, from: undefined, to: undefined });
+    const eff = outEffectiveDate();
+    const inEff = and(f.from ? sql`${eff} >= ${f.from}::date` : undefined, f.to ? sql`${eff} <= ${f.to}::date` : undefined);
+    const inPaid = and(
+      f.from ? gte(outgoingPayments.paidAt, f.from) : undefined,
+      f.to ? lte(outgoingPayments.paidAt, f.to) : undefined,
+    );
+    const counted = and(outCountedWhere(), inEff);
+    const pending = and(eq(outgoingPayments.status, 'active'), eq(cheques.status, 'pending'), inPaid);
+    const voided = and(eq(outgoingPayments.status, 'void'), inPaid);
+    const sumIf = (cond: SQL | undefined) =>
+      sql<string>`coalesce(sum(${outgoingPayments.amount}) filter (where ${cond ?? sql`true`}), 0)`;
+    const cntIf = (cond: SQL | undefined) => sql<string>`count(*) filter (where ${cond ?? sql`true`})`;
+    const from = () =>
+      db
+        .select({
+          categoryId: outgoingPayments.categoryId,
+          name: expenseCategories.name,
+          kind: outgoingPayments.kind,
+          countedAmount: sumIf(counted),
+          countedCount: cntIf(counted),
+          cash: sumIf(and(counted, eq(outgoingPayments.method, 'cash'))),
+          transfer: sumIf(and(counted, eq(outgoingPayments.method, 'transfer'))),
+          cheque: sumIf(and(counted, eq(outgoingPayments.method, 'cheque'))),
+          pendingAmount: sumIf(pending),
+          pendingCount: cntIf(pending),
+          voidAmount: sumIf(voided),
+          voidCount: cntIf(voided),
+        })
+        .from(outgoingPayments)
+        .innerJoin(expenseCategories, eq(expenseCategories.id, outgoingPayments.categoryId))
+        .leftJoin(doctors, eq(doctors.id, outgoingPayments.doctorId))
+        .leftJoin(cheques, eq(cheques.outgoingPaymentId, outgoingPayments.id))
+        .where(base)
+        .groupBy(outgoingPayments.categoryId, expenseCategories.name, outgoingPayments.kind)
+        .orderBy(asc(sql`lower(${expenseCategories.name})`), asc(outgoingPayments.categoryId));
+    const [groups, [last]] = await Promise.all([
+      from(),
+      db
+        .select({ voucherNo: outgoingPayments.voucherNo, paidAt: outgoingPayments.paidAt, amount: outgoingPayments.amount })
+        .from(outgoingPayments)
+        .innerJoin(expenseCategories, eq(expenseCategories.id, outgoingPayments.categoryId))
+        .leftJoin(doctors, eq(doctors.id, outgoingPayments.doctorId))
+        .leftJoin(cheques, eq(cheques.outgoingPaymentId, outgoingPayments.id))
+        .where(and(base, eq(outgoingPayments.status, 'active'), inPaid))
+        .orderBy(desc(outgoingPayments.paidAt), desc(outgoingPayments.id))
+        .limit(1),
+    ]);
+    const n = (v: string | number | null | undefined) => Number(v ?? 0);
+    const byCategory = groups
+      .map((g) => ({
+        categoryId: g.categoryId,
+        name: g.name,
+        kind: g.kind as OutgoingKind,
+        amount: n(g.countedAmount),
+        count: n(g.countedCount),
+        pendingCheques: { count: n(g.pendingCount), amount: n(g.pendingAmount) },
+      }))
+      .filter((g) => g.count > 0 || g.pendingCheques.count > 0);
+    const total = (pick: (g: (typeof groups)[number]) => string | number) =>
+      groups.reduce((s, g) => s + n(pick(g)), 0);
+    return {
+      counted: {
+        amount: total((g) => g.countedAmount),
+        count: total((g) => g.countedCount),
+        byMethod: { cash: total((g) => g.cash), transfer: total((g) => g.transfer), cheque: total((g) => g.cheque) },
+      },
+      byCategory,
+      refunds: groups.filter((g) => g.kind === 'doctor_refund').reduce((s, g) => s + n(g.countedAmount), 0),
+      pendingCheques: { count: total((g) => g.pendingCount), amount: total((g) => g.pendingAmount) },
+      voided: { count: total((g) => g.voidCount), amount: total((g) => g.voidAmount) },
+      last: last ?? null,
+    };
+  }
+
   async list(
     db: Executor,
     f: OutgoingFilter,

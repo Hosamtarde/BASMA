@@ -57,6 +57,7 @@ import {
   StatementResponse,
   VoidPaymentRequest,
 } from './dto';
+import { CashFlowQuery, CashFlowResponse } from './outgoing.dto';
 
 export const toPaymentResponse = (p: PaymentView): PaymentResponse => ({
   id: p.id,
@@ -348,6 +349,18 @@ export class LedgerController {
         pendingCheques: i.pendingCheques,
       })),
     };
+  }
+
+  @Get('ledger/cash-flow')
+  @RequirePermission(Permission.LedgerRead)
+  @AlsoRequire(Permission.ExpensesRead)
+  @ApiOperation({
+    summary: 'Cash summary for a period (SPEC 10): counted money in and out by effective date, and the net',
+  })
+  @ApiOkResponse({ type: CashFlowResponse })
+  @ApiBadRequestResponse({ description: 'error.ledger.range_invalid (from after to)' })
+  async cashFlow(@Query() q: CashFlowQuery): Promise<CashFlowResponse> {
+    return this.ledger.cashFlow(q.from, q.to);
   }
 
   @Get('ledger/summary')

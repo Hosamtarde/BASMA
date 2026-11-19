@@ -1,7 +1,8 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { DB } from '../../../shared/db/database';
 import type { Database, Tx } from '../../../shared/db/database';
 import { notFound } from '../../../shared/errors/common-errors';
+import { DomainError } from '../../../shared/errors/domain-error';
 import { offsetOf } from '../../../shared/http/pagination';
 import { containsPattern } from '../../../shared/text/names';
 import { addDays } from '../../../shared/time/lab-date';
@@ -279,5 +280,20 @@ export class LedgerService {
   async summary() {
     const today = await this.calendar.today();
     return this.repo.summary(this.db, `${today.slice(0, 8)}01`, today, addDays(today, CHEQUE_DUE_SOON_DAYS));
+  }
+
+  /**
+   * Cash summary for a period (SPEC §10, B4b X7), default the current lab month. Both sides are read in
+   * one read-only REPEATABLE READ snapshot, so "in" and "out" describe the same moment.
+   */
+  async cashFlow(from: string | undefined, to: string | undefined) {
+    const today = await this.calendar.today();
+    const start = from ?? `${today.slice(0, 8)}01`;
+    const end = to ?? today;
+    if (start > end) throw new DomainError('error.ledger.range_invalid', HttpStatus.BAD_REQUEST);
+    return this.db.transaction((tx) => this.repo.cashFlow(tx, start, end), {
+      isolationLevel: 'repeatable read',
+      accessMode: 'read only',
+    });
   }
 }

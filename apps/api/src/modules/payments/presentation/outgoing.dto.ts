@@ -279,3 +279,85 @@ export class ChequeRegisterSummaryResponse {
   @ApiProperty({ type: DirectionAmounts, description: 'Sum of pending cheques per direction' })
   pendingAmount!: DirectionAmounts;
 }
+
+// ---- Expenses report summary and cash summary (B4b §4) ----
+
+/** Filters of the expenses summary: the outgoing list without paging, status and counted. */
+export class OutgoingSummaryQuery extends OutgoingFilters {
+  @ApiPropertyOptional({ description: 'First day (inclusive); counted money by its effective date' })
+  @IsOptional()
+  @IsDateOnly()
+  from?: string;
+  @ApiPropertyOptional({ description: 'Last day (inclusive)' }) @IsOptional() @IsDateOnly() to?: string;
+}
+
+class OutByMethod {
+  @ApiProperty(amountDoc) cash!: number;
+  @ApiProperty(amountDoc) transfer!: number;
+  @ApiProperty(amountDoc) cheque!: number;
+}
+class OutCounted {
+  @ApiProperty(amountDoc) amount!: number;
+  @ApiProperty() count!: number;
+  @ApiProperty({ type: OutByMethod }) byMethod!: OutByMethod;
+}
+class OutCountAmount {
+  @ApiProperty() count!: number;
+  @ApiProperty(amountDoc) amount!: number;
+}
+class OutCategoryTotal {
+  @ApiProperty() categoryId!: number;
+  @ApiProperty() name!: string;
+  @ApiProperty({ enum: OUTGOING_KINDS }) kind!: OutgoingKind;
+  @ApiProperty({ ...amountDoc, description: 'Counted money of the category in the period (effective date)' })
+  amount!: number;
+  @ApiProperty() count!: number;
+  @ApiProperty({ type: OutCountAmount, description: 'Memo: cheques of the category not cleared yet' })
+  pendingCheques!: OutCountAmount;
+}
+class OutLast {
+  @ApiProperty({ example: 'OUT-000001' }) voucherNo!: string;
+  @ApiProperty() paidAt!: string;
+  @ApiProperty(amountDoc) amount!: number;
+}
+
+export class OutgoingSummaryResponse {
+  @ApiProperty({ type: OutCounted, description: 'Money that counts, on its effective date (a cheque: the day it cleared)' })
+  counted!: OutCounted;
+  @ApiProperty({ type: [OutCategoryTotal], description: 'Per category with activity in the period, by name' })
+  byCategory!: OutCategoryTotal[];
+  @ApiProperty({ ...amountDoc, description: 'Of the counted money: refunds to doctors' }) refunds!: number;
+  @ApiProperty({ type: OutCountAmount, description: 'Memo: outgoing cheques not cleared yet, by payment date' })
+  pendingCheques!: OutCountAmount;
+  @ApiProperty({ type: OutCountAmount, description: 'Memo: voided outgoing payments, by payment date' })
+  voided!: OutCountAmount;
+  @ApiProperty({ type: OutLast, nullable: true }) last!: OutLast | null;
+  @ApiProperty({ enum: ['effective'] }) basis!: 'effective';
+}
+
+export class CashFlowQuery {
+  @ApiPropertyOptional({ description: 'First day (inclusive); default: the first day of the lab month' })
+  @IsOptional()
+  @IsDateOnly()
+  from?: string;
+  @ApiPropertyOptional({ description: 'Last day (inclusive); default: lab today' }) @IsOptional() @IsDateOnly() to?: string;
+}
+
+class CashIn {
+  @ApiProperty(amountDoc) total!: number;
+  @ApiProperty(amountDoc) cash!: number;
+  @ApiProperty(amountDoc) transfer!: number;
+  @ApiProperty(amountDoc) cheque!: number;
+}
+class CashOut extends CashIn {
+  @ApiProperty(amountDoc) expenses!: number;
+  @ApiProperty(amountDoc) refunds!: number;
+}
+
+export class CashFlowResponse {
+  @ApiProperty() from!: string;
+  @ApiProperty() to!: string;
+  @ApiProperty({ type: CashIn, description: 'Counted incoming money in the period, by effective date' }) in!: CashIn;
+  @ApiProperty({ type: CashOut, description: 'Counted outgoing money in the period, by effective date' }) out!: CashOut;
+  @ApiProperty({ description: 'in.total minus out.total (signed)' }) net!: number;
+}

@@ -18,7 +18,14 @@ import { Permission } from '../../identity/domain/permissions';
 import { AlsoRequire, CurrentUser, RequirePermission } from '../../identity/presentation/auth.decorators';
 import type { AuthUser } from '../../identity/presentation/auth.decorators';
 import { ExportFile, ExportsService } from '../application/exports.service';
-import { DebtsExportQuery, ExportLangQuery, PaymentsExportQuery, StatementExportQuery } from './dto';
+import {
+  DebtsExportQuery,
+  ExpensesByCategoryExportQuery,
+  ExportLangQuery,
+  OutgoingExportQuery,
+  PaymentsExportQuery,
+  StatementExportQuery,
+} from './dto';
 
 const CSV_OK = {
   description: 'UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends',
@@ -133,6 +140,47 @@ export class ExportsController {
     const file = await this.service.payments(
       user.id,
       defined({ ...filter, ...(trimmed ? { search: trimmed } : {}) }),
+      this.lang(q, acceptLanguage),
+    );
+    return this.send(res, file);
+  }
+
+  @Get('outgoing-payments')
+  @RequirePermission(Permission.ExpensesRead)
+  @AlsoRequire(Permission.ExportsRun)
+  @ApiOperation({ summary: 'Outgoing payments (expenses report table) as CSV with the filters of the list' })
+  @ApiOkResponse(CSV_OK)
+  async outgoingPayments(
+    @Query() q: OutgoingExportQuery,
+    @Headers('accept-language') acceptLanguage: string | undefined,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { search, ...filter } = q;
+    delete (filter as { lang?: string }).lang;
+    const trimmed = search?.trim();
+    const file = await this.service.outgoingPayments(
+      user.id,
+      defined({ ...filter, ...(trimmed ? { search: trimmed } : {}) }),
+      this.lang(q, acceptLanguage),
+    );
+    return this.send(res, file);
+  }
+
+  @Get('expenses-by-category')
+  @RequirePermission(Permission.ExpensesRead)
+  @AlsoRequire(Permission.ExportsRun)
+  @ApiOperation({ summary: 'The expenses report by category for a period as CSV (counted by effective date)' })
+  @ApiOkResponse(CSV_OK)
+  async expensesByCategory(
+    @Query() q: ExpensesByCategoryExportQuery,
+    @Headers('accept-language') acceptLanguage: string | undefined,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const file = await this.service.expensesByCategory(
+      user.id,
+      defined({ from: q.from, to: q.to }),
       this.lang(q, acceptLanguage),
     );
     return this.send(res, file);

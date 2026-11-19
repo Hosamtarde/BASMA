@@ -375,6 +375,47 @@ export class LedgerRepository {
   }
 
   /**
+   * Cash summary (SPEC §10, B4b X7): money that actually moved in a period, in and out, on its effective
+   * date (cash/transfer: payment date; cheque: the day it cleared), split by method so the cash-only figure
+   * can be read. Each side reads only its own table.
+   */
+  async cashFlow(db: Executor, from: string, to: string) {
+    const [inRows, outRows] = await Promise.all([
+      db.execute<Raw>(sql`
+        SELECT COALESCE(sum(p.amount), 0)::text AS total,
+               COALESCE(sum(p.amount) FILTER (WHERE p.method = 'cash'), 0)::text AS cash,
+               COALESCE(sum(p.amount) FILTER (WHERE p.method = 'transfer'), 0)::text AS transfer,
+               COALESCE(sum(p.amount) FILTER (WHERE p.method = 'cheque'), 0)::text AS cheque
+        FROM payments p LEFT JOIN cheques ch ON ch.payment_id = p.id
+        WHERE p.status = 'active' AND (p.method <> 'cheque' OR ch.status = 'cleared')
+          AND (CASE WHEN p.method = 'cheque' THEN ch.status_date ELSE p.paid_at END)
+              BETWEEN ${from}::date AND ${to}::date`),
+      db.execute<Raw>(sql`
+        SELECT COALESCE(sum(o.amount), 0)::text AS total,
+               COALESCE(sum(o.amount) FILTER (WHERE o.method = 'cash'), 0)::text AS cash,
+               COALESCE(sum(o.amount) FILTER (WHERE o.method = 'transfer'), 0)::text AS transfer,
+               COALESCE(sum(o.amount) FILTER (WHERE o.method = 'cheque'), 0)::text AS cheque,
+               COALESCE(sum(o.amount) FILTER (WHERE o.kind = 'expense'), 0)::text AS expenses,
+               COALESCE(sum(o.amount) FILTER (WHERE o.kind = 'doctor_refund'), 0)::text AS refunds
+        FROM outgoing_payments o LEFT JOIN cheques och ON och.outgoing_payment_id = o.id
+        WHERE ${OUT_COUNTED_SQL} AND ${OUT_EFFECTIVE_SQL} BETWEEN ${from}::date AND ${to}::date`),
+    ]);
+    const i = inRows.rows[0] ?? {};
+    const o = outRows.rows[0] ?? {};
+    const n = (r: Raw, k: string) => Number(r[k] ?? 0);
+    const income = { total: n(i, 'total'), cash: n(i, 'cash'), transfer: n(i, 'transfer'), cheque: n(i, 'cheque') };
+    const out = {
+      total: n(o, 'total'),
+      cash: n(o, 'cash'),
+      transfer: n(o, 'transfer'),
+      cheque: n(o, 'cheque'),
+      expenses: n(o, 'expenses'),
+      refunds: n(o, 'refunds'),
+    };
+    return { from, to, in: income, out, net: income.total - out.total };
+  }
+
+  /**
    * Statement events of one doctor, with a running balance computed over ALL his events so every
    * page agrees. A cheque credits on the day it cleared and debits again on the day it returned
    * after clearing; pending and void cheques are not events. `opening` is added to every line.

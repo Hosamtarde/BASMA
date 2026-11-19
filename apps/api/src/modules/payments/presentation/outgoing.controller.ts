@@ -34,6 +34,8 @@ import {
   OutgoingPage,
   OutgoingPaymentResponse,
   OutgoingResultResponse,
+  OutgoingSummaryQuery,
+  OutgoingSummaryResponse,
 } from './outgoing.dto';
 
 const definedOnly = <T extends object>(o: T): T =>
@@ -143,6 +145,17 @@ export class OutgoingPaymentsController {
     const { page, pageSize, ...filter } = q;
     const r = await this.service.list(definedOnly(filter), page, pageSize);
     return { ...r, items: r.items.map(toOutgoingResponse) };
+  }
+
+  // Declared before ':id' so "summary" is never read as an id.
+  @Get('summary')
+  @RequirePermission(Permission.ExpensesRead)
+  @ApiOperation({
+    summary: 'Expenses report figures: counted by category and method (effective date), refunds, pending, voided',
+  })
+  @ApiOkResponse({ type: OutgoingSummaryResponse })
+  async summary(@Query() q: OutgoingSummaryQuery): Promise<OutgoingSummaryResponse> {
+    return this.service.summary(definedOnly({ ...q }));
   }
 
   @Get(':id')

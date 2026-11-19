@@ -291,6 +291,8 @@ describe('B4 CSV exports (e2e)', () => {
         'Total (ILS)',
         'Paid (ILS)',
         'Remaining (ILS)',
+        // B4b: the voucher of a refund row, last so the B4 positions stay.
+        'Voucher',
       ]);
       const cases = f.data.filter((r) => r[0] === 'Case');
       expect(cases.map((r) => [r[2], r[5], r[6], r[7]])).toEqual([
@@ -307,7 +309,7 @@ describe('B4 CSV exports (e2e)', () => {
 
     it('shows an unpaid opening balance and a credit as their own rows', async () => {
       const credit = await csv(`/exports/doctors/${creditDoctor}/debt-breakdown?lang=en`);
-      expect(credit.data).toEqual([['Credit', '', '', '', '', '', '', '-50.00']]);
+      expect(credit.data).toEqual([['Credit', '', '', '', '', '', '', '-50.00', '']]);
       const arabic = await csv(`/exports/doctors/${creditDoctor}/debt-breakdown`);
       expect(arabic.data[0]?.[0]).toBe('رصيد دائن');
     });

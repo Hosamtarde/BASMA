@@ -334,4 +334,14 @@ export class OutgoingService {
     });
     return this.result(id, false);
   }
+
+  /** The expenses report figures (B4b §4.1): counted money by effective date, per category and method. */
+  async summary(f: Omit<OutgoingFilter, 'status' | 'counted'>) {
+    const r = await this.repo.summary(this.db, f);
+    return {
+      ...r,
+      last: r.last ? { ...r.last, voucherNo: formatVoucher(r.last.voucherNo, 'out') } : null,
+      basis: 'effective' as const,
+    };
+  }
 }
