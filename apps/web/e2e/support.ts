@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect } from '@playwright/test';
-import type { APIRequestContext, Page } from '@playwright/test';
+import type { APIRequestContext, Download, Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 /** The owner the "app" project's server seeds at start-up (same password as playwright.config.ts). */
 export const OWNER = { username: 'owner', password: 'owner-pass-1234' };
@@ -121,4 +122,36 @@ export async function apiPostKey<T>(
   });
   expect(res.status(), await res.text()).toBe(201);
   return (await res.json()) as T;
+}
+
+/** Reads a downloaded CSV: raw bytes (BOM check), text, parsed rows, header, data rows and the file name. */
+export async function readDownload(d: Download) {
+  const path = await d.path();
+  const raw = readFileSync(path);
+  const text = raw.toString('utf8').replace(/^\uFEFF/, '');
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]!;
+    if (quoted) {
+      if (ch === '"' && text[i + 1] === '"') {
+        cell += '"';
+        i++;
+      } else if (ch === '"') quoted = false;
+      else cell += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (ch === '\r' && text[i + 1] === '\n') {
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+      i++;
+    } else cell += ch;
+  }
+  return { raw, text, rows, header: rows[0] ?? [], data: rows.slice(1), name: d.suggestedFilename() };
 }

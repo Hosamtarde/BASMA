@@ -9,6 +9,8 @@ import { defineConfig, devices } from '@playwright/test';
  *   wizard, the currency and numbering locks appearing, the password change.
  * - app: an installation whose owner is seeded at start-up. Every test signs in itself, sets the
  *   language it checks and creates uniquely named data, so files and tests run in any order.
+ * - first-run-outgoing: a second empty installation for the one thing the first-run file cannot
+ *   show once its own money exists: the currency lock caused by the first OUTGOING payment.
  * - demo: an installation filled with the fictional demo data (apps/api/scripts/demo) through the
  *   real API, for Home with realistic numbers. Its tests only read, except the logo they restore.
  *
@@ -18,6 +20,7 @@ import { defineConfig, devices } from '@playwright/test';
 const FIRST_RUN_PORT = Number(process.env.E2E_PORT ?? 4320);
 const APP_PORT = FIRST_RUN_PORT + 1;
 const DEMO_PORT = FIRST_RUN_PORT + 2;
+const FIRST_OUT_PORT = FIRST_RUN_PORT + 3;
 // Same value as OWNER.password in e2e/support.ts.
 const OWNER_PASSWORD = 'owner-pass-1234';
 
@@ -72,8 +75,13 @@ export default defineConfig({
     },
     {
       name: 'app',
-      testIgnore: /(first-run|home-demo)\.spec\.ts$/,
+      testIgnore: /(first-run|first-run-outgoing|home-demo)\.spec\.ts$/,
       use: { ...browser, baseURL: `http://127.0.0.1:${APP_PORT}` },
+    },
+    {
+      name: 'first-run-outgoing',
+      testMatch: /first-run-outgoing\.spec\.ts$/,
+      use: { ...browser, baseURL: `http://127.0.0.1:${FIRST_OUT_PORT}` },
     },
     {
       name: 'demo',
@@ -84,6 +92,7 @@ export default defineConfig({
   webServer: [
     server(FIRST_RUN_PORT, databaseUrl('_e2e'), false),
     server(APP_PORT, databaseUrl('_app_e2e'), true),
+    server(FIRST_OUT_PORT, databaseUrl('_first_out_e2e'), false),
     server(DEMO_PORT, databaseUrl('_demo_e2e'), true, true),
   ],
 });

@@ -75,9 +75,8 @@ export function DoctorBalanceCard({ doctor }: { doctor: Pick<Doctor, 'id' | 'nam
             <HandCoins aria-hidden="true" />
             {t('outgoing.refundAction')}
           </ActionButton>
-          {refunding && (
-            <RefundDialog open onOpenChange={setRefunding} doctor={{ id: doctor.id, name: doctor.name }} />
-          )}
+          {/* Always mounted, closed by `open`: Radix then gives the focus back to the button. */}
+          <RefundDialog open={refunding} onOpenChange={setRefunding} doctor={{ id: doctor.id, name: doctor.name }} />
         </>
       )}
     </section>

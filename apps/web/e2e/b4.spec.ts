@@ -1,12 +1,12 @@
 import { expect, test } from '@playwright/test';
-import type { APIRequestContext, Download, Page } from '@playwright/test';
-import { readFileSync } from 'node:fs';
+import type { APIRequestContext, Page } from '@playwright/test';
 import {
   apiPost,
   apiPostKey,
   apiToken,
   expectAccessible,
   expectDirection,
+  readDownload,
   setLanguage,
   shot,
   signedIn,
@@ -79,37 +79,6 @@ async function openBreakdown(page: Page, s: Seed, lang: 'ar' | 'en') {
 }
 
 /** The CSV a click produced: raw bytes, text without the BOM, parsed rows. */
-async function readDownload(d: Download) {
-  const path = await d.path();
-  const raw = readFileSync(path);
-  const text = raw.toString('utf8').replace(/^\uFEFF/, '');
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cell = '';
-  let quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i]!;
-    if (quoted) {
-      if (ch === '"' && text[i + 1] === '"') {
-        cell += '"';
-        i++;
-      } else if (ch === '"') quoted = false;
-      else cell += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === ',') {
-      row.push(cell);
-      cell = '';
-    } else if (ch === '\r' && text[i + 1] === '\n') {
-      row.push(cell);
-      rows.push(row);
-      row = [];
-      cell = '';
-      i++;
-    } else cell += ch;
-  }
-  return { raw, text, rows, header: rows[0] ?? [], data: rows.slice(1), name: d.suggestedFilename() };
-}
-
 const noSideways = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1);
 

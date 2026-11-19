@@ -82,14 +82,15 @@ export function ChequesPage() {
   const [changing, setChanging] = useState<ChequeRegisterItem | null>(null);
   const filtered = list.search !== '' || list.direction || list.status || list.due || from !== '' || to !== '';
   // The status counts of the summary cover both directions; under a direction chip they would mislead.
-  const statusCount = (n: number | undefined) => (list.direction ? null : count(n));
+  const statusCount = (n: number | undefined, onDark = false) => (list.direction ? null : count(n, onDark));
   const mayChange = (item: ChequeRegisterItem) =>
     item.direction === 'out' ? can('cheques.write') && can('expenses.write') : true;
-  const count = (n: number | undefined) =>
+  // On the selected (navy) chip the count is white: grey on navy fails contrast.
+  const count = (n: number | undefined, onDark = false) =>
     counts && n !== undefined ? (
       <>
         {' '}
-        <span className="num font-semibold text-muted">{formatNumber(n, lang)}</span>
+        <span className={cn('num font-semibold', onDark ? 'text-white' : 'text-muted')}>{formatNumber(n, lang)}</span>
       </>
     ) : null;
 
@@ -125,7 +126,7 @@ export function ChequesPage() {
             onClick={() => update({ direction: undefined })}
           >
             {t('cheques.directionAll')}
-            {count(counts ? counts.byDirection.in + counts.byDirection.out : undefined)}
+            {count(counts ? counts.byDirection.in + counts.byDirection.out : undefined, !list.direction)}
           </button>
           {DIRECTIONS.map((d) => (
             <button
@@ -148,7 +149,7 @@ export function ChequesPage() {
             onClick={() => update({ status: undefined })}
           >
             {t('cheques.all')}
-            {statusCount(counts ? counts.byStatus.pending + counts.byStatus.cleared + counts.byStatus.returned : undefined)}
+            {statusCount(counts ? counts.byStatus.pending + counts.byStatus.cleared + counts.byStatus.returned : undefined, !list.status)}
           </button>
           {CHEQUE_STATUSES.map((s) => (
             <button

@@ -76,14 +76,35 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
   const token = await apiToken(page.request);
   const ledger = (await (
     await page.request.get('/api/v1/ledger/summary', { headers: { Authorization: `Bearer ${token}` } })
-  ).json()) as { receivedThisMonth: number; owedToLab: number; pendingChequesCount: number };
+  ).json()) as {
+    receivedThisMonth: number;
+    owedToLab: number;
+    pendingChequesCount: number;
+    outgoingThisMonth: number;
+    chequesDueSoon: number;
+    chequesOverdue: number;
+    outgoingChequesDueSoon: number;
+    outgoingChequesOverdue: number;
+  };
   const money = (minor: number) => `${(minor / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} ₪`;
   expect(ledger.receivedThisMonth).toBeGreaterThan(0);
   expect(ledger.owedToLab).toBeGreaterThan(0);
   await expect(numbers.getByRole('link', { name: `المقبوض هذا الشهر ${money(ledger.receivedThisMonth)}`, exact: true })).toBeVisible();
   await expect(numbers.getByRole('link', { name: `المستحق للمختبر ${money(ledger.owedToLab)}`, exact: true })).toBeVisible();
   await expect(numbers.getByRole('link', { name: `شيكات قيد التحصيل ${ledger.pendingChequesCount}`, exact: true })).toBeVisible();
-  await expect(numbers).not.toContainText(/المصاريف|الفواتير/);
+  // B4b: expenses this month. Checked against a DIFFERENT endpoint (the expenses report of the same
+  // month, by effective date) so the Home figure and the report cannot both be wrong the same way.
+  const monthStart = new Date().toISOString().slice(0, 8) + '01';
+  const today = new Date().toISOString().slice(0, 10);
+  const report = (await (
+    await page.request.get(`/api/v1/outgoing-payments/summary?from=${monthStart}&to=${today}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  ).json()) as { counted: { amount: number } };
+  expect(ledger.outgoingThisMonth).toBeGreaterThan(0);
+  expect(ledger.outgoingThisMonth).toBe(report.counted.amount);
+  await expect(numbers.getByRole('link', { name: `المصاريف هذا الشهر ${money(ledger.outgoingThisMonth)}`, exact: true })).toBeVisible();
+  await expect(numbers).not.toContainText(/الفواتير/);
 
   // Thin ring, one arc per status (all seven exist in the demo), nothing written in the centre.
   await expect(
@@ -105,9 +126,9 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
     expect(Math.abs(b.height - boxes[0]!.height)).toBeLessThan(1);
   }
 
-  // «قريباً» cards: brand knob and figure band like the live ones, never focusable.
+  // «قريباً» card (the invoice, B6): brand knob and figure band like the live ones, never focusable.
   const cards = page.getByRole('region', { name: 'ماذا تريد أن تسجّل؟' });
-  const soon = cards.getByRole('link', { name: /^دفعة صادرة/ });
+  const soon = cards.getByRole('link', { name: /^إنشاء فاتورة/ });
   await expect(soon).toHaveAttribute('aria-disabled', 'true');
   await expect(soon).toContainText('قريباً');
   await expect(soon).toContainText('في تحديث قادم');
@@ -119,6 +140,14 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
   await expect(cards.getByRole('link', { name: /^دفعة واردة/ })).toContainText('مقبوضة هذا الشهر');
   await expect(cards.getByRole('link', { name: /^الديون/ })).toContainText('مستحقة للمختبر');
   await expect(cards.getByRole('link', { name: /^سجل الشيكات/ })).toContainText('شيكات تستحق قريبًا');
+  // B4b: the outgoing card is a live link with this month's expenses; the cheques card counts both
+  // directions (the doctors' cheques and the lab's own, X11).
+  const outgoingCard = cards.getByRole('link', { name: /^دفعة صادرة/ });
+  await expect(outgoingCard).toHaveAttribute('href', '/outgoing');
+  await expect(outgoingCard).toContainText(`${money(ledger.outgoingThisMonth)} مصاريف هذا الشهر`);
+  const dueBoth =
+    ledger.chequesDueSoon + ledger.chequesOverdue + ledger.outgoingChequesDueSoon + ledger.outgoingChequesOverdue;
+  await expect(cards.getByRole('link', { name: /^سجل الشيكات/ })).toContainText(`${dueBoth} شيكات تستحق قريبًا`);
 
   // No focus ring in the screenshot.
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
@@ -131,9 +160,9 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
   await expectLetterSpacedLatin(banner(page).locator('[data-banner-subtitle]'));
   await expect(keyNumbers(page).getByRole('link', { name: 'Active doctors 15', exact: true })).toBeVisible();
   await expect(keyNumbers(page).getByRole('link', { name: 'Cases 40', exact: true })).toBeVisible();
-  await expect(
-    page.getByRole('region', { name: 'What do you want to record?' }).getByRole('link', { name: /^Outgoing payment/ }),
-  ).toContainText('Soon');
+  const cardsEn = page.getByRole('region', { name: 'What do you want to record?' });
+  await expect(cardsEn.getByRole('link', { name: /^Create invoice/ })).toContainText('Soon');
+  await expect(cardsEn.getByRole('link', { name: /^Outgoing payment/ })).toContainText('spent this month');
   await expectAccessible(page);
   await shot(page, 'home-demo-en', { fullPage: false });
   await shot(page, 'home-demo-en-full');

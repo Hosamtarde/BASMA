@@ -142,7 +142,7 @@ test('a cheque counts only after it is cleared; a returned one restores the debt
 
   await page.getByRole('link', { name: 'سجل الشيكات', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'سجل الشيكات', level: 1 })).toBeVisible();
-  await page.getByRole('searchbox', { name: 'ابحث برقم الشيك أو البنك أو الطبيب أو السند' }).fill(`CH-${s.suffix}`);
+  await page.getByRole('searchbox', { name: 'ابحث برقم الشيك أو البنك أو الطبيب أو المدفوع له أو السند' }).fill(`CH-${s.suffix}`);
   const row = page.getByRole('row').filter({ hasText: `CH-${s.suffix}` });
   await expect(row).toContainText('قيد التحصيل');
   await expect(row).toContainText('يستحق قريبًا');
@@ -355,7 +355,8 @@ test('Payments, Cheques and Debts in English: direction, alignment of money colu
   const row = page.getByRole('row').filter({ hasText: `EN-${s.suffix}` });
   await expect(row).toContainText('Overdue');
   const th = page.getByRole('columnheader', { name: 'Amount', exact: true });
-  const cell = row.getByRole('cell').nth(3);
+  // Columns: cheque, bank, direction, party, amount (B4b added the direction and the party).
+  const cell = row.getByRole('cell').nth(4);
   const edge = (loc: typeof th) =>
     loc.evaluate((n) => {
       const r = document.createRange();
