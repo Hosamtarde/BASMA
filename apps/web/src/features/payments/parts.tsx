@@ -46,7 +46,7 @@ export function DueMarker({ cheque }: { cheque: Cheque }) {
 }
 
 /** Payment status: cancelled shows the word and an icon; an active cheque shows its own status. */
-export function PaymentStatusBadge({ payment }: { payment: Payment }) {
+export function PaymentStatusBadge({ payment }: { payment: Pick<Payment, 'status' | 'cheque'> }) {
   const { t } = useTranslation();
   if (payment.status === 'void') {
     return (

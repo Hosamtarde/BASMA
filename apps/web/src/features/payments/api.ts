@@ -3,7 +3,8 @@ import type { QueryClient } from '@tanstack/react-query';
 import { api, unwrap } from '@/api/client';
 import { takeFile } from '@/api/download';
 import type { components, paths } from '@/api/schema.gen';
-import { PAGE_SIZE } from '@/features/catalog/api';
+import { catalogKeys, PAGE_SIZE } from '@/features/catalog/api';
+import { outgoingKeys } from '@/features/outgoing/api';
 
 export type Payment = components['schemas']['PaymentResponse'];
 export type PaymentResult = components['schemas']['PaymentResultResponse'];
@@ -33,15 +34,21 @@ export interface PaymentListParams {
   page: number;
 }
 
+export type ChequeDirection = 'in' | 'out';
+export type ChequeRegisterItem = components['schemas']['ChequeRegisterItem'];
+export type ChequeRegisterSummary = components['schemas']['ChequeRegisterSummaryResponse'];
+
+/** The filters of the cheque register (two directions, SPEC §5.13). */
 export interface ChequeListParams {
   search: string;
+  direction?: ChequeDirection | undefined;
   status?: ChequeStatus | undefined;
   due?: 'soon' | 'overdue' | undefined;
   from?: string | undefined;
   to?: string | undefined;
   page: number;
 }
-export type ChequeCountFilter = Omit<ChequeListParams, 'status' | 'page'>;
+export type ChequeCountFilter = Omit<ChequeListParams, 'status' | 'direction' | 'page'>;
 
 export interface DebtListParams {
   search: string;
@@ -99,15 +106,17 @@ export const casePaymentsQuery = (caseId: number) =>
     queryFn: () => unwrap(api.GET('/api/v1/cases/{id}/payments', { params: { path: { id: caseId } } })),
   });
 
+/** The register: incoming and outgoing cheques by due date (the B3 `GET /cheques` stays incoming-only). */
 export const chequesQuery = (p: ChequeListParams) =>
   queryOptions({
     queryKey: paymentKeys.chequeList(p),
     queryFn: () =>
       unwrap(
-        api.GET('/api/v1/cheques', {
+        api.GET('/api/v1/cheques/register', {
           params: {
             query: {
               search: p.search || undefined,
+              direction: p.direction,
               status: p.status,
               due: p.due,
               dueFrom: p.from,
@@ -121,13 +130,13 @@ export const chequesQuery = (p: ChequeListParams) =>
     placeholderData: keepPreviousData,
   });
 
-/** Chip counts: same filters as the list except the status. */
+/** Chip counts (status, direction, due) under the same filters, without status and direction. */
 export const chequeSummaryQuery = (f: ChequeCountFilter) =>
   queryOptions({
     queryKey: paymentKeys.chequeSummary(f),
     queryFn: () =>
       unwrap(
-        api.GET('/api/v1/cheques/summary', {
+        api.GET('/api/v1/cheques/register/summary', {
           params: { query: { search: f.search || undefined, due: f.due, dueFrom: f.from, dueTo: f.to } },
         }),
       ),
@@ -272,6 +281,9 @@ export const paymentApi = {
 export async function refreshMoney(queryClient: QueryClient): Promise<void> {
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: paymentKeys.all }),
+    // Outgoing list, summaries and cash flow; the category picker of the form; refundable credit.
+    queryClient.invalidateQueries({ queryKey: outgoingKeys.all }),
+    queryClient.invalidateQueries({ queryKey: catalogKeys.expenseCategories }),
     queryClient.invalidateQueries({ queryKey: ['cases'] }),
     queryClient.invalidateQueries({ queryKey: ['settings'] }),
   ]);

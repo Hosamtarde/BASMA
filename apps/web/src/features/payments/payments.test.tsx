@@ -32,27 +32,28 @@ const payment = (over: Partial<Payment> = {}): Payment => ({
   ...over,
 });
 
-const chequePayment = (over: Partial<NonNullable<Payment['cheque']>> = {}, p: Partial<Payment> = {}) =>
-  payment({
-    id: 2,
-    voucherNo: 'IN-000002',
-    method: 'cheque',
-    amount: 50000,
-    counted: false,
-    cheque: {
-      id: 9,
-      chequeNo: '10456',
-      bank: 'بنك فلسطين',
-      dueDate: '2026-11-12',
-      status: 'pending',
-      statusDate: null,
-      dueState: 'none',
-      allowedStatuses: ['cleared', 'returned'],
-      rowVersion: 1,
-      ...over,
-    },
-    ...p,
-  });
+/** A row of the two-direction register (GET /cheques/register). */
+const registerItem = (
+  cheque: Partial<NonNullable<Payment['cheque']>> = {},
+  over: { direction?: 'in' | 'out'; voucherNo?: string; party?: { kind: 'doctor' | 'payee'; name: string; doctorId: number | null } } = {},
+) => ({
+  direction: over.direction ?? 'in',
+  cheque: {
+    id: 9,
+    chequeNo: '10456',
+    bank: 'بنك فلسطين',
+    dueDate: '2026-11-12',
+    status: 'pending',
+    statusDate: null,
+    dueState: 'none',
+    allowedStatuses: ['cleared', 'returned'],
+    rowVersion: 1,
+    ...cheque,
+  },
+  payment: { id: 2, voucherNo: over.voucherNo ?? 'IN-000002', amount: 50000, paidAt: '2026-11-10' },
+  party: over.party ?? { kind: 'doctor', name: DOCTOR.name, doctorId: DOCTOR.id },
+  category: null,
+});
 
 const page = (items: object[], extra: object = {}) => ({
   page: 1,
@@ -172,19 +173,22 @@ describe('ChequesPage', () => {
   it('marks due and overdue cheques, offers only the statuses the API allows, and keeps the filters in the address', async () => {
     const calls = stubApi({
       'GET /api/v1/settings': () => json(200, settingsFixture()),
-      'GET /api/v1/cheques': () =>
+      'GET /api/v1/cheques/register': () =>
         json(
           200,
           page([
-            chequePayment({ dueState: 'overdue' }),
-            chequePayment(
-              { id: 10, chequeNo: '777', status: 'returned', statusDate: '2026-11-09', allowedStatuses: [] },
-              { id: 3, voucherNo: 'IN-000003' },
-            ),
+            registerItem({ dueState: 'overdue' }),
+            registerItem({ id: 10, chequeNo: '777', status: 'returned', statusDate: '2026-11-09', allowedStatuses: [] }, { voucherNo: 'IN-000003' }),
           ]),
         ),
-      'GET /api/v1/cheques/summary': () =>
-        json(200, { byStatus: { pending: 1, cleared: 0, returned: 1 }, dueSoon: 0, overdue: 1, pendingAmount: 50000 }),
+      'GET /api/v1/cheques/register/summary': () =>
+        json(200, {
+          byStatus: { pending: 1, cleared: 0, returned: 1 },
+          byDirection: { in: 2, out: 0 },
+          dueSoon: 0,
+          overdue: 1,
+          pendingAmount: { in: 50000, out: 0 },
+        }),
     });
     const view = renderRoutes([{ path: '/cheques', element: <ChequesPage /> }], '/cheques');
     const overdueRow = (await screen.findByText('10456')).closest('tr')!;
@@ -203,8 +207,58 @@ describe('ChequesPage', () => {
     await userEvent.click(screen.getByRole('button', { name: /^مرتجع/ }));
     await waitFor(() => expect(view.router.state.location.search).toBe('?status=returned'));
     await waitFor(() =>
-      expect(calls.some((c) => c.key === 'GET /api/v1/cheques')).toBe(true),
+      expect(calls.some((c) => c.key === 'GET /api/v1/cheques/register')).toBe(true),
     );
+    // The B3 incoming-only list is no longer called by the screen.
+    expect(calls.some((c) => c.key === 'GET /api/v1/cheques')).toBe(false);
+  });
+
+  it('direction chips «واردة / صادرة» with counts: the choice goes to the address and the request, and the lab’s cheques show a payee', async () => {
+    const seen: string[] = [];
+    stubApi({
+      'GET /api/v1/settings': () => json(200, settingsFixture()),
+      'GET /api/v1/auth/me': () =>
+        json(200, { id: 1, username: 'owner', permissions: ['cheques.read', 'cheques.write', 'expenses.read', 'expenses.write'], mustChangePassword: false }),
+      'GET /api/v1/cheques/register': (req) => {
+        const url = new URL(req.url);
+        seen.push(url.search);
+        return json(
+          200,
+          page(
+            url.searchParams.get('direction') === 'out'
+              ? [registerItem({ id: 20, chequeNo: '5001' }, { direction: 'out', voucherNo: 'OUT-000004', party: { kind: 'payee', name: 'شركة الكهرباء', doctorId: null } })]
+              : [registerItem(), registerItem({ id: 20, chequeNo: '5001' }, { direction: 'out', voucherNo: 'OUT-000004', party: { kind: 'payee', name: 'شركة الكهرباء', doctorId: null } })],
+          ),
+        );
+      },
+      'GET /api/v1/cheques/register/summary': () =>
+        json(200, {
+          byStatus: { pending: 2, cleared: 0, returned: 0 },
+          byDirection: { in: 1, out: 1 },
+          dueSoon: 0,
+          overdue: 0,
+          pendingAmount: { in: 50000, out: 50000 },
+        }),
+    });
+    const view = renderRoutes([{ path: '/cheques', element: <ChequesPage /> }], '/cheques');
+    const group = await screen.findByRole('group', { name: 'اتجاه الشيك' });
+    await waitFor(() => expect(within(group).getByRole('button', { name: /^واردة 1$/ })).toBeInTheDocument());
+    expect(within(group).getByRole('button', { name: /^صادرة 1$/ })).toBeInTheDocument();
+    expect(within(group).getByRole('button', { name: /^الكل 2$/ })).toHaveAttribute('aria-pressed', 'true');
+    // Both pending totals are shown while no direction is chosen.
+    expect(screen.getByTestId('cheque-pending-amount')).toHaveTextContent('واردة قيد التحصيل');
+    expect(screen.getByTestId('cheque-pending-amount')).toHaveTextContent('صادرة قيد الصرف');
+
+    await userEvent.click(within(group).getByRole('button', { name: /^صادرة/ }));
+    await waitFor(() => expect(view.router.state.location.search).toBe('?direction=out'));
+    await waitFor(() => expect(seen.some((s) => s.includes('direction=out'))).toBe(true));
+    const row = (await screen.findByText('5001')).closest('tr')!;
+    expect(row).toHaveAttribute('data-direction', 'out');
+    expect(row).toHaveTextContent('شركة الكهرباء');
+    expect(within(row).getByRole('link', { name: 'OUT-000004' })).toHaveAttribute('href', '/outgoing?q=OUT-000004');
+    // Status counts cover both directions, so they are not shown under a direction chip.
+    expect(screen.getByRole('button', { name: 'قيد التحصيل' })).toBeInTheDocument();
+    expect(screen.getByTestId('cheque-pending-amount')).not.toHaveTextContent('واردة قيد التحصيل');
   });
 });
 

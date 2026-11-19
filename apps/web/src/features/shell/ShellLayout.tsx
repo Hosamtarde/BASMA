@@ -9,10 +9,12 @@ import {
   GearIcon,
   HomeIcon,
   IncomingIcon,
+  OutgoingIcon,
   ScaleIcon,
   ToothIcon,
 } from '@/components/icons';
 import { meQuery } from '@/features/auth/api';
+import { useCan } from '@/features/auth/permissions';
 import { changeLanguage, currentLanguage, rememberLanguage } from '@/i18n/i18n';
 import { GlobalSearch } from '@/features/search/GlobalSearch';
 import { AppShell } from './AppShell';
@@ -32,6 +34,7 @@ export function ShellLayout() {
   const { data: settings } = useSuspenseQuery(settingsQuery);
   const logoUrl = useLogoUrl(settings);
   const lang = currentLanguage();
+  const can = useCan();
 
   // The UI language is a per-installation setting. After sign-in, a language picked on the login
   // page during this visit wins and is saved; otherwise the saved one applies. Before paint, so
@@ -60,6 +63,8 @@ export function ShellLayout() {
       except: ['/cases/new'],
     },
     { to: '/payments', label: t('nav.incoming'), icon: <IncomingIcon /> },
+    // The lab's own money out: only for users who may read it (the server checks every request).
+    ...(can('expenses.read') ? [{ to: '/outgoing', label: t('nav.outgoing'), icon: <OutgoingIcon /> }] : []),
     { to: '/debts', label: t('nav.debts'), icon: <ScaleIcon /> },
     { to: '/cheques', label: t('nav.cheques'), icon: <ChequeIcon /> },
     { to: '/doctors', label: t('nav.doctors'), icon: <DoctorsIcon /> },

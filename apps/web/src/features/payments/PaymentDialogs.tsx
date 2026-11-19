@@ -8,11 +8,12 @@ import { DateField } from '@/components/ui/date-field';
 import { FormDialog } from '@/components/ui/dialog';
 import { FormAlert, SelectField } from '@/components/ui/field';
 import { useQuery } from '@tanstack/react-query';
+import { outgoingApi } from '@/features/outgoing/api';
 import { settingsQuery } from '@/features/shell/settings';
 import { todayIn } from '@/i18n/format';
 import { isIsoDate } from '@/lib/dates';
 import { paymentApi, refreshMoney } from './api';
-import type { ChequeStatus, Payment } from './api';
+import type { Cheque, ChequeDirection, ChequeStatus, Payment } from './api';
 import { PaymentForm } from './PaymentForm';
 
 /** The payment form in a dialog, with the doctor (and case) fixed when opened from their pages. */
@@ -45,7 +46,7 @@ export function AddPaymentDialog({
   );
 }
 
-function ReasonBox({
+export function ReasonBox({
   label,
   value,
   onChange,
@@ -86,13 +87,18 @@ function ReasonBox({
   );
 }
 
-/** «إلغاء دفعة» (SPEC §5.10): a reason is required; the payment stays in the records. */
+/**
+ * «إلغاء دفعة» (SPEC §5.10): a reason is required; the payment stays in the records. Incoming and
+ * outgoing payments share the dialog; `direction` picks the endpoint and the explanation.
+ */
 export function VoidPaymentDialog({
   payment,
+  direction = 'in',
   open,
   onOpenChange,
 }: {
-  payment: Payment;
+  payment: Pick<Payment, 'id' | 'voucherNo' | 'rowVersion'>;
+  direction?: ChequeDirection;
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
@@ -102,7 +108,11 @@ export function VoidPaymentDialog({
   const [fieldError, setFieldError] = useState<string | undefined>();
   const [formError, setFormError] = useState<string | null>(null);
   const save = useMutation({
-    mutationFn: () => paymentApi.void(payment.id, payment.rowVersion, reason.trim()),
+    mutationFn: async (): Promise<void> => {
+      // The two answers differ in shape; the dialog needs neither (it refreshes from the server).
+      if (direction === 'out') await outgoingApi.void(payment.id, payment.rowVersion, reason.trim());
+      else await paymentApi.void(payment.id, payment.rowVersion, reason.trim());
+    },
     meta: { inlineErrors: true },
     onSuccess: async () => {
       await refreshMoney(queryClient);
@@ -117,7 +127,7 @@ export function VoidPaymentDialog({
       open={open}
       onOpenChange={onOpenChange}
       title={t('payments.voidTitle', { voucher: payment.voucherNo })}
-      description={t('payments.voidBody')}
+      description={direction === 'out' ? t('outgoing.voidBody') : t('payments.voidBody')}
     >
       <form
         noValidate
@@ -148,13 +158,18 @@ export function VoidPaymentDialog({
   );
 }
 
-/** Cheque status change: only the statuses the API offers (`allowedStatuses`), with a status date and a note. */
+/**
+ * Cheque status change: only the statuses the API offers (`allowedStatuses`), with a status date and
+ * a note. A doctor's cheque and the lab's own cheque use their own endpoint (`direction`).
+ */
 export function ChequeStatusDialog({
-  payment,
+  cheque,
+  direction = 'in',
   open,
   onOpenChange,
 }: {
-  payment: Payment;
+  cheque: Cheque;
+  direction?: ChequeDirection;
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
@@ -162,8 +177,7 @@ export function ChequeStatusDialog({
   const queryClient = useQueryClient();
   const { data: settings } = useQuery(settingsQuery);
   const today = todayIn(settings?.labProfile?.timeZone ?? 'UTC');
-  const cheque = payment.cheque;
-  const options = cheque?.allowedStatuses ?? [];
+  const options = cheque.allowedStatuses;
   const [status, setStatus] = useState<ChequeStatus | ''>(options[0] ?? '');
   const [date, setDate] = useState(today);
   const [note, setNote] = useState('');
@@ -171,28 +185,30 @@ export function ChequeStatusDialog({
   const [dateError, setDateError] = useState<string | undefined>();
   const noteId = useId();
   const save = useMutation({
-    mutationFn: (to: ChequeStatus) =>
-      paymentApi.chequeStatus(cheque?.id ?? 0, {
+    mutationFn: async (to: ChequeStatus): Promise<void> => {
+      const body = {
         status: to,
-        rowVersion: cheque?.rowVersion ?? 0,
+        rowVersion: cheque.rowVersion,
         statusDate: date,
         note: note.trim() === '' ? null : note.trim(),
-      }),
+      };
+      if (direction === 'out') await outgoingApi.chequeStatus(cheque.id, body);
+      else await paymentApi.chequeStatus(cheque.id, body);
+    },
     meta: { inlineErrors: true },
     onSuccess: async (_r, to) => {
       await refreshMoney(queryClient);
-      toast.success(t('cheques.done', { no: cheque?.chequeNo ?? '', status: t(`cheques.${to}`) }));
+      toast.success(t('cheques.done', { no: cheque.chequeNo, status: t(`cheques.${to}`) }));
       onOpenChange(false);
     },
     onError: (e) => setFormError(e instanceof ApiError ? e.message : null),
   });
-  if (!cheque) return null;
   return (
     <FormDialog
       open={open}
       onOpenChange={onOpenChange}
       title={t('cheques.statusDialogTitle', { no: cheque.chequeNo })}
-      description={t('cheques.returnedWarning')}
+      description={direction === 'out' ? t('cheques.returnedWarningOut') : t('cheques.returnedWarning')}
     >
       <form
         noValidate
