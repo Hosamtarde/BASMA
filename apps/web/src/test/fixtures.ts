@@ -39,7 +39,7 @@ export const emptyCasePayments = (caseId: number, total: number) => ({
 });
 
 /** Home figures (GET /ledger/summary) like the API's. */
-export const ledgerSummaryFixture = (over: Record<string, number> = {}) => ({
+export const ledgerSummaryFixture = (over: Record<string, number | null> = {}) => ({
   receivedThisMonth: 125000,
   receivedTotal: 300000,
   owedToLab: 450000,
@@ -47,6 +47,11 @@ export const ledgerSummaryFixture = (over: Record<string, number> = {}) => ({
   pendingChequesAmount: 70000,
   chequesDueSoon: 1,
   chequesOverdue: 1,
+  // B4b: the lab's own money out and its cheques (null for a user without expenses.read).
+  outgoingThisMonth: 40000 as number | null,
+  outgoingTotal: 90000 as number | null,
+  outgoingChequesDueSoon: 1 as number | null,
+  outgoingChequesOverdue: 0 as number | null,
   ...over,
 });
 
@@ -56,7 +61,10 @@ export const balanceFixture = (doctorId: number, balance = 0) => ({
   openingBalance: 0,
   charges: Math.max(balance, 0),
   received: 0,
+  paidOut: 0,
   pendingCheques: 0,
+  pendingRefundCheques: 0,
+  refundable: Math.max(-balance, 0),
   balance,
   direction: balance > 0 ? 'owed_to_lab' : balance < 0 ? 'owed_by_lab' : 'settled',
 });

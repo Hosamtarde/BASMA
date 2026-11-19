@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { parseVoucher } from '../../payments/domain/payment-rules';
 import { sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { Database, Tx } from '../../../shared/db/database';
@@ -61,6 +62,19 @@ export interface PaymentHit {
   id: number;
   voucherNo: number;
   doctorName: string;
+  method: string;
+  amount: number;
+  paidAt: string;
+  status: string;
+}
+/** B4b: an outgoing payment found by its OUT- voucher or its cheque number. */
+export interface OutgoingHit {
+  id: number;
+  voucherNo: number;
+  kind: string;
+  categoryName: string;
+  /** The payee of an expense, or the doctor of a refund. */
+  partyName: string;
   method: string;
   amount: number;
   paidAt: string;
@@ -142,6 +156,43 @@ export class SearchRepository {
   }
 
   /** Vouchers (IN-000012, in12, 12) and cheque numbers; doctor names are covered by the doctors group. */
+  /**
+   * B4b: outgoing payments by voucher (`OUT-000012`, `out12`, or bare digits — which also match IN-) or
+   * by the lab's cheque number. Reads only `outgoing_payments` and its own cheques.
+   */
+  async outgoing(db: Executor, q: Query, limit: number): Promise<Group<OutgoingHit>> {
+    const voucher = parseVoucher(q.raw);
+    const voucherNo = voucher && voucher.direction !== 'in' ? voucher.no : null;
+    const chequePattern = containsPattern(q.raw);
+    const r = await db.execute<Raw>(sql`
+      SELECT o.id::text AS id, o.voucher_no::text AS voucher_no, o.kind, c.name AS category_name,
+             COALESCE(d.name, o.payee) AS party_name, o.method, o.amount::text AS amount,
+             o.paid_at::text AS paid_at, o.status, count(*) OVER ()::text AS total
+      FROM outgoing_payments o
+      JOIN expense_categories c ON c.id = o.category_id
+      LEFT JOIN doctors d ON d.id = o.doctor_id
+      LEFT JOIN cheques och ON och.outgoing_payment_id = o.id
+      WHERE (${voucherNo !== null ? sql`o.voucher_no = ${voucherNo} OR ` : sql``}och.cheque_no ILIKE ${chequePattern})
+      ORDER BY ${voucherNo !== null ? sql`(CASE WHEN o.voucher_no = ${voucherNo} THEN 0 ELSE 1 END),` : sql``}
+               (CASE WHEN lower(och.cheque_no) = lower(${q.raw}) THEN 0 ELSE 1 END), o.paid_at DESC, o.id DESC
+      LIMIT ${limit}`);
+    return {
+      closest: false,
+      total: Number(r.rows[0]?.total ?? 0),
+      items: r.rows.map((x) => ({
+        id: Number(x.id),
+        voucherNo: Number(x.voucher_no),
+        kind: x.kind ?? '',
+        categoryName: x.category_name ?? '',
+        partyName: x.party_name ?? '',
+        method: x.method ?? '',
+        amount: Number(x.amount),
+        paidAt: x.paid_at ?? '',
+        status: x.status ?? '',
+      })),
+    };
+  }
+
   async payments(db: Executor, q: Query, limit: number): Promise<Group<PaymentHit>> {
     const voucher = /^(?:in-?)?(\d{1,15})$/i.exec(q.raw);
     const voucherNo = voucher ? Number(voucher[1]) : null;

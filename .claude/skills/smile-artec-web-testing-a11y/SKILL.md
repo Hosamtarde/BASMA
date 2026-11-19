@@ -30,3 +30,10 @@ description: Use when writing or reviewing tests or accessibility for the Smile 
 - Blur the focused element before a report screenshot taken after a keyboard check.
 
 **Report**: real command output only; list what was verified by test vs by reading.
+
+**B4b notes**
+- Four Playwright projects now: first-run, **first-run-outgoing** (a second empty installation, for the currency lock caused by the first OUTGOING payment, which the first-run file cannot show once its own price exists), app, demo. `readDownload(download)` in `e2e/support.ts` reads a CSV (BOM, rows, file name).
+- Filter changes replace the address (they do not push): test "Back" by leaving the page and coming back, not by `goBack()` after a chip.
+- `FormDialog` returns the focus to the control that opened it (it remembers the opener; Radix has no trigger there). Assert `toBeFocused()` after Esc for any new dialog.
+- Where a figure exists in two places (Home vs the expenses report), compare it with the OTHER endpoint's number, not with the same endpoint twice.
+- **Run vitest from PowerShell on this Windows machine.** Under the Bash tool the jsdom suites fail with "Vitest failed to find the current suite" (observed in the 2026-11-19 session, cause not established); the same command passes in PowerShell. Everything else (lint, tsc, Playwright, jest) runs in either.

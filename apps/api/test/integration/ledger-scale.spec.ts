@@ -92,7 +92,7 @@ describe('ledger at the SPEC scale (20 000 cases / 50 000 payments)', () => {
     const doctors = [...new Set(page.map((r) => r.doctor.id))];
     for (const id of doctors) {
       const input = await repo.doctorInput(db, id);
-      const alloc = allocate(input!.opening, input!.cases, input!.counted);
+      const alloc = allocate(input!.opening, input!.cases, input!.counted, input!.refunds);
       for (const row of page.filter((r) => r.doctor.id === id)) {
         const expected = row.status === 'cancelled' ? { paid: 0, remaining: 0 } : alloc.cases.get(row.id);
         expect({ id: row.id, paid: row.paid, remaining: row.remaining }).toEqual({
@@ -115,6 +115,7 @@ describe('ledger at the SPEC scale (20 000 cases / 50 000 payments)', () => {
         i.opening,
         i.cases,
         i.counted.reduce((s, p) => s + p.amount, 0),
+        i.refunds.reduce((s, r) => s + r.amount, 0),
       );
       expect({ id, sql: sql.get(id)?.balance }).toEqual({ id, sql: ts });
     }
@@ -125,10 +126,10 @@ describe('ledger at the SPEC scale (20 000 cases / 50 000 payments)', () => {
     for (const id of sample) {
       const bal = (await get(`/api/v1/doctors/${id}/balance`).expect(200)).body.balance as number;
       const bd = (await get(`/api/v1/doctors/${id}/debt-breakdown?pageSize=1`).expect(200)).body as {
-        tieOut: { openingRemaining: number; casesRemaining: number; credit: number; balance: number };
+        tieOut: { openingRemaining: number; casesRemaining: number; refundsRemaining: number; credit: number; balance: number };
       };
       const st = (await get(`/api/v1/doctors/${id}/statement?pageSize=1`).expect(200)).body as { closing: number };
-      const eq = bd.tieOut.openingRemaining + bd.tieOut.casesRemaining - bd.tieOut.credit;
+      const eq = bd.tieOut.openingRemaining + bd.tieOut.casesRemaining + bd.tieOut.refundsRemaining - bd.tieOut.credit;
       expect({ id, bal, eq, tie: bd.tieOut.balance, closing: st.closing }).toEqual({
         id,
         bal,
@@ -139,11 +140,20 @@ describe('ledger at the SPEC scale (20 000 cases / 50 000 payments)', () => {
     }
   });
 
+  it('B4b: the dataset really holds counted refunds, some of them no longer covered', async () => {
+    const db = drizzle(pool, { schema });
+    const inputs = [...(await repo.doctorInputs(db, doctorIds)).values()];
+    const withRefunds = inputs.filter((i) => i.refunds.length > 0);
+    expect(withRefunds.length).toBeGreaterThan(100);
+    const uncovered = withRefunds.filter((i) => buildBreakdown(i.opening, i.cases, i.counted, i.refunds).refundsRemaining > 0);
+    expect(uncovered.length).toBeGreaterThan(0);
+  });
+
   it('pure breakdown() ties out for every one of the 500 doctors', async () => {
     const db = drizzle(pool, { schema });
     const inputs = await repo.doctorInputs(db, doctorIds);
     for (const i of inputs.values()) {
-      expect({ id: i.doctorId, ok: buildBreakdown(i.opening, i.cases, i.counted).tiesOut }).toEqual({
+      expect({ id: i.doctorId, ok: buildBreakdown(i.opening, i.cases, i.counted, i.refunds).tiesOut }).toEqual({
         id: i.doctorId,
         ok: true,
       });

@@ -53,6 +53,8 @@ describe('B1 master-data migration (PostgreSQL 16)', () => {
       { name: 'invoice_no', start_value: '1', next_value: '1' },
       // Added by B3 (0004): voucher numbers IN-000001…, not owner-settable.
       { name: 'payment_in_no', start_value: '1', next_value: '1' },
+      // Added by B4b (0007): voucher numbers OUT-000001…, a series apart from IN-.
+      { name: 'payment_out_no', start_value: '1', next_value: '1' },
     ]);
   });
 

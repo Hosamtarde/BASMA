@@ -15,7 +15,7 @@ export class SearchController {
   @Get()
   @RequirePermission(Permission.SearchUse)
   @ApiOperation({
-    summary: 'Global search: doctors, cases and payments; a group the caller cannot read is omitted',
+    summary: 'Global search: doctors, cases, payments and outgoing payments; a group the caller cannot read is omitted',
   })
   @ApiOkResponse({ type: SearchResponse })
   @ApiBadRequestResponse({ description: 'error.validation.failed (empty or longer than 100 characters)' })

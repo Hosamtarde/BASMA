@@ -50,6 +50,13 @@
       "when": 1794839764476,
       "tag": "0006_search_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795088794393,
+      "tag": "0007_outgoing_payments",
+      "breakpoints": true
     }
   ]
 }

@@ -1,7 +1,8 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { DB } from '../../../shared/db/database';
 import type { Database, Tx } from '../../../shared/db/database';
 import { notFound } from '../../../shared/errors/common-errors';
+import { DomainError } from '../../../shared/errors/domain-error';
 import { offsetOf } from '../../../shared/http/pagination';
 import { containsPattern } from '../../../shared/text/names';
 import { addDays } from '../../../shared/time/lab-date';
@@ -15,6 +16,7 @@ import {
   CHEQUE_DUE_SOON_DAYS,
   directionOf,
   doctorBalance,
+  refundable,
 } from '../domain/payment-rules';
 import { DoctorLedgerInput, LedgerRepository } from '../infrastructure/ledger.repository';
 
@@ -25,10 +27,16 @@ export interface DoctorBalance {
   charges: number;
   /** Σ counted payments (SPEC §7.4) */
   received: number;
+  /** Σ counted refunds to the doctor (B4b, SPEC §7.3 `paid_out`) */
+  paidOut: number;
   /** Σ cheques still pending — shown apart, never reduce dues */
   pendingCheques: number;
+  /** Σ refund cheques not cleared yet (B4b): they reserve the credit */
+  pendingRefundCheques: number;
   balance: number;
   direction: BalanceDirection;
+  /** What may still be refunded now: credit − pending refund cheques (B4b X2) */
+  refundable: number;
 }
 
 export interface CaseFigures {
@@ -49,15 +57,19 @@ export class LedgerService {
 
   private figures(input: DoctorLedgerInput): DoctorBalance {
     const received = input.counted.reduce((s, p) => s + p.amount, 0);
-    const balance = doctorBalance(input.opening, input.cases, received);
+    const paidOut = input.refunds.reduce((s, r) => s + r.amount, 0);
+    const balance = doctorBalance(input.opening, input.cases, received, paidOut);
     return {
       doctorId: input.doctorId,
       openingBalance: input.opening,
-      charges: balance + received,
+      charges: balance + received - paidOut,
       received,
+      paidOut,
       pendingCheques: input.pendingCheques,
+      pendingRefundCheques: input.pendingRefundCheques,
       balance,
       direction: directionOf(balance),
+      refundable: refundable(balance, input.pendingRefundCheques),
     };
   }
 
@@ -74,7 +86,7 @@ export class LedgerService {
     db: Database | Tx = this.db,
   ): Promise<CaseFigures | undefined> {
     const input = await this.repo.doctorInput(db, doctorId);
-    const share = input && allocate(input.opening, input.cases, input.counted).cases.get(caseId);
+    const share = input && allocate(input.opening, input.cases, input.counted, input.refunds).cases.get(caseId);
     return share ? { ...share } : undefined;
   }
 
@@ -97,7 +109,7 @@ export class LedgerService {
       }
       let a = allocations.get(r.doctorId);
       if (!a) {
-        a = allocate(input.opening, input.cases, input.counted);
+        a = allocate(input.opening, input.cases, input.counted, input.refunds);
         allocations.set(r.doctorId, a);
       }
       const share = a.cases.get(r.id);
@@ -130,10 +142,10 @@ export class LedgerService {
     const input = await this.repo.doctorInput(db, doctorId);
     if (!input) throw notFound();
     const fig = this.figures(input);
-    const b = breakdown(input.opening, input.cases, input.counted);
+    const b = breakdown(input.opening, input.cases, input.counted, input.refunds);
     if (!b.tiesOut || b.balance !== fig.balance) {
       this.logger.error(
-        `debt breakdown does not tie out for doctor ${doctorId}: opening ${b.openingRemaining} + cases ${b.casesRemaining} - credit ${b.credit} != balance ${fig.balance}`,
+        `debt breakdown does not tie out for doctor ${doctorId}: opening ${b.openingRemaining} + cases ${b.casesRemaining} + refunds ${b.refundsRemaining} - credit ${b.credit} != balance ${fig.balance}`,
       );
       throw new Error('debt breakdown invariant failed'); // the filter answers 500 error.internal
     }
@@ -157,12 +169,22 @@ export class LedgerService {
       figures: fig,
       openingRemaining: b.openingRemaining,
       credit: b.credit,
+      refundsRemaining: b.refundsRemaining,
       tieOut: {
         openingRemaining: b.openingRemaining,
         casesRemaining: b.casesRemaining,
+        refundsRemaining: b.refundsRemaining,
         credit: b.credit,
         balance: fig.balance,
       },
+      openRefunds: b.openRefunds.map((r) => ({
+        id: r.id,
+        voucherNo: formatVoucher(r.voucherNo, 'out'),
+        date: r.date,
+        amount: r.amount,
+        covered: r.covered,
+        remaining: r.remaining,
+      })),
       openCases: {
         count: b.openCases.length,
         remaining: b.casesRemaining,
@@ -220,7 +242,10 @@ export class LedgerService {
       totals: { debit: r.totalDebit, credit: r.totalCredit },
       lines: r.lines.map((l) => ({
         ...l,
-        voucher: l.kind === 'case' ? null : formatVoucher(Number(l.ref)),
+        voucher:
+          l.kind === 'case'
+            ? null
+            : formatVoucher(Number(l.ref), l.kind === 'refund' || l.kind === 'refund_cheque_return' ? 'out' : 'in'),
       })),
       page,
       pageSize,
@@ -255,5 +280,20 @@ export class LedgerService {
   async summary() {
     const today = await this.calendar.today();
     return this.repo.summary(this.db, `${today.slice(0, 8)}01`, today, addDays(today, CHEQUE_DUE_SOON_DAYS));
+  }
+
+  /**
+   * Cash summary for a period (SPEC §10, B4b X7), default the current lab month. Both sides are read in
+   * one read-only REPEATABLE READ snapshot, so "in" and "out" describe the same moment.
+   */
+  async cashFlow(from: string | undefined, to: string | undefined) {
+    const today = await this.calendar.today();
+    const start = from ?? `${today.slice(0, 8)}01`;
+    const end = to ?? today;
+    if (start > end) throw new DomainError('error.ledger.range_invalid', HttpStatus.BAD_REQUEST);
+    return this.db.transaction((tx) => this.repo.cashFlow(tx, start, end), {
+      isolationLevel: 'repeatable read',
+      accessMode: 'read only',
+    });
   }
 }

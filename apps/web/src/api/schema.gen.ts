@@ -615,6 +615,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cheques/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Incoming and outgoing cheques of active payments, by due date
+         * @description Outgoing cheques are listed only for callers with expenses.read.
+         */
+        get: operations["ChequeRegisterController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cheques/register/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chip counts per status and direction, due soon, overdue, pending amounts */
+        get: operations["ChequeRegisterController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cheques": {
         parameters: {
             query?: never;
@@ -664,6 +701,94 @@ export interface paths {
         head?: never;
         /** Change a cheque status: pending → cleared | returned, cleared → returned */
         patch: operations["ChequesController_changeStatus"];
+        trace?: never;
+    };
+    "/api/v1/outgoing-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Outgoing payments (the expenses report table), newest first, with totals */
+        get: operations["OutgoingPaymentsController_list"];
+        put?: never;
+        /**
+         * Record an outgoing payment: an expense (payee) or, with the doctor-refund category, a refund
+         * @description A refund also needs ledger.read and may not exceed the doctor refundable credit.
+         */
+        post: operations["OutgoingPaymentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/outgoing-payments/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Expenses report figures: counted by category and method (effective date), refunds, pending, voided */
+        get: operations["OutgoingPaymentsController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/outgoing-payments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["OutgoingPaymentsController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/outgoing-payments/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel an outgoing payment with a reason (never deleted); its cheque is frozen */
+        post: operations["OutgoingPaymentsController_void"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/outgoing-cheques/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change an outgoing cheque status: pending → cleared | returned, cleared → returned */
+        patch: operations["OutgoingChequesController_changeStatus"];
         trace?: never;
     };
     "/api/v1/doctors/{id}/balance": {
@@ -750,6 +875,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ledger/cash-flow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Cash summary for a period (SPEC 10): counted money in and out by effective date, and the net */
+        get: operations["LedgerController_cashFlow"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ledger/summary": {
         parameters: {
             query?: never;
@@ -757,7 +899,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Figures for Home: received this month, owed to the lab, cheques */
+        /** Figures for Home: received this month, owed to the lab, cheques, outgoing money */
         get: operations["LedgerController_summary"];
         put?: never;
         post?: never;
@@ -835,6 +977,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/exports/outgoing-payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Outgoing payments (expenses report table) as CSV with the filters of the list */
+        get: operations["ExportsController_outgoingPayments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/expenses-by-category": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The expenses report by category for a period as CSV (counted by effective date) */
+        get: operations["ExportsController_expensesByCategory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -842,7 +1018,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Global search: doctors, cases and payments; a group the caller cannot read is omitted */
+        /** Global search: doctors, cases, payments and outgoing payments; a group the caller cannot read is omitted */
         get: operations["SearchController_search"];
         put?: never;
         post?: never;
@@ -1621,6 +1797,64 @@ export interface components {
             rowVersion: number;
             reason: string;
         };
+        RegisterPayment: {
+            /** @description Incoming payment id or outgoing payment id (see direction) */
+            id: number;
+            /** @example IN-000001 */
+            voucherNo: string;
+            /** @description Integer minor units */
+            amount: number;
+            paidAt: string;
+        };
+        RegisterParty: {
+            /** @enum {string} */
+            kind: "doctor" | "payee";
+            name: string;
+            doctorId: number | null;
+        };
+        ChequeRegisterItem: {
+            /**
+             * @description in: a doctor cheque to the lab; out: the lab cheque
+             * @enum {string}
+             */
+            direction: "in" | "out";
+            cheque: components["schemas"]["ChequeResponse"];
+            payment: components["schemas"]["RegisterPayment"];
+            party: components["schemas"]["RegisterParty"];
+            /** @description Outgoing cheques: the expense category */
+            category: components["schemas"]["Ref"] | null;
+        };
+        ChequeRegisterPage: {
+            page: number;
+            pageSize: number;
+            total: number;
+            items: components["schemas"]["ChequeRegisterItem"][];
+        };
+        StatusCounts: {
+            pending: number;
+            cleared: number;
+            returned: number;
+        };
+        DirectionCounts: {
+            in: number;
+            out: number;
+        };
+        DirectionAmounts: {
+            /** @description Integer minor units */
+            in: number;
+            /** @description Integer minor units */
+            out: number;
+        };
+        ChequeRegisterSummaryResponse: {
+            byStatus: components["schemas"]["StatusCounts"];
+            byDirection: components["schemas"]["DirectionCounts"];
+            /** @description Pending, due within 7 days (lab today) */
+            dueSoon: number;
+            /** @description Pending and past due */
+            overdue: number;
+            /** @description Sum of pending cheques per direction */
+            pendingAmount: components["schemas"]["DirectionAmounts"];
+        };
         ChequePage: {
             page: number;
             pageSize: number;
@@ -1651,6 +1885,168 @@ export interface components {
             statusDate?: string;
             note?: string | null;
         };
+        CreateOutgoingPaymentRequest: {
+            /** @description Expense category; the doctor-refund category makes it a refund */
+            categoryId: number;
+            /** @description Who was paid (free text): required for an expense, forbidden for a refund */
+            payee?: string | null;
+            /** @description The doctor: required for a refund, forbidden for an expense */
+            doctorId?: number | null;
+            /** @enum {string} */
+            method: "cash" | "cheque" | "transfer";
+            /** @description Integer minor units, at least 1 */
+            amount: number;
+            /** @description Default: today (lab time zone); never in the future */
+            paidAt?: string;
+            notes?: string | null;
+            /** @description The lab cheque: required for method=cheque, forbidden otherwise; the due date may be later */
+            cheque?: components["schemas"]["ChequeInput"];
+        };
+        OutgoingPaymentResponse: {
+            id: number;
+            /** @example OUT-000001 */
+            voucherNo: string;
+            /** @enum {string} */
+            kind: "expense" | "doctor_refund";
+            category: components["schemas"]["Ref"];
+            /** @description Refunds only */
+            doctor: components["schemas"]["Ref"] | null;
+            /** @description Expenses only */
+            payee: string | null;
+            /** @enum {string} */
+            method: "cash" | "cheque" | "transfer";
+            /** @description Integer minor units */
+            amount: number;
+            currencyCode: string;
+            paidAt: string;
+            /** @description The day it counts: payment date, or the day the cheque cleared; null while it does not count */
+            effectiveDate: string | null;
+            notes: string | null;
+            /** @enum {string} */
+            status: "active" | "void";
+            voidReason: string | null;
+            /** Format: date-time */
+            voidedAt: string | null;
+            /** @description Counts as money out now (SPEC 7.4: a cheque once cleared) */
+            counted: boolean;
+            cheque: components["schemas"]["ChequeResponse"] | null;
+            rowVersion: number;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        OutgoingResultResponse: {
+            payment: components["schemas"]["OutgoingPaymentResponse"];
+            /** @description Refunds: the doctor balance after this change (positive = owed to the lab); null for an expense */
+            doctorBalance: number | null;
+        };
+        OutgoingTotals: {
+            /** @description Sum of counted outgoing money of the filtered set */
+            counted: number;
+            /** @description Sum of outgoing cheques still pending in the filtered set */
+            pendingCheques: number;
+        };
+        OutgoingPage: {
+            page: number;
+            pageSize: number;
+            total: number;
+            items: components["schemas"]["OutgoingPaymentResponse"][];
+            totals: components["schemas"]["OutgoingTotals"];
+        };
+        OutByMethod: {
+            /** @description Integer minor units */
+            cash: number;
+            /** @description Integer minor units */
+            transfer: number;
+            /** @description Integer minor units */
+            cheque: number;
+        };
+        OutCounted: {
+            /** @description Integer minor units */
+            amount: number;
+            count: number;
+            byMethod: components["schemas"]["OutByMethod"];
+        };
+        OutCountAmount: {
+            count: number;
+            /** @description Integer minor units */
+            amount: number;
+        };
+        OutCategoryTotal: {
+            categoryId: number;
+            name: string;
+            /** @enum {string} */
+            kind: "expense" | "doctor_refund";
+            /** @description Counted money of the category in the period (effective date) */
+            amount: number;
+            count: number;
+            /** @description Memo: cheques of the category not cleared yet */
+            pendingCheques: components["schemas"]["OutCountAmount"];
+        };
+        OutLast: {
+            /** @example OUT-000001 */
+            voucherNo: string;
+            paidAt: string;
+            /** @description Integer minor units */
+            amount: number;
+        };
+        OutgoingSummaryResponse: {
+            /** @description Money that counts, on its effective date (a cheque: the day it cleared) */
+            counted: components["schemas"]["OutCounted"];
+            /** @description Per category with activity in the period, by name */
+            byCategory: components["schemas"]["OutCategoryTotal"][];
+            /** @description Of the counted money: refunds to doctors */
+            refunds: number;
+            /** @description Memo: outgoing cheques not cleared yet, by payment date */
+            pendingCheques: components["schemas"]["OutCountAmount"];
+            /** @description Memo: voided outgoing payments, by payment date */
+            voided: components["schemas"]["OutCountAmount"];
+            last: components["schemas"]["OutLast"] | null;
+            /** @enum {string} */
+            basis: "effective";
+        };
+        OutgoingChequeHistory: {
+            /** @enum {string|null} */
+            fromStatus: "pending" | "cleared" | "returned" | null;
+            /** @enum {string} */
+            toStatus: "pending" | "cleared" | "returned";
+            statusDate: string;
+            /** Format: date-time */
+            at: string;
+            note: string | null;
+        };
+        OutgoingDetailResponse: {
+            id: number;
+            /** @example OUT-000001 */
+            voucherNo: string;
+            /** @enum {string} */
+            kind: "expense" | "doctor_refund";
+            category: components["schemas"]["Ref"];
+            /** @description Refunds only */
+            doctor: components["schemas"]["Ref"] | null;
+            /** @description Expenses only */
+            payee: string | null;
+            /** @enum {string} */
+            method: "cash" | "cheque" | "transfer";
+            /** @description Integer minor units */
+            amount: number;
+            currencyCode: string;
+            paidAt: string;
+            /** @description The day it counts: payment date, or the day the cheque cleared; null while it does not count */
+            effectiveDate: string | null;
+            notes: string | null;
+            /** @enum {string} */
+            status: "active" | "void";
+            voidReason: string | null;
+            /** Format: date-time */
+            voidedAt: string | null;
+            /** @description Counts as money out now (SPEC 7.4: a cheque once cleared) */
+            counted: boolean;
+            cheque: components["schemas"]["ChequeResponse"] | null;
+            rowVersion: number;
+            /** Format: date-time */
+            createdAt: string;
+            chequeHistory: components["schemas"]["OutgoingChequeHistory"][];
+        };
         DoctorBalanceResponse: {
             doctorId: number;
             /** @description Signed, minor units */
@@ -1659,22 +2055,44 @@ export interface components {
             charges: number;
             /** @description Sum of counted payments */
             received: number;
+            /** @description Sum of counted refunds to the doctor (SPEC 7.3 paid_out); raises the balance */
+            paidOut: number;
             /** @description Sum of pending cheques (not in received) */
             pendingCheques: number;
-            /** @description Positive = owed to the lab; negative = the lab owes the doctor */
+            /** @description Sum of refund cheques not cleared yet (not in paidOut; they reserve the credit) */
+            pendingRefundCheques: number;
+            /** @description balance = charges - received + paidOut. Positive = owed to the lab; negative = the lab owes the doctor */
             balance: number;
             /** @enum {string} */
             direction: "owed_to_lab" | "owed_by_lab" | "settled";
+            /** @description What may be refunded now: credit minus pending refund cheques, never below 0 */
+            refundable: number;
         };
         BreakdownTieOut: {
             /** @description Unpaid part of a positive opening balance */
             openingRemaining: number;
             /** @description Sum of remaining over ALL open cases, not of the page */
             casesRemaining: number;
+            /** @description Sum of the refunds the doctor money no longer covers (B4b) */
+            refundsRemaining: number;
             /** @description Money the lab holds for the doctor (overpayment, negative opening balance) */
             credit: number;
-            /** @description openingRemaining + casesRemaining - credit; equals GET /doctors/{id}/balance */
+            /** @description openingRemaining + casesRemaining + refundsRemaining - credit; equals GET /doctors/{id}/balance */
             balance: number;
+        };
+        BreakdownRefund: {
+            /** @description Outgoing payment id */
+            id: number;
+            /** @example OUT-000003 */
+            voucherNo: string;
+            /** @description Effective date: payment date, or the day the cheque cleared */
+            date: string;
+            /** @description Integer minor units */
+            amount: number;
+            /** @description Part covered by the doctor money */
+            covered: number;
+            /** @description Part the doctor owes back; always above 0 here */
+            remaining: number;
         };
         BreakdownCase: {
             id: number;
@@ -1718,7 +2136,11 @@ export interface components {
             figures: components["schemas"]["DoctorBalanceResponse"];
             openingRemaining: number;
             credit: number;
+            /** @description Sum of openRefunds remaining (B4b) */
+            refundsRemaining: number;
             tieOut: components["schemas"]["BreakdownTieOut"];
+            /** @description Refunds not covered any more (e.g. the doctor cheque bounced after the refund), oldest first */
+            openRefunds: components["schemas"]["BreakdownRefund"][];
             openCases: components["schemas"]["BreakdownOpenCases"];
             /** @description Latest 10 active payments, newest first */
             latestPayments: components["schemas"]["BreakdownPayment"][];
@@ -1731,9 +2153,12 @@ export interface components {
         };
         StatementLineResponse: {
             date: string;
-            /** @enum {string} */
-            kind: "case" | "payment" | "cheque_return";
-            /** @description Case id or payment id */
+            /**
+             * @description refund / refund_cheque_return: money returned to the doctor (B4b) and a returned refund cheque
+             * @enum {string}
+             */
+            kind: "case" | "payment" | "cheque_return" | "refund" | "refund_cheque_return";
+            /** @description Case id, payment id or outgoing payment id */
             refId: number;
             /** @description Case number or voucher number */
             ref: string;
@@ -1744,7 +2169,7 @@ export interface components {
             /** @description Balance after this line, over all of the doctor history */
             running: number;
             /**
-             * @description Payment and cheque-return lines
+             * @description Payment, refund (OUT-) and cheque-return lines
              * @example IN-000012
              */
             voucher: string | null;
@@ -1803,6 +2228,40 @@ export interface components {
             summary: components["schemas"]["DebtSummaryResponse"];
             items: components["schemas"]["DebtItem"][];
         };
+        CashIn: {
+            /** @description Integer minor units */
+            total: number;
+            /** @description Integer minor units */
+            cash: number;
+            /** @description Integer minor units */
+            transfer: number;
+            /** @description Integer minor units */
+            cheque: number;
+        };
+        CashOut: {
+            /** @description Integer minor units */
+            total: number;
+            /** @description Integer minor units */
+            cash: number;
+            /** @description Integer minor units */
+            transfer: number;
+            /** @description Integer minor units */
+            cheque: number;
+            /** @description Integer minor units */
+            expenses: number;
+            /** @description Integer minor units */
+            refunds: number;
+        };
+        CashFlowResponse: {
+            from: string;
+            to: string;
+            /** @description Counted incoming money in the period, by effective date */
+            in: components["schemas"]["CashIn"];
+            /** @description Counted outgoing money in the period, by effective date */
+            out: components["schemas"]["CashOut"];
+            /** @description in.total minus out.total (signed) */
+            net: number;
+        };
         LedgerSummaryResponse: {
             /** @description Counted payments in the current month (lab time zone) */
             receivedThisMonth: number;
@@ -1816,6 +2275,14 @@ export interface components {
             chequesDueSoon: number;
             /** @description Pending cheques past due */
             chequesOverdue: number;
+            /** @description B4b: counted outgoing money (expenses and refunds) this month, by effective date; null without expenses.read */
+            outgoingThisMonth: number | null;
+            /** @description All counted outgoing money; null without expenses.read */
+            outgoingTotal: number | null;
+            /** @description Outgoing cheques pending and due within 7 days; null without expenses.read */
+            outgoingChequesDueSoon: number | null;
+            /** @description Outgoing cheques pending and past due; null without expenses.read */
+            outgoingChequesOverdue: number | null;
         };
         DoctorHitResponse: {
             id: number;
@@ -1865,6 +2332,30 @@ export interface components {
             closest: boolean;
             items: components["schemas"]["PaymentHitResponse"][];
         };
+        OutgoingHitResponse: {
+            id: number;
+            /** @example OUT-000001 */
+            voucher: string;
+            /** @enum {string} */
+            kind: "expense" | "doctor_refund";
+            categoryName: string;
+            /** @description The payee of an expense, or the doctor of a refund */
+            partyName: string;
+            /** @enum {string} */
+            method: "cash" | "cheque" | "transfer";
+            /** @description Integer minor units */
+            amount: number;
+            paidAt: string;
+            /** @enum {string} */
+            status: "active" | "void";
+        };
+        OutgoingGroup: {
+            /** @description All matches, not only the ones returned */
+            total: number;
+            /** @description True when nothing matched the whole text and these are the closest matches */
+            closest: boolean;
+            items: components["schemas"]["OutgoingHitResponse"][];
+        };
         SearchGroups: {
             /** @description Absent without doctors.read */
             doctors?: components["schemas"]["DoctorGroup"];
@@ -1872,6 +2363,8 @@ export interface components {
             cases?: components["schemas"]["CaseGroup"];
             /** @description Absent without payments.read */
             payments?: components["schemas"]["PaymentGroup"];
+            /** @description B4b: outgoing payments (OUT- voucher or cheque number); absent without expenses.read */
+            outgoing?: components["schemas"]["OutgoingGroup"];
         };
         SearchResponse: {
             /** @description The text searched, normalised */
@@ -3717,6 +4210,63 @@ export interface operations {
             };
         };
     };
+    ChequeRegisterController_list: {
+        parameters: {
+            query?: {
+                direction?: "all" | "in" | "out";
+                status?: "pending" | "cleared" | "returned";
+                doctorId?: number;
+                /** @description Due date from (inclusive) */
+                dueFrom?: string;
+                /** @description Due date to (inclusive) */
+                dueTo?: string;
+                due?: "soon" | "overdue";
+                /** @description Cheque number, bank, doctor or payee, voucher (IN-/OUT-) */
+                search?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChequeRegisterPage"];
+                };
+            };
+        };
+    };
+    ChequeRegisterController_summary: {
+        parameters: {
+            query?: {
+                doctorId?: number;
+                dueFrom?: string;
+                dueTo?: string;
+                due?: "soon" | "overdue";
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChequeRegisterSummaryResponse"];
+                };
+            };
+        };
+    };
     ChequesController_list: {
         parameters: {
             query?: {
@@ -3802,6 +4352,260 @@ export interface operations {
                 };
             };
             /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.cheque.invalid_transition | error.cheque.payment_void | error.concurrency.stale */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    OutgoingPaymentsController_list: {
+        parameters: {
+            query?: {
+                categoryId?: number;
+                kind?: "expense" | "doctor_refund";
+                /** @description Refunds of this doctor */
+                doctorId?: number;
+                method?: "cash" | "cheque" | "transfer";
+                /** @description Voucher (OUT-000012, out12, 12), payee, doctor or cheque number */
+                search?: string;
+                status?: "active" | "void";
+                /** @description true: only money that counts now; false: only what does not */
+                counted?: boolean;
+                /** @description Payment date from (inclusive) */
+                from?: string;
+                /** @description Payment date to (inclusive) */
+                to?: string;
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutgoingPage"];
+                };
+            };
+        };
+    };
+    OutgoingPaymentsController_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A UUID per attempt; a replay returns the original result (200) instead of a duplicate */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOutgoingPaymentRequest"];
+            };
+        };
+        responses: {
+            /** @description Replay of an earlier request with the same key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutgoingResultResponse"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutgoingResultResponse"];
+                };
+            };
+            /** @description error.validation.failed | error.idempotency.required | error.outgoing.* | error.payment.* */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.not_found (category or doctor) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.outgoing.category_inactive | refund_exceeds_credit | error.cheque.duplicate */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.idempotency.mismatch */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    OutgoingPaymentsController_summary: {
+        parameters: {
+            query?: {
+                categoryId?: number;
+                kind?: "expense" | "doctor_refund";
+                /** @description Refunds of this doctor */
+                doctorId?: number;
+                method?: "cash" | "cheque" | "transfer";
+                /** @description Voucher (OUT-000012, out12, 12), payee, doctor or cheque number */
+                search?: string;
+                /** @description First day (inclusive); counted money by its effective date */
+                from?: string;
+                /** @description Last day (inclusive) */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutgoingSummaryResponse"];
+                };
+            };
+        };
+    };
+    OutgoingPaymentsController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutgoingDetailResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    OutgoingPaymentsController_void: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidPaymentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutgoingResultResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.outgoing.already_void | error.concurrency.stale */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    OutgoingChequesController_changeStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeChequeStatusRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutgoingResultResponse"];
+                };
+            };
+            /** @description error.not_found (also for an incoming cheque id) */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -3971,6 +4775,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DebtsResponse"];
+                };
+            };
+        };
+    };
+    LedgerController_cashFlow: {
+        parameters: {
+            query?: {
+                /** @description First day (inclusive); default: the first day of the lab month */
+                from?: string;
+                /** @description Last day (inclusive); default: lab today */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CashFlowResponse"];
+                };
+            };
+            /** @description error.ledger.range_invalid (from after to) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -4162,6 +4999,105 @@ export interface operations {
                 to?: string;
                 /** @description Voucher number, doctor name or cheque number */
                 search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description error.export.too_large */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.rate_limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    ExportsController_outgoingPayments: {
+        parameters: {
+            query?: {
+                /** @description Language of the headers and labels; default: Accept-Language, then Arabic */
+                lang?: "ar" | "en";
+                categoryId?: number;
+                kind?: "expense" | "doctor_refund";
+                doctorId?: number;
+                method?: "cash" | "cheque" | "transfer";
+                status?: "active" | "void";
+                /** @description true: only money that counts now; false: only what does not */
+                counted?: boolean;
+                /** @description Payment date from (inclusive) */
+                from?: string;
+                /** @description Payment date to (inclusive) */
+                to?: string;
+                /** @description Voucher, payee, doctor name or cheque number */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description error.export.too_large */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.rate_limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    ExportsController_expensesByCategory: {
+        parameters: {
+            query?: {
+                /** @description Language of the headers and labels; default: Accept-Language, then Arabic */
+                lang?: "ar" | "en";
+                /** @description First day (inclusive) */
+                from?: string;
+                /** @description Last day (inclusive) */
+                to?: string;
             };
             header?: never;
             path?: never;

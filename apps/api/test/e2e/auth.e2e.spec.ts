@@ -202,6 +202,10 @@ describe('B0 API end to end', () => {
           'cheques.write',
           'doctors.read',
           'doctors.write',
+          // B4b (0007): outgoing payments and the expenses report.
+          'expenses.read',
+          'expenses.void',
+          'expenses.write',
           'exports.run',
           'ledger.read',
           'payments.read',

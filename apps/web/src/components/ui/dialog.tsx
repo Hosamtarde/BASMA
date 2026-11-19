@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { AlertDialog, Dialog } from 'radix-ui';
+import { useLayoutEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
@@ -30,11 +31,25 @@ export function FormDialog({
   wide = false,
 }: FormDialogProps) {
   const { t } = useTranslation();
+  // A dialog opened by state (not by a Radix trigger) has nowhere to return the focus to: remember
+  // what had it when the dialog opened (before Radix moves it inside) and give it back on close.
+  const opener = useRef<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (open) opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  }, [open]);
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className={overlay} />
         <Dialog.Content
+          onCloseAutoFocus={(e) => {
+            const el = opener.current;
+            opener.current = null;
+            if (el?.isConnected) {
+              e.preventDefault();
+              el.focus();
+            }
+          }}
           className={cn(
             panel,
             wide === 'full'

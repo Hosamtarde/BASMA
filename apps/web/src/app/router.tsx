@@ -12,6 +12,7 @@ import { HomePage } from '@/features/home/HomePage';
 import { ChequesPage } from '@/features/payments/ChequesPage';
 import { DebtsPage } from '@/features/payments/DebtsPage';
 import { DoctorPaymentsTab, DoctorStatementTab } from '@/features/payments/DoctorTabs';
+import { OutgoingPage } from '@/features/outgoing/OutgoingPage';
 import { PaymentsPage } from '@/features/payments/PaymentsPage';
 import { GeneralSettingsPage } from '@/features/settings/GeneralSettingsPage';
 import { ExpenseCategoriesPage, TechniciansPage, WorkTypesPage } from '@/features/settings/ListPages';
@@ -53,6 +54,7 @@ export const routes: RouteObject[] = [
                   { path: 'cases/new', element: <NewCasePage />, errorElement: <RouteError /> },
                   { path: 'cases/:id', element: <CaseDetailsPage />, errorElement: <RouteError /> },
                   { path: 'payments', element: <PaymentsPage />, errorElement: <RouteError /> },
+                  { path: 'outgoing', element: <OutgoingPage />, errorElement: <RouteError /> },
                   { path: 'cheques', element: <ChequesPage />, errorElement: <RouteError /> },
                   { path: 'debts', element: <DebtsPage />, errorElement: <RouteError /> },
                   { path: 'doctors', element: <DoctorsPage />, errorElement: <RouteError /> },

@@ -81,7 +81,10 @@ export function GlobalSearch() {
   const encoded = encodeURIComponent(query);
   const groups = data?.groups;
   const total =
-    (groups?.doctors?.items.length ?? 0) + (groups?.cases?.items.length ?? 0) + (groups?.payments?.items.length ?? 0);
+    (groups?.doctors?.items.length ?? 0) +
+    (groups?.cases?.items.length ?? 0) +
+    (groups?.payments?.items.length ?? 0) +
+    (groups?.outgoing?.items.length ?? 0);
   const settled = searchable && !!data && !isFetching && data.q === query;
   const none = settled && total === 0;
 
@@ -262,6 +265,47 @@ export function GlobalSearch() {
                       onSelect={() => go(`/payments?q=${encoded}`)}
                     >
                       {t('search.viewAll', { count: groups.payments.total })}
+                    </Command.Item>
+                  )}
+                </Command.Group>
+              )}
+              {settled && groups?.outgoing && groups.outgoing.items.length > 0 && (
+                <Command.Group
+                  className={heading}
+                  heading={
+                    <>
+                      {t('search.groups.outgoing')}
+                      {closest(groups.outgoing)}
+                    </>
+                  }
+                >
+                  {groups.outgoing.items.map((o) => (
+                    <Command.Item
+                      key={o.id}
+                      value={`outgoing-${o.id}`}
+                      className={item}
+                      onSelect={() => go(`/outgoing?q=${encodeURIComponent(o.voucher)}`)}
+                    >
+                      <span className="num shrink-0 font-extrabold">{o.voucher}</span>
+                      <span dir="auto" className="min-w-0 flex-1 truncate">
+                        {o.partyName}
+                      </span>
+                      <span dir="auto" className="truncate text-[13px] text-muted">
+                        {o.categoryName}
+                      </span>
+                      {o.status === 'void' && <span className="text-[12.5px] font-bold text-muted">{t('search.voided')}</span>}
+                      <span className="shrink-0 font-bold">
+                        <MoneyCell minor={o.amount} />
+                      </span>
+                    </Command.Item>
+                  ))}
+                  {groups.outgoing.total > groups.outgoing.items.length && (
+                    <Command.Item
+                      value="all-outgoing"
+                      className={cn(item, 'font-bold text-cyan-ink')}
+                      onSelect={() => go(`/outgoing?q=${encoded}`)}
+                    >
+                      {t('search.viewAll', { count: groups.outgoing.total })}
                     </Command.Item>
                   )}
                 </Command.Group>

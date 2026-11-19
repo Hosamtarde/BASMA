@@ -167,10 +167,18 @@ export class PaymentsService {
     return this.result(id, false);
   }
 
-  /** Same key + same body → the original; same key + different body → 422. */
+  /**
+   * Same key + same body → the original; same key + different body → 422. A key already used for an
+   * outgoing payment is another request too (B4b: one key names one request across both tables).
+   */
   async replayOf(key: string, hash: string): Promise<PaymentResult | undefined> {
     const existing = await this.repo.byIdempotencyKey(this.db, key);
-    if (!existing) return undefined;
+    if (!existing) {
+      if (await this.repo.keyUsedByOutgoing(this.db, key)) {
+        throw err('error.idempotency.mismatch', HttpStatus.UNPROCESSABLE_ENTITY);
+      }
+      return undefined;
+    }
     if (existing.requestHash !== hash)
       throw err('error.idempotency.mismatch', HttpStatus.UNPROCESSABLE_ENTITY);
     return this.result(existing.id, true);
@@ -245,7 +253,7 @@ export class PaymentsService {
       },
       userId,
     );
-    if (input.cheque) await this.repo.insertCheque(tx, id, input.cheque, paidAt, userId);
+    if (input.cheque) await this.repo.insertCheque(tx, { paymentId: id }, input.cheque, paidAt, userId);
     await this.audit.write(tx, {
       userId,
       action: 'payment.created',

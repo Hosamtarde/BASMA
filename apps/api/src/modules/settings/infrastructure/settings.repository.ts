@@ -68,7 +68,8 @@ export class SettingsRepository {
           OR EXISTS (SELECT 1 FROM doctors WHERE opening_balance <> 0)
           OR EXISTS (SELECT 1 FROM doctor_prices)
           OR EXISTS (SELECT 1 FROM cases)
-          OR EXISTS (SELECT 1 FROM payments) AS present`);
+          OR EXISTS (SELECT 1 FROM payments)
+          OR EXISTS (SELECT 1 FROM outgoing_payments) AS present`);
     return result.rows[0]?.present === true;
   }
 }

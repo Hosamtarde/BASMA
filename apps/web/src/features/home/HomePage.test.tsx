@@ -145,8 +145,37 @@ describe('HomePage', () => {
       'href',
       '/cheques?status=pending',
     );
+    // B4b: expenses this month joined the key numbers (a user without expenses.read does not see it).
+    expect(within(panel).getByRole('link', { name: /^المصاريف هذا الشهر/ })).toHaveAttribute('href', '/outgoing');
+    expect(within(panel).getByRole('link', { name: /^المصاريف هذا الشهر/ })).toHaveTextContent('400.00 ₪');
+    expect(within(panel).getAllByRole('link')).toHaveLength(8);
+    expect(panel).not.toHaveTextContent(/الفواتير/);
+  });
+
+  it('without expenses.read the API sends null: no expenses key number, no figure on the outgoing card, cheques count the doctors’ only', async () => {
+    const calls = stubApi({
+      'GET /api/v1/settings': () => json(200, settingsFixture()),
+      'GET /api/v1/cases/summary': () => json(200, counts({ ready: 1 })),
+      'GET /api/v1/cases': () => json(200, page([])),
+      'GET /api/v1/doctors': () => json(200, page([], 4)),
+      'GET /api/v1/ledger/summary': () =>
+        json(200, ledgerSummaryFixture({ outgoingThisMonth: null, outgoingTotal: null, outgoingChequesDueSoon: null, outgoingChequesOverdue: null })),
+    });
+    renderRoutes(
+      [
+        { path: '/', element: <Suspense fallback={null}><HomePage /></Suspense> },
+        { path: '*', element: <p>elsewhere</p> },
+      ],
+      '/',
+    );
+    const cards = (await screen.findByRole('heading', { name: 'ماذا تريد أن تسجّل؟' })).closest('section')!;
+    await waitFor(() => expect(within(cards).getByRole('link', { name: /^الديون/ })).toHaveTextContent('4,500.00 ₪'));
+    expect(within(cards).getByRole('link', { name: /^دفعة صادرة/ })).not.toHaveTextContent('₪');
+    expect(within(cards).getByRole('link', { name: /^سجل الشيكات/ })).toHaveTextContent('2 شيكات تستحق قريبًا');
+    const panel = screen.getByRole('heading', { name: 'الأرقام الرئيسية' }).closest('section')!;
+    expect(within(panel).queryByRole('link', { name: /^المصاريف هذا الشهر/ })).toBeNull();
     expect(within(panel).getAllByRole('link')).toHaveLength(7);
-    expect(panel).not.toHaveTextContent(/المصاريف|الفواتير/);
+    expect(calls.length).toBeGreaterThan(0);
   });
 
   it('pipeline: a live count per stage and overdue, each linking to the filtered case list', async () => {
@@ -183,7 +212,7 @@ describe('HomePage', () => {
     expect(legend.querySelector('svg text')).toBeNull();
   });
 
-  it('action cards: built ones are links with live figures; outgoing and invoice are unavailable, not focusable', async () => {
+  it('action cards: built ones are links with live figures; invoice is unavailable, not focusable', async () => {
     render(counts({ ready: 7 }), [summary()]);
     const cards = (await screen.findByRole('heading', { name: 'ماذا تريد أن تسجّل؟' })).closest('section')!;
     const add = within(cards).getByRole('link', { name: /^إضافة حالة جديدة/ });
@@ -199,8 +228,13 @@ describe('HomePage', () => {
     expect(debts).toHaveTextContent('4,500.00 ₪ مستحقة للمختبر');
     const cheques = within(cards).getByRole('link', { name: /^سجل الشيكات/ });
     expect(cheques).toHaveAttribute('href', '/cheques');
-    expect(cheques).toHaveTextContent('2 شيكات تستحق قريبًا');
-    for (const name of ['دفعة صادرة', 'إنشاء فاتورة']) {
+    // Both directions: 1 + 1 incoming, 1 outgoing due soon (X11).
+    expect(cheques).toHaveTextContent('3 شيكات تستحق قريبًا');
+    // B4b: the outgoing card is a link with this month's expenses.
+    const outgoing = within(cards).getByRole('link', { name: /^دفعة صادرة/ });
+    expect(outgoing).toHaveAttribute('href', '/outgoing');
+    await waitFor(() => expect(outgoing).toHaveTextContent('400.00 ₪ مصاريف هذا الشهر'));
+    for (const name of ['إنشاء فاتورة']) {
       const card = within(cards).getByRole('link', { name: new RegExp(`^${name}`) });
       expect(card).toHaveAttribute('aria-disabled', 'true');
       expect(card).not.toHaveAttribute('href');

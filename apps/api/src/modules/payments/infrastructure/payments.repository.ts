@@ -1,7 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, gte, ilike, inArray, lte, ne, or, SQL, sql } from 'drizzle-orm';
 import type { Database, Tx } from '../../../shared/db/database';
-import { cases, chequeStatusHistory, cheques, counters, doctors, payments } from '../../../shared/db/schema';
+import {
+  cases,
+  chequeStatusHistory,
+  cheques,
+  counters,
+  doctors,
+  outgoingPayments,
+  payments,
+} from '../../../shared/db/schema';
 import { offsetOf } from '../../../shared/http/pagination';
 import { containsPattern } from '../../../shared/text/names';
 import type { ChequeStatus, PaymentMethod, PaymentStatus } from '../domain/payment-rules';
@@ -234,25 +242,47 @@ export class PaymentsRepository {
     return Number(row?.sum ?? 0);
   }
 
-  /** Serialises the duplicate-cheque check for one bank + number across doctors. */
-  async chequeDuplicate(tx: Tx, bank: string, chequeNo: string): Promise<boolean> {
-    await tx.execute(
-      sql`SELECT pg_advisory_xact_lock(hashtextextended(${`cheque|${bank.toLowerCase()}|${chequeNo}`}, 0))`,
+  /**
+   * Serialises the duplicate-cheque check for one bank + number across doctors. Per direction (B4b X11):
+   * a doctor's cheque and the lab's own cheque with the same bank and number are different cheques.
+   */
+  async chequeDuplicate(tx: Tx, bank: string, chequeNo: string, direction: 'in' | 'out' = 'in'): Promise<boolean> {
+    const lockKey = `${direction === 'out' ? 'cheque-out' : 'cheque'}|${bank.toLowerCase()}|${chequeNo}`;
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))`);
+    const same = and(
+      sql`lower(${cheques.bank}) = ${bank.toLowerCase()}`,
+      eq(cheques.chequeNo, chequeNo),
+      ne(cheques.status, 'returned'),
     );
-    const rows = await tx
-      .select({ id: cheques.id })
-      .from(cheques)
-      .innerJoin(payments, eq(payments.id, cheques.paymentId))
-      .where(
-        and(
-          sql`lower(${cheques.bank}) = ${bank.toLowerCase()}`,
-          eq(cheques.chequeNo, chequeNo),
-          eq(payments.status, 'active'),
-          ne(cheques.status, 'returned'),
-        ),
-      )
+    const rows =
+      direction === 'out'
+        ? await tx
+            .select({ id: cheques.id })
+            .from(cheques)
+            .innerJoin(outgoingPayments, eq(outgoingPayments.id, cheques.outgoingPaymentId))
+            .where(and(same, eq(outgoingPayments.status, 'active')))
+            .limit(1)
+        : await tx
+            .select({ id: cheques.id })
+            .from(cheques)
+            .innerJoin(payments, eq(payments.id, cheques.paymentId))
+            .where(and(same, eq(payments.status, 'active')))
+            .limit(1);
+    return rows.length > 0;
+  }
+
+  /** An Idempotency-Key names one request across BOTH payment tables (B4b): is it taken by the other one? */
+  async keyUsedByOutgoing(db: Executor, key: string): Promise<boolean> {
+    const rows = await db
+      .select({ id: outgoingPayments.id })
+      .from(outgoingPayments)
+      .where(eq(outgoingPayments.idempotencyKey, key))
       .limit(1);
     return rows.length > 0;
+  }
+
+  async keyUsedByIncoming(db: Executor, key: string): Promise<boolean> {
+    return (await this.byIdempotencyKey(db, key)) !== undefined;
   }
 
   async insertPayment(tx: Tx, v: NewPayment, userId: number): Promise<number> {
@@ -264,16 +294,17 @@ export class PaymentsRepository {
     return row.id;
   }
 
+  /** A cheque belongs to exactly one payment, incoming or outgoing (the database checks it too). */
   async insertCheque(
     tx: Tx,
-    paymentId: number,
+    owner: { paymentId: number } | { outgoingPaymentId: number },
     c: NewCheque,
     paidAt: string,
     userId: number,
   ): Promise<number> {
     const [row] = await tx
       .insert(cheques)
-      .values({ paymentId, ...c, updatedBy: userId })
+      .values({ ...owner, ...c, updatedBy: userId })
       .returning({ id: cheques.id });
     if (!row) throw new Error('cheque insert returned no row');
     await tx.insert(chequeStatusHistory).values({

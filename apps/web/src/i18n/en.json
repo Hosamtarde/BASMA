@@ -49,7 +49,8 @@
     "cases": "Cases",
     "incoming": "Incoming payment",
     "debts": "Debts",
-    "cheques": "Cheque register"
+    "cheques": "Cheque register",
+    "outgoing": "Outgoing payment"
   },
   "home": {
     "title": "Home",
@@ -76,7 +77,8 @@
       },
       "outgoing": {
         "title": "Outgoing payment",
-        "body": "Record an expense or an amount the lab paid"
+        "body": "Record an expense or an amount the lab paid",
+        "figure": "spent this month"
       },
       "debts": {
         "title": "Debts",
@@ -106,7 +108,8 @@
       "overdue": "Overdue cases",
       "income": "Received this month",
       "owed": "Owed to the lab",
-      "chequesPending": "Cheques pending"
+      "chequesPending": "Cheques pending",
+      "expenses": "Spent this month"
     },
     "donut": {
       "title": "Overview of all cases",
@@ -704,8 +707,8 @@
   },
   "cheques": {
     "title": "Cheque register",
-    "intro": "Cheques received from doctors. A cheque counts as money received only once it is cleared.",
-    "search": "Search cheque number, bank, doctor or voucher",
+    "intro": "Cheques received from doctors and the lab’s own cheques. A cheque counts only once it is cleared.",
+    "search": "Search cheque number, bank, doctor, payee or voucher",
     "statusGroup": "Cheque status",
     "all": "All",
     "pending": "Pending collection",
@@ -739,7 +742,18 @@
     "confirm": "Save status",
     "done": "Cheque {{no}} is now “{{status}}”.",
     "summary": "Pending: {{amount}}",
-    "returnedWarning": "A returned cheque cannot be changed again. The amount returns to the doctor’s debt."
+    "returnedWarning": "A returned cheque cannot be changed again. The amount returns to the doctor’s debt.",
+    "directionGroup": "Cheque direction",
+    "directionAll": "All",
+    "direction": {
+      "title": "Direction",
+      "in": "Incoming",
+      "out": "Outgoing"
+    },
+    "party": "Party",
+    "summaryIn": "Incoming pending: {{amount}}",
+    "summaryOut": "Outgoing pending: {{amount}}",
+    "returnedWarningOut": "A returned cheque cannot be changed again. The amount goes back to how it was before it cleared."
   },
   "debts": {
     "title": "Debts",
@@ -769,7 +783,9 @@
     "toLab": "Owed to the lab",
     "byLab": "Owed by the lab",
     "settled": "Settled",
-    "pendingCheques": "Pending cheques (not counted): {{amount}}"
+    "pendingCheques": "Pending cheques (not counted): {{amount}}",
+    "paidOut": "Refunded to the doctor: {{amount}}",
+    "pendingRefundCheques": "Refund cheques pending: {{amount}}"
   },
   "statement": {
     "tab": "Statement",
@@ -786,7 +802,9 @@
     "kinds": {
       "case": "Case",
       "payment": "Payment received",
-      "cheque_return": "Cheque returned"
+      "cheque_return": "Cheque returned",
+      "refund": "Refund to the doctor",
+      "refund_cheque_return": "Refund cheque returned"
     },
     "opening": "Balance at the start",
     "closing": "Balance at the end",
@@ -856,7 +874,11 @@
     "nothingOwed": "Nothing is owed by this doctor.",
     "creditOnly": "The lab holds credit for this doctor; there are no open cases.",
     "loadError": "The breakdown could not be loaded.",
-    "pageLabel": "Open cases"
+    "pageLabel": "Open cases",
+    "paidOut": "Refunded to the doctor",
+    "refundLine": "Refund to the doctor",
+    "refundStatus": "No longer covered by his credit",
+    "eqRefunds": "Refunds remaining"
   },
   "receipts": {
     "title": "Receipts summary",
@@ -885,7 +907,8 @@
     "groups": {
       "doctors": "Doctors",
       "cases": "Cases",
-      "payments": "Payments"
+      "payments": "Payments",
+      "outgoing": "Expenses"
     },
     "viewAll": "Show all ({{count}})",
     "inactive": "inactive",
@@ -894,5 +917,81 @@
     "count_one": "{{count}} result",
     "count_other": "{{count}} results",
     "description": "Looks in doctors, cases and payments. Use the arrow keys to choose and Enter to open."
+  },
+  "outgoing": {
+    "title": "Outgoing payment",
+    "intro": "Record an expense the lab paid, or an amount returned to a doctor, then review the expenses below.",
+    "newTitle": "New expense",
+    "category": "Category",
+    "pickCategory": "Choose a category",
+    "payee": "Paid to",
+    "payeeHint": "Type the name as it should appear, such as the landlord, a supplier or an employee.",
+    "doctor": "Doctor",
+    "refundable": "Refundable credit",
+    "reserved": "(reserved for refund cheques not cleared yet: {{amount}})",
+    "pickDoctorFirst": "Choose the doctor first",
+    "paidAt": "Payment date",
+    "labBank": "Lab bank",
+    "dueHint": "The date may be later (a post-dated cheque).",
+    "submit": "Save expense",
+    "saved": "✅ Expense {{voucher}} saved.",
+    "savedRefund": "✅ Expense {{voucher}} saved (refund). New balance: {{balance}}.",
+    "reportTitle": "Expenses report",
+    "search": "Search voucher, payee, doctor or cheque number",
+    "categoryFilter": "Category",
+    "allCategories": "All categories",
+    "inactiveCategory": "inactive",
+    "kindFilter": "Type",
+    "allKinds": "All",
+    "kinds": {
+      "expense": "Expense",
+      "doctor_refund": "Refund to doctor"
+    },
+    "party": "Paid to",
+    "countedNo": "Not counted yet",
+    "totalCounted": "Counted expenses",
+    "totalPending": "Outgoing cheques pending",
+    "empty": "No expenses recorded yet.",
+    "loadError": "The expenses could not be loaded.",
+    "exportList": "Export expenses CSV",
+    "exportByCategory": "Export by category CSV",
+    "voidBody": "The expense stays in the records marked “cancelled” with the reason you write, and no longer counts. If it was a refund to a doctor, his credit returns as it was. A cancellation cannot be undone.",
+    "refundAction": "Refund credit",
+    "refundTitle": "Refund credit to {{name}}",
+    "refundIntro": "The most you can refund is the doctor’s credit, minus refund cheques not cleared yet.",
+    "noCreditReason": "There is no credit to refund.",
+    "errors": {
+      "payeeRequired": "Enter who was paid.",
+      "noCredit": "There is no credit to refund.",
+      "refundExceeds": "The amount is more than the refundable credit ({{max}})."
+    }
+  },
+  "expenses": {
+    "title": "Expenses summary",
+    "loadError": "The expenses summary could not be loaded.",
+    "none": "No expenses in this period.",
+    "counted": "Spent",
+    "count_one": "{{count}} payment",
+    "count_other": "{{count}} payments",
+    "refunds": "Of which refunds to doctors",
+    "pending": "Outgoing cheques pending",
+    "voided": "Cancelled payments",
+    "last": "Last payment",
+    "basis": "By the day the money left: cash and transfers on their payment date, cheques on the day they cleared.",
+    "byCategory": "Expenses by category",
+    "countHead": "Count",
+    "countedHead": "Counted",
+    "pendingHead": "Pending"
+  },
+  "cashFlow": {
+    "title": "Cash summary for the period",
+    "loadError": "The cash summary could not be loaded.",
+    "period": "Period",
+    "in": "Money in",
+    "out": "Money out",
+    "net": "Net",
+    "expenses": "Expenses",
+    "refunds": "Refunds",
+    "negative": "negative"
   }
 }
