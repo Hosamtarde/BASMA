@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOutletContext } from 'react-router';
+import type { components } from '@/api/schema.gen';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Spinner } from '@/components/ui/field';
@@ -110,7 +111,8 @@ export function DoctorStatementTab() {
   const to = isIsoDate(r.to) ? r.to : '';
   const { data } = useQuery(statementQuery(doctor.id, from, to, page));
   const update = (patch: Partial<Range>) => setRange((prev) => ({ ...prev, page: '', ...patch }));
-  const kind = (k: 'case' | 'payment' | 'cheque_return') => t(`statement.kinds.${k}`);
+  // B4b widened the line kinds (refund, refund_cheque_return); the labels follow the generated type.
+  const kind = (k: components['schemas']['StatementResponse']['lines'][number]['kind']) => t(`statement.kinds.${k}`);
   return (
     <Card>
       <div className="mb-3 flex flex-wrap items-end gap-3">

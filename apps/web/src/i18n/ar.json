@@ -805,7 +805,9 @@
     "kinds": {
       "case": "حالة",
       "payment": "دفعة مستلمة",
-      "cheque_return": "شيك مرتجع"
+      "cheque_return": "شيك مرتجع",
+      "refund": "استرداد للطبيب",
+      "refund_cheque_return": "شيك استرداد مرتجع"
     },
     "opening": "الرصيد في البداية",
     "closing": "الرصيد في النهاية",

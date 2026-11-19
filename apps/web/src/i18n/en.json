@@ -786,7 +786,9 @@
     "kinds": {
       "case": "Case",
       "payment": "Payment received",
-      "cheque_return": "Cheque returned"
+      "cheque_return": "Cheque returned",
+      "refund": "Refund to the doctor",
+      "refund_cheque_return": "Refund cheque returned"
     },
     "opening": "Balance at the start",
     "closing": "Balance at the end",

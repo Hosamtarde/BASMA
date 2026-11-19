@@ -2895,6 +2895,204 @@
         ]
       }
     },
+    "/api/v1/cheques/register": {
+      "get": {
+        "description": "Outgoing cheques are listed only for callers with expenses.read.",
+        "operationId": "ChequeRegisterController_list",
+        "parameters": [
+          {
+            "name": "direction",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "all",
+              "type": "string",
+              "enum": [
+                "all",
+                "in",
+                "out"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "cleared",
+                "returned"
+              ]
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "dueFrom",
+            "required": false,
+            "in": "query",
+            "description": "Due date from (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueTo",
+            "required": false,
+            "in": "query",
+            "description": "Due date to (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "due",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "soon",
+                "overdue"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Cheque number, bank, doctor or payee, voucher (IN-/OUT-)",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChequeRegisterPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Incoming and outgoing cheques of active payments, by due date",
+        "tags": [
+          "cheques"
+        ]
+      }
+    },
+    "/api/v1/cheques/register/summary": {
+      "get": {
+        "operationId": "ChequeRegisterController_summary",
+        "parameters": [
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "dueFrom",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dueTo",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "due",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "soon",
+                "overdue"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChequeRegisterSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Chip counts per status and direction, due soon, overdue, pending amounts",
+        "tags": [
+          "cheques"
+        ]
+      }
+    },
     "/api/v1/cheques": {
       "get": {
         "operationId": "ChequesController_list",
@@ -3144,6 +3342,517 @@
           }
         ],
         "summary": "Change a cheque status: pending → cleared | returned, cleared → returned",
+        "tags": [
+          "cheques"
+        ]
+      }
+    },
+    "/api/v1/outgoing-payments": {
+      "post": {
+        "description": "A refund also needs ledger.read and may not exceed the doctor refundable credit.",
+        "operationId": "OutgoingPaymentsController_create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "A UUID per attempt; a replay returns the original result (200) instead of a duplicate",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOutgoingPaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replay of an earlier request with the same key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutgoingResultResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutgoingResultResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed | error.idempotency.required | error.outgoing.* | error.payment.*",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found (category or doctor)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.outgoing.category_inactive | refund_exceeds_credit | error.cheque.duplicate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "error.idempotency.mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Record an outgoing payment: an expense (payee) or, with the doctor-refund category, a refund",
+        "tags": [
+          "outgoing"
+        ]
+      },
+      "get": {
+        "operationId": "OutgoingPaymentsController_list",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "expense",
+                "doctor_refund"
+              ]
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "description": "Refunds of this doctor",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "method",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cash",
+                "cheque",
+                "transfer"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Voucher (OUT-000012, out12, 12), payee, doctor or cheque number",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "void"
+              ]
+            }
+          },
+          {
+            "name": "counted",
+            "required": false,
+            "in": "query",
+            "description": "true: only money that counts now; false: only what does not",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Payment date from (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Payment date to (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutgoingPage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Outgoing payments (the expenses report table), newest first, with totals",
+        "tags": [
+          "outgoing"
+        ]
+      }
+    },
+    "/api/v1/outgoing-payments/summary": {
+      "get": {
+        "operationId": "OutgoingPaymentsController_summary",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "expense",
+                "doctor_refund"
+              ]
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "description": "Refunds of this doctor",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "method",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cash",
+                "cheque",
+                "transfer"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Voucher (OUT-000012, out12, 12), payee, doctor or cheque number",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "First day (inclusive); counted money by its effective date",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Last day (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutgoingSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Expenses report figures: counted by category and method (effective date), refunds, pending, voided",
+        "tags": [
+          "outgoing"
+        ]
+      }
+    },
+    "/api/v1/outgoing-payments/{id}": {
+      "get": {
+        "operationId": "OutgoingPaymentsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutgoingDetailResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "outgoing"
+        ]
+      }
+    },
+    "/api/v1/outgoing-payments/{id}/void": {
+      "post": {
+        "operationId": "OutgoingPaymentsController_void",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidPaymentRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutgoingResultResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.outgoing.already_void | error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cancel an outgoing payment with a reason (never deleted); its cheque is frozen",
+        "tags": [
+          "outgoing"
+        ]
+      }
+    },
+    "/api/v1/outgoing-cheques/{id}/status": {
+      "patch": {
+        "operationId": "OutgoingChequesController_changeStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeChequeStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutgoingResultResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found (also for an incoming cheque id)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.cheque.invalid_transition | error.cheque.payment_void | error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change an outgoing cheque status: pending → cleared | returned, cleared → returned",
         "tags": [
           "cheques"
         ]
@@ -3464,6 +4173,62 @@
         ]
       }
     },
+    "/api/v1/ledger/cash-flow": {
+      "get": {
+        "operationId": "LedgerController_cashFlow",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "First day (inclusive); default: the first day of the lab month",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Last day (inclusive); default: lab today",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CashFlowResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.ledger.range_invalid (from after to)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cash summary for a period (SPEC 10): counted money in and out by effective date, and the net",
+        "tags": [
+          "ledger"
+        ]
+      }
+    },
     "/api/v1/ledger/summary": {
       "get": {
         "operationId": "LedgerController_summary",
@@ -3485,7 +4250,7 @@
             "bearer": []
           }
         ],
-        "summary": "Figures for Home: received this month, owed to the lab, cheques",
+        "summary": "Figures for Home: received this month, owed to the lab, cheques, outgoing money",
         "tags": [
           "ledger"
         ]
@@ -3894,6 +4659,238 @@
         ]
       }
     },
+    "/api/v1/exports/outgoing-payments": {
+      "get": {
+        "operationId": "ExportsController_outgoingPayments",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "description": "Language of the headers and labels; default: Accept-Language, then Arabic",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ar",
+                "en"
+              ]
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "expense",
+                "doctor_refund"
+              ]
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "method",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cash",
+                "cheque",
+                "transfer"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "void"
+              ]
+            }
+          },
+          {
+            "name": "counted",
+            "required": false,
+            "in": "query",
+            "description": "true: only money that counts now; false: only what does not",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Payment date from (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Payment date to (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Voucher, payee, doctor name or cheque number",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "error.export.too_large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Outgoing payments (expenses report table) as CSV with the filters of the list",
+        "tags": [
+          "exports"
+        ]
+      }
+    },
+    "/api/v1/exports/expenses-by-category": {
+      "get": {
+        "operationId": "ExportsController_expensesByCategory",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "description": "Language of the headers and labels; default: Accept-Language, then Arabic",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ar",
+                "en"
+              ]
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "First day (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Last day (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "error.export.too_large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The expenses report by category for a period as CSV (counted by effective date)",
+        "tags": [
+          "exports"
+        ]
+      }
+    },
     "/api/v1/search": {
       "get": {
         "operationId": "SearchController_search",
@@ -3949,7 +4946,7 @@
             "bearer": []
           }
         ],
-        "summary": "Global search: doctors, cases and payments; a group the caller cannot read is omitted",
+        "summary": "Global search: doctors, cases, payments and outgoing payments; a group the caller cannot read is omitted",
         "tags": [
           "search"
         ]
@@ -6617,6 +7614,209 @@
           "reason"
         ]
       },
+      "RegisterPayment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Incoming payment id or outgoing payment id (see direction)"
+          },
+          "voucherNo": {
+            "type": "string",
+            "example": "IN-000001"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "paidAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "voucherNo",
+          "amount",
+          "paidAt"
+        ]
+      },
+      "RegisterParty": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "doctor",
+              "payee"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "doctorId": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "doctorId"
+        ]
+      },
+      "ChequeRegisterItem": {
+        "type": "object",
+        "properties": {
+          "direction": {
+            "type": "string",
+            "enum": [
+              "in",
+              "out"
+            ],
+            "description": "in: a doctor cheque to the lab; out: the lab cheque"
+          },
+          "cheque": {
+            "$ref": "#/components/schemas/ChequeResponse"
+          },
+          "payment": {
+            "$ref": "#/components/schemas/RegisterPayment"
+          },
+          "party": {
+            "$ref": "#/components/schemas/RegisterParty"
+          },
+          "category": {
+            "nullable": true,
+            "description": "Outgoing cheques: the expense category",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          }
+        },
+        "required": [
+          "direction",
+          "cheque",
+          "payment",
+          "party",
+          "category"
+        ]
+      },
+      "ChequeRegisterPage": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChequeRegisterItem"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "items"
+        ]
+      },
+      "StatusCounts": {
+        "type": "object",
+        "properties": {
+          "pending": {
+            "type": "number"
+          },
+          "cleared": {
+            "type": "number"
+          },
+          "returned": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "pending",
+          "cleared",
+          "returned"
+        ]
+      },
+      "DirectionCounts": {
+        "type": "object",
+        "properties": {
+          "in": {
+            "type": "number"
+          },
+          "out": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "in",
+          "out"
+        ]
+      },
+      "DirectionAmounts": {
+        "type": "object",
+        "properties": {
+          "in": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "out": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "in",
+          "out"
+        ]
+      },
+      "ChequeRegisterSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "byStatus": {
+            "$ref": "#/components/schemas/StatusCounts"
+          },
+          "byDirection": {
+            "$ref": "#/components/schemas/DirectionCounts"
+          },
+          "dueSoon": {
+            "type": "number",
+            "description": "Pending, due within 7 days (lab today)"
+          },
+          "overdue": {
+            "type": "number",
+            "description": "Pending and past due"
+          },
+          "pendingAmount": {
+            "description": "Sum of pending cheques per direction",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DirectionAmounts"
+              }
+            ]
+          }
+        },
+        "required": [
+          "byStatus",
+          "byDirection",
+          "dueSoon",
+          "overdue",
+          "pendingAmount"
+        ]
+      },
       "ChequePage": {
         "type": "object",
         "properties": {
@@ -6719,6 +7919,608 @@
           "status"
         ]
       },
+      "CreateOutgoingPaymentRequest": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "number",
+            "description": "Expense category; the doctor-refund category makes it a refund"
+          },
+          "payee": {
+            "type": "string",
+            "maxLength": 100,
+            "nullable": true,
+            "description": "Who was paid (free text): required for an expense, forbidden for a refund"
+          },
+          "doctorId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The doctor: required for a refund, forbidden for an expense"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "cheque",
+              "transfer"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units, at least 1",
+            "minimum": 1
+          },
+          "paidAt": {
+            "type": "string",
+            "description": "Default: today (lab time zone); never in the future"
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "cheque": {
+            "description": "The lab cheque: required for method=cheque, forbidden otherwise; the due date may be later",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChequeInput"
+              }
+            ]
+          }
+        },
+        "required": [
+          "categoryId",
+          "method",
+          "amount"
+        ]
+      },
+      "OutgoingPaymentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "voucherNo": {
+            "type": "string",
+            "example": "OUT-000001"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "expense",
+              "doctor_refund"
+            ]
+          },
+          "category": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "doctor": {
+            "nullable": true,
+            "description": "Refunds only",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "payee": {
+            "type": "string",
+            "nullable": true,
+            "description": "Expenses only"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "cheque",
+              "transfer"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 1
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "paidAt": {
+            "type": "string"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "The day it counts: payment date, or the day the cheque cleared; null while it does not count"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "void"
+            ]
+          },
+          "voidReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "voidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "counted": {
+            "type": "boolean",
+            "description": "Counts as money out now (SPEC 7.4: a cheque once cleared)"
+          },
+          "cheque": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChequeResponse"
+              }
+            ]
+          },
+          "rowVersion": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "voucherNo",
+          "kind",
+          "category",
+          "doctor",
+          "payee",
+          "method",
+          "amount",
+          "currencyCode",
+          "paidAt",
+          "effectiveDate",
+          "notes",
+          "status",
+          "voidReason",
+          "voidedAt",
+          "counted",
+          "cheque",
+          "rowVersion",
+          "createdAt"
+        ]
+      },
+      "OutgoingResultResponse": {
+        "type": "object",
+        "properties": {
+          "payment": {
+            "$ref": "#/components/schemas/OutgoingPaymentResponse"
+          },
+          "doctorBalance": {
+            "type": "number",
+            "nullable": true,
+            "description": "Refunds: the doctor balance after this change (positive = owed to the lab); null for an expense"
+          }
+        },
+        "required": [
+          "payment",
+          "doctorBalance"
+        ]
+      },
+      "OutgoingTotals": {
+        "type": "object",
+        "properties": {
+          "counted": {
+            "type": "number",
+            "description": "Sum of counted outgoing money of the filtered set"
+          },
+          "pendingCheques": {
+            "type": "number",
+            "description": "Sum of outgoing cheques still pending in the filtered set"
+          }
+        },
+        "required": [
+          "counted",
+          "pendingCheques"
+        ]
+      },
+      "OutgoingPage": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutgoingPaymentResponse"
+            }
+          },
+          "totals": {
+            "$ref": "#/components/schemas/OutgoingTotals"
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "items",
+          "totals"
+        ]
+      },
+      "OutByMethod": {
+        "type": "object",
+        "properties": {
+          "cash": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "transfer": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "cheque": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "cash",
+          "transfer",
+          "cheque"
+        ]
+      },
+      "OutCounted": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "count": {
+            "type": "number"
+          },
+          "byMethod": {
+            "$ref": "#/components/schemas/OutByMethod"
+          }
+        },
+        "required": [
+          "amount",
+          "count",
+          "byMethod"
+        ]
+      },
+      "OutCountAmount": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "count",
+          "amount"
+        ]
+      },
+      "OutCategoryTotal": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "expense",
+              "doctor_refund"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Counted money of the category in the period (effective date)",
+            "minimum": 0
+          },
+          "count": {
+            "type": "number"
+          },
+          "pendingCheques": {
+            "description": "Memo: cheques of the category not cleared yet",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutCountAmount"
+              }
+            ]
+          }
+        },
+        "required": [
+          "categoryId",
+          "name",
+          "kind",
+          "amount",
+          "count",
+          "pendingCheques"
+        ]
+      },
+      "OutLast": {
+        "type": "object",
+        "properties": {
+          "voucherNo": {
+            "type": "string",
+            "example": "OUT-000001"
+          },
+          "paidAt": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "voucherNo",
+          "paidAt",
+          "amount"
+        ]
+      },
+      "OutgoingSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "counted": {
+            "description": "Money that counts, on its effective date (a cheque: the day it cleared)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutCounted"
+              }
+            ]
+          },
+          "byCategory": {
+            "description": "Per category with activity in the period, by name",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutCategoryTotal"
+            }
+          },
+          "refunds": {
+            "type": "number",
+            "description": "Of the counted money: refunds to doctors",
+            "minimum": 0
+          },
+          "pendingCheques": {
+            "description": "Memo: outgoing cheques not cleared yet, by payment date",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutCountAmount"
+              }
+            ]
+          },
+          "voided": {
+            "description": "Memo: voided outgoing payments, by payment date",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutCountAmount"
+              }
+            ]
+          },
+          "last": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutLast"
+              }
+            ]
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "effective"
+            ]
+          }
+        },
+        "required": [
+          "counted",
+          "byCategory",
+          "refunds",
+          "pendingCheques",
+          "voided",
+          "last",
+          "basis"
+        ]
+      },
+      "OutgoingChequeHistory": {
+        "type": "object",
+        "properties": {
+          "fromStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "cleared",
+              "returned"
+            ],
+            "nullable": true
+          },
+          "toStatus": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "cleared",
+              "returned"
+            ]
+          },
+          "statusDate": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "fromStatus",
+          "toStatus",
+          "statusDate",
+          "at",
+          "note"
+        ]
+      },
+      "OutgoingDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "voucherNo": {
+            "type": "string",
+            "example": "OUT-000001"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "expense",
+              "doctor_refund"
+            ]
+          },
+          "category": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "doctor": {
+            "nullable": true,
+            "description": "Refunds only",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Ref"
+              }
+            ]
+          },
+          "payee": {
+            "type": "string",
+            "nullable": true,
+            "description": "Expenses only"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "cheque",
+              "transfer"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 1
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "paidAt": {
+            "type": "string"
+          },
+          "effectiveDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "The day it counts: payment date, or the day the cheque cleared; null while it does not count"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "void"
+            ]
+          },
+          "voidReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "voidedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "counted": {
+            "type": "boolean",
+            "description": "Counts as money out now (SPEC 7.4: a cheque once cleared)"
+          },
+          "cheque": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChequeResponse"
+              }
+            ]
+          },
+          "rowVersion": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "chequeHistory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutgoingChequeHistory"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "voucherNo",
+          "kind",
+          "category",
+          "doctor",
+          "payee",
+          "method",
+          "amount",
+          "currencyCode",
+          "paidAt",
+          "effectiveDate",
+          "notes",
+          "status",
+          "voidReason",
+          "voidedAt",
+          "counted",
+          "cheque",
+          "rowVersion",
+          "createdAt",
+          "chequeHistory"
+        ]
+      },
       "DoctorBalanceResponse": {
         "type": "object",
         "properties": {
@@ -6737,13 +8539,21 @@
             "type": "number",
             "description": "Sum of counted payments"
           },
+          "paidOut": {
+            "type": "number",
+            "description": "Sum of counted refunds to the doctor (SPEC 7.3 paid_out); raises the balance"
+          },
           "pendingCheques": {
             "type": "number",
             "description": "Sum of pending cheques (not in received)"
           },
+          "pendingRefundCheques": {
+            "type": "number",
+            "description": "Sum of refund cheques not cleared yet (not in paidOut; they reserve the credit)"
+          },
           "balance": {
             "type": "number",
-            "description": "Positive = owed to the lab; negative = the lab owes the doctor"
+            "description": "balance = charges - received + paidOut. Positive = owed to the lab; negative = the lab owes the doctor"
           },
           "direction": {
             "type": "string",
@@ -6752,6 +8562,10 @@
               "owed_by_lab",
               "settled"
             ]
+          },
+          "refundable": {
+            "type": "number",
+            "description": "What may be refunded now: credit minus pending refund cheques, never below 0"
           }
         },
         "required": [
@@ -6759,9 +8573,12 @@
           "openingBalance",
           "charges",
           "received",
+          "paidOut",
           "pendingCheques",
+          "pendingRefundCheques",
           "balance",
-          "direction"
+          "direction",
+          "refundable"
         ]
       },
       "BreakdownTieOut": {
@@ -6775,20 +8592,65 @@
             "type": "number",
             "description": "Sum of remaining over ALL open cases, not of the page"
           },
+          "refundsRemaining": {
+            "type": "number",
+            "description": "Sum of the refunds the doctor money no longer covers (B4b)"
+          },
           "credit": {
             "type": "number",
             "description": "Money the lab holds for the doctor (overpayment, negative opening balance)"
           },
           "balance": {
             "type": "number",
-            "description": "openingRemaining + casesRemaining - credit; equals GET /doctors/{id}/balance"
+            "description": "openingRemaining + casesRemaining + refundsRemaining - credit; equals GET /doctors/{id}/balance"
           }
         },
         "required": [
           "openingRemaining",
           "casesRemaining",
+          "refundsRemaining",
           "credit",
           "balance"
+        ]
+      },
+      "BreakdownRefund": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "description": "Outgoing payment id"
+          },
+          "voucherNo": {
+            "type": "string",
+            "example": "OUT-000003"
+          },
+          "date": {
+            "type": "string",
+            "description": "Effective date: payment date, or the day the cheque cleared"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "covered": {
+            "type": "number",
+            "description": "Part covered by the doctor money",
+            "minimum": 0
+          },
+          "remaining": {
+            "type": "number",
+            "description": "Part the doctor owes back; always above 0 here",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "id",
+          "voucherNo",
+          "date",
+          "amount",
+          "covered",
+          "remaining"
         ]
       },
       "BreakdownCase": {
@@ -6933,8 +8795,19 @@
           "credit": {
             "type": "number"
           },
+          "refundsRemaining": {
+            "type": "number",
+            "description": "Sum of openRefunds remaining (B4b)"
+          },
           "tieOut": {
             "$ref": "#/components/schemas/BreakdownTieOut"
+          },
+          "openRefunds": {
+            "description": "Refunds not covered any more (e.g. the doctor cheque bounced after the refund), oldest first",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BreakdownRefund"
+            }
           },
           "openCases": {
             "$ref": "#/components/schemas/BreakdownOpenCases"
@@ -6952,7 +8825,9 @@
           "figures",
           "openingRemaining",
           "credit",
+          "refundsRemaining",
           "tieOut",
+          "openRefunds",
           "openCases",
           "latestPayments"
         ]
@@ -6987,12 +8862,15 @@
             "enum": [
               "case",
               "payment",
-              "cheque_return"
-            ]
+              "cheque_return",
+              "refund",
+              "refund_cheque_return"
+            ],
+            "description": "refund / refund_cheque_return: money returned to the doctor (B4b) and a returned refund cheque"
           },
           "refId": {
             "type": "number",
-            "description": "Case id or payment id"
+            "description": "Case id, payment id or outgoing payment id"
           },
           "ref": {
             "type": "string",
@@ -7016,7 +8894,7 @@
             "type": "string",
             "nullable": true,
             "example": "IN-000012",
-            "description": "Payment and cheque-return lines"
+            "description": "Payment, refund (OUT-) and cheque-return lines"
           },
           "patientName": {
             "type": "string",
@@ -7231,6 +9109,118 @@
           "items"
         ]
       },
+      "CashIn": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "cash": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "transfer": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "cheque": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "total",
+          "cash",
+          "transfer",
+          "cheque"
+        ]
+      },
+      "CashOut": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "cash": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "transfer": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "cheque": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "expenses": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          },
+          "refunds": {
+            "type": "number",
+            "description": "Integer minor units",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "total",
+          "cash",
+          "transfer",
+          "cheque",
+          "expenses",
+          "refunds"
+        ]
+      },
+      "CashFlowResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "in": {
+            "description": "Counted incoming money in the period, by effective date",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CashIn"
+              }
+            ]
+          },
+          "out": {
+            "description": "Counted outgoing money in the period, by effective date",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CashOut"
+              }
+            ]
+          },
+          "net": {
+            "type": "number",
+            "description": "in.total minus out.total (signed)"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "in",
+          "out",
+          "net"
+        ]
+      },
       "LedgerSummaryResponse": {
         "type": "object",
         "properties": {
@@ -7259,6 +9249,26 @@
           "chequesOverdue": {
             "type": "number",
             "description": "Pending cheques past due"
+          },
+          "outgoingThisMonth": {
+            "type": "number",
+            "nullable": true,
+            "description": "B4b: counted outgoing money (expenses and refunds) this month, by effective date; null without expenses.read"
+          },
+          "outgoingTotal": {
+            "type": "number",
+            "nullable": true,
+            "description": "All counted outgoing money; null without expenses.read"
+          },
+          "outgoingChequesDueSoon": {
+            "type": "number",
+            "nullable": true,
+            "description": "Outgoing cheques pending and due within 7 days; null without expenses.read"
+          },
+          "outgoingChequesOverdue": {
+            "type": "number",
+            "nullable": true,
+            "description": "Outgoing cheques pending and past due; null without expenses.read"
           }
         },
         "required": [
@@ -7268,7 +9278,11 @@
           "pendingChequesCount",
           "pendingChequesAmount",
           "chequesDueSoon",
-          "chequesOverdue"
+          "chequesOverdue",
+          "outgoingThisMonth",
+          "outgoingTotal",
+          "outgoingChequesDueSoon",
+          "outgoingChequesOverdue"
         ]
       },
       "DoctorHitResponse": {
@@ -7444,6 +9458,89 @@
           "items"
         ]
       },
+      "OutgoingHitResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "voucher": {
+            "type": "string",
+            "example": "OUT-000001"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "expense",
+              "doctor_refund"
+            ]
+          },
+          "categoryName": {
+            "type": "string"
+          },
+          "partyName": {
+            "type": "string",
+            "description": "The payee of an expense, or the doctor of a refund"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "cheque",
+              "transfer"
+            ]
+          },
+          "amount": {
+            "type": "number",
+            "description": "Integer minor units"
+          },
+          "paidAt": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "void"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "voucher",
+          "kind",
+          "categoryName",
+          "partyName",
+          "method",
+          "amount",
+          "paidAt",
+          "status"
+        ]
+      },
+      "OutgoingGroup": {
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "number",
+            "description": "All matches, not only the ones returned"
+          },
+          "closest": {
+            "type": "boolean",
+            "description": "True when nothing matched the whole text and these are the closest matches"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OutgoingHitResponse"
+            }
+          }
+        },
+        "required": [
+          "total",
+          "closest",
+          "items"
+        ]
+      },
       "SearchGroups": {
         "type": "object",
         "properties": {
@@ -7468,6 +9565,14 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/PaymentGroup"
+              }
+            ]
+          },
+          "outgoing": {
+            "description": "B4b: outgoing payments (OUT- voucher or cheque number); absent without expenses.read",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OutgoingGroup"
               }
             ]
           }
