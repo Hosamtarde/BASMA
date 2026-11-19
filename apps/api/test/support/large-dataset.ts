@@ -7,6 +7,9 @@ export interface DatasetSize {
   /** Cases and payments given to doctor #1 on top of the even spread (the pathological doctor). */
   heavyCases: number;
   heavyPayments: number;
+  /** B4b: outgoing payments (expenses), and how many of them are refunds to doctors. */
+  outgoing: number;
+  refunds: number;
 }
 
 /** The SPEC §6 target: 20 000 cases / 50 000 payments. */
@@ -16,12 +19,16 @@ export const TARGET_SIZE: DatasetSize = {
   payments: 50_000,
   heavyCases: 5_000,
   heavyPayments: 10_000,
+  outgoing: 10_000,
+  refunds: 1_000,
 };
 
 /**
  * Fills a migrated, empty database straight through SQL (fast; the API is covered elsewhere) with a
  * deterministic ledger: signed opening balances, ~3% cancelled cases, 60% bound payments, cheques in
- * every state (with their history rows), ~2% voided payments. Returns the doctor ids.
+ * every state (with their history rows), ~2% voided payments; B4b: outgoing payments (expenses on the
+ * first non-refund category, refunds on the refund category, the lab's cheques in every state, ~2%
+ * voided). Needs the expense categories of first-run setup. Returns the doctor ids.
  */
 export async function loadDataset(pool: Pool, size: DatasetSize = TARGET_SIZE): Promise<number[]> {
   const c = await pool.connect();
@@ -98,6 +105,43 @@ export async function loadDataset(pool: Pool, size: DatasetSize = TARGET_SIZE): 
     await c.query(
       `UPDATE payments SET status = 'void', void_reason = 'dataset', voided_at = now() WHERE id % 50 = 0`,
     );
+    // B4b outgoing money. Refunds go to random doctors (some beyond their credit: the model must cope).
+    await c.query(
+      `INSERT INTO outgoing_payments (voucher_no, kind, category_id, doctor_id, payee, method, amount, currency_code, paid_at)
+       SELECT g,
+              CASE WHEN g <= $2::int THEN 'doctor_refund' ELSE 'expense' END,
+              CASE WHEN g <= $2::int THEN (SELECT id FROM expense_categories WHERE is_doctor)
+                   ELSE (SELECT min(id) FROM expense_categories WHERE NOT is_doctor) END,
+              CASE WHEN g <= $2::int THEN (SELECT min(id) FROM doctors) + (random() * ($3::int - 1))::int END,
+              CASE WHEN g <= $2::int THEN NULL ELSE 'Payee ' || (g % 40) END,
+              (ARRAY['cash','cash','transfer','cheque'])[1 + (random()*3)::int],
+              500 + (random() * 20000)::bigint,
+              'ILS', date '2025-02-01' + (g % 600)
+       FROM generate_series(1, $1::int) g`,
+      [size.outgoing, size.refunds, size.doctors],
+    );
+    await c.query(
+      `INSERT INTO cheques (outgoing_payment_id, cheque_no, bank, due_date, status, status_date)
+       SELECT id, 'OC' || id, 'Lab Bank', paid_at + 20,
+              (ARRAY['pending','cleared','returned','cleared'])[1 + (id % 4)],
+              CASE WHEN id % 4 = 0 THEN NULL ELSE paid_at + 21 END
+       FROM outgoing_payments WHERE method = 'cheque'`,
+    );
+    await c.query(
+      `INSERT INTO cheque_status_history (cheque_id, from_status, to_status, status_date)
+       SELECT ch.id, 'pending', 'cleared', ch.status_date FROM cheques ch
+       WHERE ch.outgoing_payment_id IS NOT NULL AND (ch.status = 'cleared' OR (ch.status = 'returned' AND ch.id % 3 <> 0))`,
+    );
+    await c.query(
+      `INSERT INTO cheque_status_history (cheque_id, from_status, to_status, status_date)
+       SELECT ch.id, CASE WHEN ch.id % 3 <> 0 THEN 'cleared' ELSE 'pending' END, 'returned', ch.status_date + 1
+       FROM cheques ch WHERE ch.outgoing_payment_id IS NOT NULL AND ch.status = 'returned'`,
+    );
+    await c.query(`UPDATE cheques SET status_date = status_date + 1 WHERE outgoing_payment_id IS NOT NULL AND status = 'returned'`);
+    await c.query(
+      `UPDATE outgoing_payments SET status = 'void', void_reason = 'dataset', voided_at = now() WHERE id % 50 = 0`,
+    );
+    await c.query(`UPDATE counters SET next_value = $1 WHERE name = 'payment_out_no'`, [size.outgoing + 1]);
     await c.query(`UPDATE counters SET next_value = $1 WHERE name = 'payment_in_no'`, [size.payments + 1]);
     await c.query(`UPDATE counters SET next_value = $1 WHERE name = 'case_no'`, [size.cases + 1]);
     await c.query('COMMIT');

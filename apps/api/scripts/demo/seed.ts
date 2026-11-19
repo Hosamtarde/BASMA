@@ -42,6 +42,8 @@ export interface SeedReport {
   byStatus: Record<DemoStatus, number>;
   overdue: number;
   extras?: { doctors: number; cases: number };
+  /** B4b: outgoing payments (expenses and refunds) and their cheques. */
+  outgoing: { payments: number; cheques: number; refunds: number };
 }
 
 export class DemoSeedRefused extends Error {}
@@ -168,6 +170,191 @@ async function seedLedgerExtras(
   await newDoctor('د. مصطفى الألف المقصورة', 0, 'عيادة الياء');
   ctx.log(`B4 extras: ${doctors} doctors, ${cases} cases`);
   return { doctors, cases };
+}
+
+interface OutAnswer {
+  payment: { id: number; rowVersion: number; cheque: { id: number; rowVersion: number } | null };
+  doctorBalance: number | null;
+}
+
+interface OutgoingCounter {
+  payments: number;
+  cheques: number;
+  refunds: number;
+}
+
+/** Records an outgoing payment through the API (B4b) and counts it. */
+function outgoingWriter(api: Api, counter: OutgoingCounter) {
+  return async (body: Record<string, unknown>): Promise<OutAnswer> => {
+    counter.payments += 1;
+    if (body.method === 'cheque') counter.cheques += 1;
+    if (body.doctorId !== undefined) counter.refunds += 1;
+    return api.call<OutAnswer>('POST', '/outgoing-payments', body, { 'Idempotency-Key': randomUUID() });
+  };
+}
+
+async function setOutgoingCheque(api: Api, r: OutAnswer, status: string, statusDate: string): Promise<OutAnswer> {
+  return api.call<OutAnswer>('PATCH', `/outgoing-cheques/${r.payment.cheque?.id}/status`, {
+    rowVersion: r.payment.cheque?.rowVersion,
+    status,
+    statusDate,
+  });
+}
+
+async function categories(api: Api) {
+  const all = (
+    await api.call<{ items: { id: number; isDoctor: boolean }[] }>('GET', '/expense-categories?pageSize=100')
+  ).items;
+  const refund = all.find((c) => c.isDoctor)?.id;
+  const others = all.filter((c) => !c.isDoctor).map((c) => c.id);
+  if (refund === undefined || others.length < 4) throw new Error('expense categories missing (first-run setup?)');
+  return { refund, others };
+}
+
+/**
+ * B4b base demo (docs/plans/b4b-outgoing-expenses.md §5.5): expenses in several categories over the last
+ * three months — cash, transfer and the lab's cheques pending (due soon), pending overdue, cleared and
+ * returned — one voided expense, a category deleted after use (it becomes inactive), and refunds on the
+ * overpaying doctor: a partial cash refund and a refund cheque still pending.
+ */
+async function seedOutgoing(
+  api: Api,
+  ctx: { timeZone: string; creditDoctor: number; counter: OutgoingCounter; log: (line: string) => void },
+): Promise<void> {
+  const out = outgoingWriter(api, ctx.counter);
+  const day = (daysAgo: number) => labDate(ctx.timeZone, daysAgo);
+  const { refund, others } = await categories(api);
+  const [rent, electricity, materials, transport] = others as [number, number, number, number];
+
+  let chequeNo = 5000;
+  const labCheque = (dueDaysAgo: number) => ({
+    chequeNo: String((chequeNo += 1)),
+    bank: 'بنك المختبر',
+    dueDate: day(dueDaysAgo),
+  });
+  for (const month of [2, 1, 0]) {
+    const base = month * 30;
+    await out({ categoryId: rent, payee: 'مالك المبنى', method: 'cash', amount: 250_000, paidAt: day(base + 2) });
+    await out({
+      categoryId: electricity,
+      payee: 'شركة الكهرباء',
+      method: 'transfer',
+      amount: 60_000 + month * 5_000,
+      paidAt: day(base + 4),
+    });
+    await out({ categoryId: transport, payee: 'مكتب التوصيل', method: 'cash', amount: 8_000, paidAt: day(base + 1) });
+  }
+  // The lab's cheques for materials, one in every state.
+  const cleared = await out({
+    categoryId: materials,
+    payee: 'مورد المواد',
+    method: 'cheque',
+    amount: 120_000,
+    paidAt: day(40),
+    cheque: labCheque(35),
+  });
+  await setOutgoingCheque(api, cleared, 'cleared', day(35));
+  const returned = await out({
+    categoryId: materials,
+    payee: 'مورد المواد',
+    method: 'cheque',
+    amount: 45_000,
+    paidAt: day(20),
+    cheque: labCheque(15),
+  });
+  await setOutgoingCheque(api, returned, 'returned', day(14));
+  // Pending, due within 3 days / pending and overdue.
+  await out({ categoryId: materials, payee: 'مورد المواد', method: 'cheque', amount: 70_000, paidAt: day(1), cheque: labCheque(-3) });
+  await out({ categoryId: materials, payee: 'مورد الجبس', method: 'cheque', amount: 30_000, paidAt: day(10), cheque: labCheque(5) });
+  const wrong = await out({ categoryId: rent, payee: 'مالك المبنى', method: 'cash', amount: 250_000, paidAt: day(2) });
+  await api.call('POST', `/outgoing-payments/${wrong.payment.id}/void`, {
+    rowVersion: wrong.payment.rowVersion,
+    reason: 'سُجّل الإيجار مرتين (تجريبي).',
+  });
+  // A category used once and then deleted: it is kept as inactive (B1 rule, B4b X8).
+  const once = await api.call<{ id: number }>('POST', '/expense-categories', { name: 'صيانة (تجريبي)' });
+  await out({ categoryId: once.id, payee: 'فني الصيانة', method: 'cash', amount: 15_000, paidAt: day(25) });
+  await api.call('DELETE', `/expense-categories/${once.id}`);
+
+  // Refunds of the overpaying doctor's credit: part in cash, part by a cheque not cleared yet.
+  const bal = await api.call<{ refundable: number }>('GET', `/doctors/${ctx.creditDoctor}/balance`);
+  if (bal.refundable >= 150_000) {
+    await out({
+      categoryId: refund,
+      doctorId: ctx.creditDoctor,
+      method: 'cash',
+      amount: 100_000,
+      paidAt: day(0),
+      notes: 'إرجاع جزء من الرصيد (تجريبي).',
+    });
+    await out({ categoryId: refund, doctorId: ctx.creditDoctor, method: 'cheque', amount: 50_000, paidAt: day(0), cheque: labCheque(-7) });
+  }
+  ctx.log(`Outgoing: ${ctx.counter.payments} (${ctx.counter.cheques} cheques, ${ctx.counter.refunds} refunds)`);
+}
+
+/**
+ * B4b extras: a full refund by a cleared cheque (the cancelled-case credit doctor of the B4 extras) and the
+ * R3 case — a refund, then the doctor's own cheque bounces, so the refund line stays open in the breakdown.
+ */
+async function seedRefundExtras(
+  api: Api,
+  ctx: {
+    timeZone: string;
+    workTypeId: number;
+    counter: OutgoingCounter;
+    pay: (body: Record<string, unknown>) => Promise<PaidAnswer>;
+  },
+): Promise<{ doctors: number; cases: number }> {
+  const out = outgoingWriter(api, ctx.counter);
+  const day = (daysAgo: number) => labDate(ctx.timeZone, daysAgo);
+  const { refund } = await categories(api);
+  const found = await api.call<{ items: { id: number }[] }>(
+    'GET',
+    `/doctors?pageSize=10&search=${encodeURIComponent('د. ندى الملغاة')}`,
+  );
+  const nada = found.items[0]?.id;
+  if (nada !== undefined) {
+    const full = await out({
+      categoryId: refund,
+      doctorId: nada,
+      method: 'cheque',
+      amount: 50_000,
+      paidAt: day(0),
+      cheque: { chequeNo: '7001', bank: 'بنك المختبر', dueDate: day(0) },
+    });
+    await setOutgoingCheque(api, full, 'cleared', day(0));
+  }
+  // R3: case 200.00, his cheque 300.00 cleared, a refund of 100.00, then the cheque comes back.
+  const bounce = (
+    await api.call<Created>('POST', '/doctors', { name: 'د. رامي الشيك المرتجع', clinic: 'عيادة الاسترداد', openingBalance: 0 })
+  ).id;
+  await api.call<Created>('POST', '/cases', {
+    doctorId: bounce,
+    patientName: 'مريض الاسترداد',
+    receivedDate: day(6),
+    expectedDate: day(-8),
+    status: 'design',
+    lines: [{ toothNo: 11, workTypeId: ctx.workTypeId, unitPrice: 20_000 }],
+  });
+  const chq = await ctx.pay({
+    doctorId: bounce,
+    method: 'cheque',
+    amount: 30_000,
+    paidAt: day(5),
+    cheque: { chequeNo: '8801', bank: 'بنك القدس', dueDate: day(4) },
+  });
+  const cleared = await api.call<PaidAnswer>('PATCH', `/cheques/${chq.payment.cheque?.id}/status`, {
+    rowVersion: chq.payment.cheque?.rowVersion,
+    status: 'cleared',
+    statusDate: day(4),
+  });
+  await out({ categoryId: refund, doctorId: bounce, method: 'cash', amount: 10_000, paidAt: day(3) });
+  await api.call('PATCH', `/cheques/${cleared.payment.cheque?.id}/status`, {
+    rowVersion: cleared.payment.cheque?.rowVersion,
+    status: 'returned',
+    statusDate: day(1),
+  });
+  return { doctors: 1, cases: 1 };
 }
 
 export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
@@ -376,9 +563,16 @@ export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
   await pay({ doctorId: doctorIds[DOCTORS.length - 1], method: 'cash', amount: 1_500_000, paidAt: today });
   log(`Payments: ${payments} (${cheques} cheques)`);
 
-  const extras = options.extras
-    ? await seedLedgerExtras(api, { workTypeId: workTypeIds[0] as number, timeZone, pay, log })
-    : undefined;
+  const outgoing: OutgoingCounter = { payments: 0, cheques: 0, refunds: 0 };
+  await seedOutgoing(api, { timeZone, creditDoctor: doctorIds[DOCTORS.length - 1] as number, counter: outgoing, log });
+
+  let extras: { doctors: number; cases: number } | undefined;
+  if (options.extras) {
+    const b4 = await seedLedgerExtras(api, { workTypeId: workTypeIds[0] as number, timeZone, pay, log });
+    const b4b = await seedRefundExtras(api, { timeZone, workTypeId: workTypeIds[0] as number, counter: outgoing, pay });
+    extras = { doctors: b4.doctors + b4b.doctors, cases: b4.cases + b4b.cases };
+    log('B4b extras: a full refund by a cleared cheque, a refund followed by a bounced cheque');
+  }
 
   return {
     payments,
@@ -391,5 +585,6 @@ export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
     byStatus,
     overdue,
     ...(extras ? { extras } : {}),
+    outgoing,
   };
 }
