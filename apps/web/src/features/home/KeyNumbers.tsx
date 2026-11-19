@@ -6,7 +6,7 @@ import { useCurrency } from '@/features/shell/currency';
 import { formatNumber } from '@/i18n/format';
 import { currentLanguage } from '@/i18n/i18n';
 
-type KeyNumber = 'doctors' | 'cases' | 'ready' | 'overdue' | 'income' | 'owed' | 'chequesPending';
+type KeyNumber = 'doctors' | 'cases' | 'ready' | 'overdue' | 'income' | 'expenses' | 'owed' | 'chequesPending';
 type LedgerSummary = components['schemas']['LedgerSummaryResponse'];
 
 /**
@@ -34,6 +34,10 @@ export function KeyNumbers({
     { key: 'ready', value: count(counts.byStatus.ready), to: '/cases?status=ready' },
     { key: 'overdue', value: count(counts.overdue), to: '/cases?overdue=1' },
     { key: 'income', value: money(ledger?.receivedThisMonth), to: '/payments' },
+    // Absent (null) for a user who may not read expenses: the line is left out, not shown as zero.
+    ...(ledger?.outgoingThisMonth === null
+      ? []
+      : [{ key: 'expenses' as const, value: money(ledger?.outgoingThisMonth), to: '/outgoing' }]),
     { key: 'owed', value: money(ledger?.owedToLab), to: '/debts' },
     { key: 'chequesPending', value: count(ledger?.pendingChequesCount), to: '/cheques?status=pending' },
   ];

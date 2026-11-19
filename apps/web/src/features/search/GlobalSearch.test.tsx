@@ -166,6 +166,17 @@ describe('GlobalSearch (SPEC §5.17)', () => {
     await waitFor(() => expect(router.state.location.pathname + router.state.location.search).toBe('/payments?q=IN-000005'));
   });
 
+  it('an outgoing result opens the expenses page on its OUT- voucher; its group is labelled and counted', async () => {
+    const OUT = { id: 12, voucher: 'OUT-000012', kind: 'expense', categoryName: 'إيجار', partyName: 'مؤجّر المختبر', method: 'cash', amount: 150000, paidAt: '2026-11-10', status: 'active' };
+    const { router } = mount({ 'GET /api/v1/search': () => answer({ outgoing: group([OUT]) }, 'out12') });
+    await userEvent.click(await trigger());
+    await userEvent.type(await screen.findByRole('combobox'), 'out12');
+    expect(await screen.findByText('المصاريف')).toBeVisible();
+    expect(screen.getAllByRole('status').some((s) => s.textContent === 'نتيجة واحدة')).toBe(true);
+    await userEvent.click(await screen.findByRole('option', { name: /OUT-000012/ }));
+    await waitFor(() => expect(router.state.location.pathname + router.state.location.search).toBe('/outgoing?q=OUT-000012'));
+  });
+
   it('«عرض الكل» appears when there are more hits and opens the full list with the same text', async () => {
     const { router } = mount({
       'GET /api/v1/search': () => answer({ doctors: group([DOCTOR], { total: 12 }) }, 'احمد'),

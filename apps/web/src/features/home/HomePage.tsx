@@ -128,8 +128,18 @@ export function HomePage() {
           newCase: counts ? formatNumber(counts.byStatus.ready, lang) : undefined,
           doctors: doctors ? formatNumber(doctors.total, lang) : undefined,
           incoming: money(ledger?.receivedThisMonth),
+          outgoing: money(ledger?.outgoingThisMonth ?? undefined),
           debts: money(ledger?.owedToLab),
-          cheques: ledger ? formatNumber(ledger.chequesDueSoon + ledger.chequesOverdue, lang) : undefined,
+          // Both directions: the doctors' cheques and the lab's own (X11).
+          cheques: ledger
+            ? formatNumber(
+                ledger.chequesDueSoon +
+                  ledger.chequesOverdue +
+                  (ledger.outgoingChequesDueSoon ?? 0) +
+                  (ledger.outgoingChequesOverdue ?? 0),
+                lang,
+              )
+            : undefined,
         }}
       />
 
