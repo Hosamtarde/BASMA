@@ -24,6 +24,10 @@ export const Permission = {
   ExportsRun: 'exports.run',
   /** Global search; each result group also needs its own read permission (B4). */
   SearchUse: 'search.use',
+  /** Outgoing payments and the expenses report (B4b): read, record, void. */
+  ExpensesRead: 'expenses.read',
+  ExpensesWrite: 'expenses.write',
+  ExpensesVoid: 'expenses.void',
 } as const;
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];

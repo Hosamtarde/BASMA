@@ -60,7 +60,7 @@ export class ChequesService {
           amount: c.amount,
         },
       });
-      return c.paymentId;
+      return c.paymentId as number; // inner join on payments: an incoming cheque
     });
     return this.payments.result(paymentId, false);
   }
