@@ -257,13 +257,15 @@ Button «تسجيل الدفعة». Success toast shows new balance.
 Below: **«تقرير المقبوضات»** — table of incoming payments (no., date, doctor, method, amount, status) with filters (date range, doctor, method), total, and «آخر دفعة». Row actions: print receipt (A4 small receipt with logo), cancel.
 
 ### 5.9 Outgoing payment «إنشاء دفعة صادرة»
-Fields: **category** (from `expense_categories`, editable list seeded at first run in the setup language: إيجار، كهرباء، ماء، مواد، رواتب، مواصلات، أخرى, + the system category «طبيب (استرداد)», which can be renamed but never deleted or deactivated — owner decision B1) ; payee (free text, required except for doctor category); if category = doctor → doctor dropdown instead; amount (> 0); method cash/cheque (+cheque fields); date; note.
-- Doctor category = money returned to a doctor (refund / overpayment): increases what the lab owes him (§7.3).
+Fields: **category** (from `expense_categories`, editable list seeded at first run in the setup language: إيجار، كهرباء، ماء، مواد، رواتب، مواصلات، أخرى, + the system category «طبيب (استرداد)», which can be renamed but never deleted or deactivated — owner decision B1) ; payee (free text 1–100, required except for doctor category; no supplier list, §3.2 — a salary is a «رواتب» expense with the name typed, technicians have no ledger, §7.2); if category = doctor → doctor dropdown instead; amount (> 0); method **cash / cheque / bank transfer** (+cheque fields: number, the lab's bank, due date — the due date may be later; owner decisions B4b X9, X11; transfer as for incoming, B3 D1); date (never in the future); note. Vouchers `OUT-000001` (§7.7).
+- Doctor category = money returned to a doctor (refund / overpayment): increases what the lab owes him (§7.3). **A refund may not exceed the doctor's refundable credit** = his credit minus refund cheques not cleared yet (owner decision B4b X2).
+- A used category cannot be deleted: deleting it deactivates it (B1 rule); an inactive category is hidden from the form and kept in reports (B4b X8).
 - Success: «✅ تم حفظ المصروف».
-- Below: **«تقرير المصاريف»** with date/category filters and totals per category.
+- Below: **«تقرير المصاريف»** with date/category filters and totals per category. Counted money is placed on its effective date (a cheque on the day it cleared), labelled on screen; the refund category is a row of the report with the subtotal «منها استرداد للأطباء» (B4b X4, X5). The **cash summary** of §10 is a panel on this page for the chosen period (B4b X7).
 
 ### 5.10 Cancel payment «إلغاء دفعة»
 List of active payments (in & out) with search/filter. Choose one → confirm dialog with optional reason → payment becomes `void` (stays visible, struck-through, with the reason); balances and totals are restored automatically; a linked cheque is voided too. Voiding a payment never deletes it.
+- **Owner decision (B3 D6, confirmed B4b X6):** no separate page for now — void is a row action on «دفعة واردة» and on «إنشاء دفعة صادرة» (reason required), so there is no «إلغاء دفعة» sidebar item.
 
 ### 5.11 Debts «الديون»
 - Info banner: «كل مبلغ مستحق محسوب تلقائيًا من أسعار الحالات والدفعات، ويُسجَّل على الجهة التي تعود لها الحالة أو العملية. اضغط على أي اسم لمعرفة سبب المبلغ بالتفصيل.»
@@ -281,6 +283,7 @@ Table of work types with an optional **special price for this doctor**; empty = 
 - Statuses: `pending` «قيد التحصيل» → `cleared` «تم الصرف» or `returned` «مرتجع».
 - Marking **returned** on an incoming cheque restores the doctor's debt automatically (the cheque stops counting, §7.4) and writes an audit record.
 - Cheques are created only through payments (5.8/5.9/5.3 advance); the register itself only changes status.
+- Outgoing cheques (B4b) follow the same status machine; a returned refund cheque gives the doctor his credit back. The duplicate check (same bank + number) is per direction: a doctor's cheque and the lab's own cheque are different cheques (X11).
 
 ### 5.14 New invoice «إنشاء فاتورة»
 Choose the invoice type first:
@@ -363,6 +366,8 @@ balance < 0  → lab owes the doctor («مستحق عليّ»)
 ```
 - Case `remaining = case.total − paid_for_case`.
 - `paid_for_case` = payments **bound** to the case + the case's share of **unbound** payments, applied **FIFO** (oldest case first by received date, then case no.) *at read time*. No allocation table; implement as a pure function `allocate(cases, payments)` with thorough unit tests.
+- **FIFO items (owner decisions B3 D4, B4b X3):** a positive opening balance is the oldest item; a counted **refund** to the doctor is a **dated charge item** among the cases (its effective date: payment date, or the day its cheque cleared; on the same date cases come first). When the doctor's credit covers the refund (the normal case) nothing stays open; if the credit shrinks later (his cheque bounces, a payment is voided), the uncovered part is owed on the refund's own line. The tie-out `opening remaining + Σ case remaining + Σ refund remaining − credit = balance` always holds (proof: `docs/plans/b4b-outgoing-expenses.md` §2.3).
+- Expenses (every category except «طبيب (استرداد)») never change a doctor's balance; they feed the expenses report, the cash summary and Home only.
 - Case totals are cached in `cases.total` but recomputed from `case_items` and discount inside the same transaction on every change.
 - Cases count towards dues **from creation** (not only after delivery) — default, see §12.
 
@@ -544,6 +549,8 @@ CREATE TABLE audit_log (
 );
 ```
 
+**As built (owner decision B4b X1):** incoming and outgoing money live in **two tables** — `payments` (incoming, `doctor_id` required, `IN-` numbers) and `outgoing_payments` (`kind` expense / doctor_refund, `category_id` required, `doctor_id` for refunds only, `payee` for expenses only, `OUT-` numbers) — instead of one table with `direction`, so no query of the incoming ledger can count outgoing money. `cheques` is shared: it has `payment_id` **or** `outgoing_payment_id`, exactly one (a database CHECK). Method also allows `transfer` (B3 D1).
+
 **Relationships:** `doctors 1─* cases 1─* case_items`, `cases 1─* case_status_history`, `doctors 1─* payments`, `payments 0..1─1 cheques`, `payments *─0..1 cases` (binding), `invoices *─* cases` via `invoice_cases` (a case in at most one **active** invoice; voiding an invoice deletes its `invoice_cases` rows and clears `cases.invoice_id`), `doctors 1─* doctor_prices *─1 work_types`.
 
 ---
@@ -593,7 +600,7 @@ CREATE TABLE audit_log (
 | Cases by status, overdue cases | Home / cases list |
 | Done-not-invoiced cases | «إنشاء فاتورة» |
 | Cheques due | Cheque register + notifications |
-| Cash summary: cash received − cash paid in a period | Home card tooltip or Settings (low priority) |
+| Cash summary: cash received − cash paid in a period | A panel on the «إنشاء دفعة صادرة» page for the chosen period, split by method (owner decision B4b X7) |
 All tables export to CSV (UTF-8 with BOM so Excel shows Arabic correctly).
 
 ---
@@ -622,7 +629,7 @@ The look is agreed (§1.1, `docs/design-directions/`). Each slice delivers its A
 | F2 | Screens for B2: add case with the tooth chart (§1.1 rules), case list with filters and search, case details with status changes and cancel | Add → list → status → cancel works in both languages |
 | B3 | Payments in/out/void, cheques, idempotency, balance engine (`allocate`, `doctorBalance`) **+ their screens** | Exhaustive unit tests; numbers tie to hand calculations |
 | B4 | Debts + breakdown, doctor statement, receipts report, CSV export (debts, breakdown, statement, payments), global search **+ screens**. The **expenses report moved to B4b** (it needs outgoing payments, which B3 did not build) | Breakdown ties out to the ledger |
-| B4b | **Outgoing payments and expenses** (owner decision, B4 plan O1): «إنشاء دفعة صادرة» (§5.9) with `OUT-` vouchers, expense categories, refunds to doctors (`paid_out` of §7.3 and its rule in `allocate`), cheque direction in the register (§5.13), void for outgoing (§5.10), «تقرير المصاريف» by category with CSV (§10), Home «دفعة صادرة» card. Depends on B3 (payments, cheques, currency lock) and B4 (CSV module, tie-out test) — plan: `docs/plans/b4b-outgoing-expenses.md` | Expenses report ties to the payments; a refund leaves the tie-out of B4 intact |
+| B4b | **Outgoing payments and expenses** (owner decision, B4 plan O1): «إنشاء دفعة صادرة» (§5.9) with `OUT-` vouchers, expense categories, refunds to doctors (`paid_out` of §7.3 and its rule in `allocate`), cheque direction in the register (§5.13), void for outgoing (§5.10), «تقرير المصاريف» by category with CSV (§10), Home «دفعة صادرة» card. Depends on B3 (payments, cheques, currency lock) and B4 (CSV module, tie-out test) — plan: `docs/plans/b4b-outgoing-expenses.md` (approved with defaults X1–X11; backend built, screens next) | Expenses report ties to the payments; a refund leaves the tie-out of B4 intact |
 | B5 | Delivery flow, cheque status transitions, notifications feed **+ screens** | Cheque rules (§7.4) verified |
 | B6 | Invoices (3 types), immutable snapshots, void, template storage **+ invoice appearance and printing** | Snapshot never changes after later edits |
 | B7 | **Windows installer** (§2.1) including the UI (ADR-0017): bundled API + portable PostgreSQL as services, first-run setup, upgrade + rollback, scheduled backups & tested restore, uninstall that keeps data | Clean Windows VM: install → use → upgrade → restore works |

@@ -1,6 +1,6 @@
 # B4b — Outgoing payments, refunds and the expenses report (plan)
 
-Status: **plan, waiting for owner approval. Nothing is built.** Moved out of B3 (owner scope, `docs/plans/b3-payments.md` S4) and out of B4 (owner decision O1 = option (b), `docs/plans/b4-debts-reports-search.md` §3, confirmed 2026-11-16). The roadmap entry written in B4 is kept below (scope, dependencies, open questions). The full plan follows it and answers each open question.
+Status: **approved by the owner (defaults X1–X11, 2026-11-19) with three conditions — isolation tests in both directions and a database "exactly one owner" CHECK on cheques; the B4 tie-out tests extended with refunds including a refund followed by a bounce; SPEC and production-readiness updated in this branch. Stage 1 (backend) built on this branch; stage 2 (screens) not started.** The last two sections record what was measured and the choices made while building. Moved out of B3 (owner scope, `docs/plans/b3-payments.md` S4) and out of B4 (owner decision O1 = option (b), `docs/plans/b4-debts-reports-search.md` §3, confirmed 2026-11-16). The roadmap entry written in B4 is kept below (scope, dependencies, open questions). The full plan follows it and answers each open question.
 Branch: `feat/b4b-outgoing-expenses` (from `main` after PR #12, B4).
 Sources read (2026-11-19, against `main` at `abe44b3`): SPEC §3, §4, §5.1/5.9/5.10/5.11/5.13, §6.1, §7, §8, §10, §11, §12; CLAUDE.md; ENGINEERING_STANDARDS §5–§6; `docs/production-readiness.md` (#14, S7, S8, S10, S15, S16, S18); `docs/plans/b3-payments.md`; `docs/plans/b4-debts-reports-search.md`; skills feature-workflow, money-ledger, db-migrations, security-review, `smile-artec-web-*`. Code read: `shared/db/schema/{payments,catalog}.ts`, `migrations/0004_payments.sql`, `payment-rules.ts` (`allocate`, `breakdown`, `doctorBalance`, `formatVoucher`), `ledger.repository.ts` (`balancesCte`, `doctorInputs`, `statement`, `summary`), `payments.repository.ts` (`countedWhere`, `chequeDuplicate`, `listCheques`, `chequeSummary`), `cheques.service.ts`, `expense-categories.service.ts`, `delete-or-deactivate.ts`, `currency-guard.ts`, `SettingsRepository.hasMoneyData`, `exports.service.ts`, `search.service.ts`, the web `ActionCards`, `ShellLayout`, `features/payments`, the demo seed.
 
@@ -295,3 +295,51 @@ lint, typecheck, i18n:check, rtl:check, unit, integration, API e2e, web tests, b
 | X11 | Outgoing cheques. | Number, bank (the lab's) and due date required; due date may be in the future; duplicate check per direction; the Home cheques card counts due/overdue cheques of both directions. | Bank optional; Home card stays incoming only. |
 
 X1–X3 change accounting behaviour (like B3's D2/D3/D9), so after approval they are listed in production-readiness under "pending owner sign-off (Ibrahim)" until signed in person.
+
+---
+
+## Measured numbers (stage 1)
+
+Same machine and dataset as B4 (`test/support/large-dataset.ts`: 500 doctors, 20 000 cases, 50 000 payments), now with **10 000 outgoing payments (1 000 refunds)** and the lab's cheques in every state. Because this machine was slower on the day than when B4 was measured, `main` was measured again the same day, in a temporary worktree, for a fair baseline. p50 / p95 in ms.
+
+| Request | `main` today | B4b branch |
+|---|---|---|
+| statements per `GET /cases` at page size 5 / 25 / 100 | 7 / 7 / 7 | **8 / 8 / 8** (one more: the refunds of the page's doctors; still constant) |
+| `GET /cases?pageSize=25` | 176 / 203 | 181 / 254 |
+| `GET /cases?pageSize=100` | 246 / 622 | 252 / 310 |
+| `GET /cases?doctorId=<heavy>&pageSize=25` | 174 / 268 | 150 / 214 |
+| `GET /doctors?pageSize=25` | 45 / 72 | 31 / 74 |
+| `GET /doctors/{heavy}/debt-breakdown` | 172 / 215 | 160 / 211 |
+| `GET /doctors/{normal}/debt-breakdown` | 22 / 25 | 20 / 65 |
+| `GET /debts` | 31 / 33 | 27 / 44 |
+
+The differences are within run-to-run noise (single runs, 10–20 samples each); no B4b regression is visible. Both columns are above the B4 figures (`GET /cases` p95 101 ms), and `main` is too, so that is the machine on the day, not this branch. Production-readiness #15/B8 load test stays the place for a controlled measurement.
+
+## Decisions taken while unattended
+
+Written during stage 1, after the owner approved the plan with defaults for X1–X11 and the three conditions. Each is the safest default and easy to change.
+
+1. **Existing response shapes are kept; new shapes sit beside them** (the web is not touched in stage 1 and must keep compiling):
+   - `GET /cheques` and `/cheques/summary` stay incoming-only. The two-direction register is `GET /cheques/register` and `/cheques/register/summary` (items carry `direction`, `party {kind: doctor|payee}`, `category`). Stage 2 moves the screen there and removes the B3 list endpoints (production-readiness S22).
+   - An outgoing cheque's status changes at `PATCH /outgoing-cheques/{id}/status`, which answers the outgoing payment. `PATCH /cheques/{id}/status` answers 404 for an outgoing cheque and the new route 404 for an incoming one (plan §5.1 #6 had one route with a nullable `payment`; that would have broken the current web types).
+   - Search: a separate `outgoing` group (needs `expenses.read`) instead of mixing OUT- vouchers into the `payments` group. Bare digits still match IN- in the payments group and OUT- in the outgoing group.
+   - Home: `GET /ledger/summary` keeps its incoming figures as they were and gains `outgoingThisMonth`, `outgoingTotal`, `outgoingChequesDueSoon`, `outgoingChequesOverdue` (null without `expenses.read`). X11 ("the cheques card counts both directions") becomes a sum of the two in stage 2, not a change of the existing field.
+2. **The only web change in stage 1** is a type fix forced by the regenerated client. The statement line `kind` gained `refund` and `refund_cheque_return`. The statement table now takes its type from the generated schema, and both web catalogs label the two kinds, so a refund line in the current statement screen has a real label.
+3. **The breakdown CSV gained a last column `Voucher`** (filled on refund rows). The two B4 tests that compare the exact header and the credit row were updated to the 9-column file (strict equality kept).
+4. **B4 tests with exact objects** (`tieOut` of the breakdown, the Home summary) now also expect `refundsRemaining: 0` and the four outgoing Home figures as 0. They are extended, not loosened.
+5. **A refund needs `ledger.read` as well as `expenses.write`** (403 otherwise; the server checks it after reading the category). The outgoing cheque status needs `cheques.write` + `expenses.write`; the register hides outgoing rows from a caller without `expenses.read` (an empty page, not 403).
+6. **Lock order as planned:** currency SHARE → doctor (refunds only, then the refundable check under that lock) → category SHARE → duplicate-cheque advisory lock → OUT- counter. The kind is read from the category before the locks; `is_doctor` never changes after setup.
+7. **Cross-table idempotency** is a service check in three places (incoming payment, case advance, outgoing payment). A key used on one table answers 422 on the other (production-readiness S20 notes the theoretical simultaneous-first-use gap).
+8. **Effective date of an outgoing payment** is in the API response (`effectiveDate`, null while it does not count). The statement places a refund cheque on the day it cleared and adds a credit line if it later returns (`refund_cheque_return`), mirroring B3.
+9. **Expenses summary per category** lists categories with counted money or pending cheques in the period, inactive ones included. Voided money is a memo total, not per category.
+10. **Cash flow** answers 400 `error.ledger.range_invalid` when `from` is after `to`. Its default is the current lab month up to today.
+11. **Demo seed:** the base demo gains expenses over three months, the lab's cheques in every state, a voided expense, a category deleted after use, and a partial cash refund plus a pending refund cheque on the overpaying doctor. The extras gain a full refund by a cleared cheque (the cancelled-case credit doctor) and the R3 doctor «د. رامي الشيك المرتجع». The base demo still has 15 doctors and 40 cases, and its incoming Home figures are unchanged. The tie-out test now expects 15 + 8 doctors.
+12. **Owner condition 1 is covered at three levels:**
+    - Repository level (`test/integration/outgoing-schema.spec.ts`): every incoming read before and after outgoing rows, including the same bank + cheque number on both sides.
+    - HTTP level (`test/e2e/outgoing-isolation.e2e.spec.ts`): 14 incoming reads, CSV bytes and search included, and 8 outgoing reads, each byte-identical after money of the other direction is added.
+    - Database level: the CHECK refuses cheques with 0 or 2 owners, on insert and on update.
+13. **Owner condition 2:**
+    - The property test with refunds (10 seeds × 200 ledgers, each also run in a "bounce" shape where payments stop counting while refunds stay) and two mutation checks (refunds missing from the balance, refunds missing from the allocation) are in `src/modules/payments/domain/refunds.spec.ts`, next to the B4 ones in `breakdown.spec.ts`.
+    - The every-demo-doctor tie-out includes refunds, the R3 doctor and the balance formula.
+    - The 500-doctor scale test passes refunds into every equality.
+14. **Playwright was not run** in stage 1 (no screen changed except one label type; stage 2 runs it). The web unit tests were run.
