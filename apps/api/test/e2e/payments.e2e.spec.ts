@@ -811,6 +811,11 @@ describe('Payments, cheques and balances (e2e)', () => {
           pendingChequesAmount: 0,
           chequesDueSoon: 0,
           chequesOverdue: 0,
+          // B4b: no outgoing money in this installation.
+          outgoingThisMonth: 0,
+          outgoingTotal: 0,
+          outgoingChequesDueSoon: 0,
+          outgoingChequesOverdue: 0,
         });
         // Cheques: pending soon / overdue / later, and the cleared one counts on the day it cleared.
         const ck = async (due: string, amount: number) =>

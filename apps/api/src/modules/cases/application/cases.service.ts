@@ -196,7 +196,13 @@ export class CasesService {
 
   private async replayOf(key: string, hash: string): Promise<CreatedCase | undefined> {
     const existing = await this.paymentsRepo.byIdempotencyKey(this.db, key);
-    if (!existing) return undefined;
+    if (!existing) {
+      // A key already used for an outgoing payment names another request (B4b).
+      if (await this.paymentsRepo.keyUsedByOutgoing(this.db, key)) {
+        throw err('error.idempotency.mismatch', HttpStatus.UNPROCESSABLE_ENTITY);
+      }
+      return undefined;
+    }
     if (existing.requestHash !== hash || existing.caseId === null) {
       throw err('error.idempotency.mismatch', HttpStatus.UNPROCESSABLE_ENTITY);
     }

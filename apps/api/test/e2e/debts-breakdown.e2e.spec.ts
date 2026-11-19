@@ -123,7 +123,7 @@ describe('B4 debts breakdown, list figures, statement and receipts summary (e2e)
         [c2.caseNo, 8000],
         [c3.caseNo, 9000],
       ]);
-      expect(b.tieOut).toEqual({ openingRemaining: 0, casesRemaining: 32000, credit: 0, balance: 32000 });
+      expect(b.tieOut).toEqual({ openingRemaining: 0, casesRemaining: 32000, refundsRemaining: 0, credit: 0, balance: 32000 });
       expect(b.latestPayments.map((p) => p.amount)).toEqual([6000, 25000, 12000]);
       expect(b.latestPayments[0]).toMatchObject({ counted: true, boundCaseNo: c3.caseNo, method: 'transfer' });
 
@@ -177,7 +177,7 @@ describe('B4 debts breakdown, list figures, statement and receipts summary (e2e)
       const b = await breakdown(d);
       expect(b.openCases.items).toEqual([]);
       expect(b).toMatchObject({ credit: 5000, openingRemaining: 0 });
-      expect(b.tieOut).toEqual({ openingRemaining: 0, casesRemaining: 0, credit: 5000, balance: -5000 });
+      expect(b.tieOut).toEqual({ openingRemaining: 0, casesRemaining: 0, refundsRemaining: 0, credit: 5000, balance: -5000 });
       expect(b.figures.direction).toBe('owed_by_lab');
     });
 
@@ -187,7 +187,7 @@ describe('B4 debts breakdown, list figures, statement and receipts summary (e2e)
       await pay({ doctorId: d, method: 'cash', amount: 3000 });
       const b = await breakdown(d);
       expect(rows(b)).toEqual([[c.caseNo, 7000]]);
-      expect(b.tieOut).toEqual({ openingRemaining: 0, casesRemaining: 7000, credit: 5000, balance: 2000 });
+      expect(b.tieOut).toEqual({ openingRemaining: 0, casesRemaining: 7000, refundsRemaining: 0, credit: 5000, balance: 2000 });
     });
 
     it('E5: a pending cheque never enters the sum', async () => {
@@ -216,7 +216,7 @@ describe('B4 debts breakdown, list figures, statement and receipts summary (e2e)
       await pay({ doctorId: d, method: 'cash', amount: 11000 });
       const settled = await breakdown(d);
       expect(settled.openCases).toMatchObject({ count: 0, remaining: 0, items: [] });
-      expect(settled.tieOut).toEqual({ openingRemaining: 0, casesRemaining: 0, credit: 0, balance: 0 });
+      expect(settled.tieOut).toEqual({ openingRemaining: 0, casesRemaining: 0, refundsRemaining: 0, credit: 0, balance: 0 });
     });
 
     it('pages the open cases while the totals always cover all of them', async () => {
