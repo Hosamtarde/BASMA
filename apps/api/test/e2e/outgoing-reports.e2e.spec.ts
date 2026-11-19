@@ -240,6 +240,39 @@ describe('B4b expenses report, cash summary and CSV (e2e)', () => {
     });
   });
 
+  describe('global search', () => {
+    type Groups = {
+      payments?: { total: number; items: { voucher: string }[] };
+      outgoing?: { total: number; items: { voucher: string; partyName: string; kind: string }[] };
+    };
+    const search = async (q: string, auth?: string) =>
+      (await get(`/search?q=${encodeURIComponent(q)}`, auth).expect(200)).body.groups as Groups;
+
+    it('finds an OUT- voucher in the outgoing group only; an IN- voucher never shows there', async () => {
+      const g = await search('OUT-000002');
+      expect(g.outgoing?.items.map((i) => i.voucher)).toEqual(['OUT-000002']);
+      expect(g.payments?.total).toBe(0);
+      const inOnly = await search('IN-000001');
+      expect(inOnly.outgoing?.total).toBe(0);
+      expect(inOnly.payments?.items.map((i) => i.voucher)).toEqual(['IN-000001']);
+    });
+
+    it('finds the lab cheque by number in the outgoing group, the doctor cheque in the payments group', async () => {
+      const lab = await search('L-1');
+      expect(lab.outgoing?.items).toEqual([expect.objectContaining({ partyName: 'Supplier', kind: 'expense' })]);
+      expect(lab.payments?.total).toBe(0);
+      const doc = await search('D-1');
+      expect(doc.payments?.total).toBe(1);
+      expect(doc.outgoing?.total).toBe(0);
+    });
+
+    it('the outgoing group is absent without expenses.read', async () => {
+      const g = await search('OUT-000002', await tokenWith('search.use', 'payments.read'));
+      expect(g.outgoing).toBeUndefined();
+      expect(g.payments).toBeDefined();
+    });
+  });
+
   describe('CSV exports', () => {
     it('outgoing payments: BOM, Arabic headers, every row of the list, injection neutralised, audited', async () => {
       const list = (await get('/outgoing-payments?pageSize=100').expect(200)).body as { total: number };

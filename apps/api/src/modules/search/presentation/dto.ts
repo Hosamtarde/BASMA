@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsInt, IsString, Length, Max, Min, IsOptional } from 'class-validator';
-import { PAYMENT_METHODS, PAYMENT_STATUSES } from '../../payments/domain/payment-rules';
+import { OUTGOING_KINDS, PAYMENT_METHODS, PAYMENT_STATUSES } from '../../payments/domain/payment-rules';
 import { SEARCH_DEFAULT_LIMIT, SEARCH_MAX_LIMIT } from '../application/search.service';
 
 export class SearchQuery {
@@ -44,6 +44,18 @@ class PaymentHitResponse {
   @ApiProperty({ enum: PAYMENT_STATUSES }) status!: string;
 }
 
+class OutgoingHitResponse {
+  @ApiProperty() id!: number;
+  @ApiProperty({ example: 'OUT-000001' }) voucher!: string;
+  @ApiProperty({ enum: OUTGOING_KINDS }) kind!: string;
+  @ApiProperty() categoryName!: string;
+  @ApiProperty({ description: 'The payee of an expense, or the doctor of a refund' }) partyName!: string;
+  @ApiProperty({ enum: PAYMENT_METHODS }) method!: string;
+  @ApiProperty({ description: 'Integer minor units' }) amount!: number;
+  @ApiProperty() paidAt!: string;
+  @ApiProperty({ enum: PAYMENT_STATUSES }) status!: string;
+}
+
 class GroupMeta {
   @ApiProperty({ description: 'All matches, not only the ones returned' }) total!: number;
   @ApiProperty({ description: 'True when nothing matched the whole text and these are the closest matches' })
@@ -59,10 +71,16 @@ export class PaymentGroup extends GroupMeta {
   @ApiProperty({ type: [PaymentHitResponse] }) items!: PaymentHitResponse[];
 }
 
+export class OutgoingGroup extends GroupMeta {
+  @ApiProperty({ type: [OutgoingHitResponse] }) items!: OutgoingHitResponse[];
+}
+
 class SearchGroups {
   @ApiPropertyOptional({ type: DoctorGroup, description: 'Absent without doctors.read' }) doctors?: DoctorGroup;
   @ApiPropertyOptional({ type: CaseGroup, description: 'Absent without cases.read' }) cases?: CaseGroup;
   @ApiPropertyOptional({ type: PaymentGroup, description: 'Absent without payments.read' }) payments?: PaymentGroup;
+  @ApiPropertyOptional({ type: OutgoingGroup, description: 'B4b: outgoing payments (OUT- voucher or cheque number); absent without expenses.read' })
+  outgoing?: OutgoingGroup;
 }
 
 export class SearchResponse {
