@@ -23,7 +23,10 @@ const figures = (balance: number, over: object = {}) => ({
   openingBalance: 10000,
   charges: 75000,
   received: 43000,
+  paidOut: 0,
   pendingCheques: 0,
+  pendingRefundCheques: 0,
+  refundable: 0,
   balance,
   direction: balance > 0 ? 'owed_to_lab' : balance < 0 ? 'owed_by_lab' : 'settled',
   ...over,
@@ -46,7 +49,9 @@ const breakdown = (over: object = {}) => ({
   figures: figures(32000),
   openingRemaining: 0,
   credit: 0,
-  tieOut: { openingRemaining: 0, casesRemaining: 32000, credit: 0, balance: 32000 },
+  refundsRemaining: 0,
+  openRefunds: [],
+  tieOut: { openingRemaining: 0, casesRemaining: 32000, refundsRemaining: 0, credit: 0, balance: 32000 },
   openCases: {
     count: 3,
     remaining: 32000,
@@ -134,6 +139,44 @@ describe('Debts breakdown dialog (B4, SPEC §5.11)', () => {
     expect(dialog.querySelector('[data-row="opening"]')).toHaveTextContent('60.00 ₪');
     expect(dialog.querySelector('[data-row="credit"]')).toHaveTextContent('50.00 ₪');
     expect(within(dialog).getByTestId('breakdown-tie')).toHaveTextContent('20.00 ₪');
+  });
+
+  it('R3: a refund the doctor money no longer covers is its own line, and the equation gets the refunds term', async () => {
+    stubApi({
+      ...base,
+      'GET /api/v1/doctors/7/debt-breakdown': () =>
+        json(
+          200,
+          breakdown({
+            figures: figures(30000, { paidOut: 10000 }),
+            refundsRemaining: 10000,
+            openRefunds: [{ id: 3, voucherNo: 'OUT-000003', date: '2026-11-05', amount: 10000, covered: 0, remaining: 10000 }],
+            tieOut: { openingRemaining: 0, casesRemaining: 20000, refundsRemaining: 10000, credit: 0, balance: 30000 },
+            openCases: { count: 1, remaining: 20000, total: 1, page: 1, pageSize: 10, items: [caseRow(1, 20000, 20000)] },
+          }),
+        ),
+    });
+    renderRoutes([{ path: '/debts', element: <DebtsPage /> }], '/debts?doctor=7');
+    const dialog = await screen.findByRole('dialog');
+    await within(dialog).findByTestId('debt-breakdown');
+    const refund = dialog.querySelector('[data-refund="OUT-000003"]')!;
+    expect(refund).toHaveTextContent('استرداد للطبيب');
+    expect(refund).toHaveTextContent('2026-11-05');
+    expect(refund).toHaveTextContent('100.00 ₪');
+    expect(within(refund as HTMLElement).getByRole('link', { name: 'OUT-000003' })).toHaveAttribute('href', '/outgoing?q=OUT-000003');
+    expect(within(dialog).getByTestId('breakdown-paid-out')).toHaveTextContent('100.00 ₪');
+    // 0 + 200.00 (cases) + 100.00 (refund) − 0 (credit) = 300.00 = the balance.
+    expect(within(dialog).getByTestId('breakdown-refunds-remaining')).toHaveTextContent('100.00 ₪');
+    expect(within(dialog).getByTestId('breakdown-tie')).toHaveTextContent('300.00 ₪');
+    expect(within(dialog).getByTestId('breakdown-equation')).toHaveTextContent('متبقي الاسترداد');
+  });
+
+  it('a settled doctor with no refund open has no refunds term in the equation', async () => {
+    stubApi({ ...base, 'GET /api/v1/doctors/7/debt-breakdown': () => json(200, breakdown()) });
+    renderRoutes([{ path: '/debts', element: <DebtsPage /> }], '/debts?doctor=7');
+    const dialog = await screen.findByRole('dialog');
+    await within(dialog).findByTestId('debt-breakdown');
+    expect(within(dialog).queryByTestId('breakdown-refunds-remaining')).toBeNull();
   });
 
   it('says nothing is owed for a settled doctor', async () => {

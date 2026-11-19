@@ -36,7 +36,9 @@ export function DebtBreakdownDialog({
     throwOnError: false,
   });
   const name = data?.doctor.name ?? doctor.name;
-  const settled = data && data.openCases.count === 0 && data.openingRemaining === 0 && data.credit === 0;
+  const settled =
+    data && data.openCases.count === 0 && data.openingRemaining === 0 && data.credit === 0 && data.openRefunds.length === 0;
+  const showRefunds = data !== undefined && (data.openRefunds.length > 0 || data.tieOut.refundsRemaining > 0);
 
   return (
     <FormDialog
@@ -76,6 +78,14 @@ export function DebtBreakdownDialog({
                 <MoneyCell minor={data.figures.received} />
               </dd>
             </div>
+            {data.figures.paidOut > 0 && (
+              <div className="flex gap-2 sm:col-span-2" data-testid="breakdown-paid-out">
+                <dt className="font-bold text-muted">{t('breakdown.paidOut')}:</dt>
+                <dd className="m-0 font-bold">
+                  <MoneyCell minor={data.figures.paidOut} />
+                </dd>
+              </div>
+            )}
             {data.figures.pendingCheques > 0 && (
               <div className="flex gap-2 sm:col-span-2">
                 <dt className="font-bold text-muted">{t('breakdown.pendingCheques')}:</dt>
@@ -95,7 +105,7 @@ export function DebtBreakdownDialog({
               )}
               <DataTable
                 caption={t('breakdown.openCases')}
-                empty={data.openCases.items.length === 0 && data.openingRemaining === 0 && data.credit === 0}
+                empty={data.openCases.items.length === 0 && data.openingRemaining === 0 && data.credit === 0 && data.openRefunds.length === 0}
                 emptyText={t('breakdown.nothingOwed')}
                 head={
                   <>
@@ -119,6 +129,31 @@ export function DebtBreakdownDialog({
                     </Td>
                   </tr>
                 )}
+                {page === 1 &&
+                  data.openRefunds.map((r) => (
+                    <tr key={`refund-${r.id}`} data-refund={r.voucherNo}>
+                      <Td kind="number">
+                        <Link
+                          to={`/outgoing?q=${encodeURIComponent(r.voucherNo)}`}
+                          className="text-ink underline-offset-4 hover:underline"
+                        >
+                          {r.voucherNo}
+                        </Link>
+                      </Td>
+                      <Td>{t('breakdown.refundLine')}</Td>
+                      <Td kind="number">{r.date}</Td>
+                      <Td>{t('breakdown.refundStatus')}</Td>
+                      <Td kind="money">
+                        <MoneyCell minor={r.amount} />
+                      </Td>
+                      <Td kind="money">
+                        <MoneyCell minor={r.covered} />
+                      </Td>
+                      <Td kind="money" className="font-extrabold">
+                        <MoneyCell minor={r.remaining} />
+                      </Td>
+                    </tr>
+                  ))}
                 {data.openCases.items.map((c) => (
                   <tr key={c.id} data-case={c.caseNo}>
                     <Td kind="number">
@@ -170,6 +205,15 @@ export function DebtBreakdownDialog({
               <b>
                 <MoneyCell minor={data.tieOut.casesRemaining} />
               </b>
+              {showRefunds && (
+                <>
+                  <span aria-hidden="true">+</span>
+                  <span className="text-muted">{t('breakdown.eqRefunds')}</span>
+                  <b data-testid="breakdown-refunds-remaining">
+                    <MoneyCell minor={data.tieOut.refundsRemaining} />
+                  </b>
+                </>
+              )}
               <span aria-hidden="true">−</span>
               <span className="text-muted">{t('breakdown.eqCredit')}</span>
               <b>

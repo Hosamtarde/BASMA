@@ -1,16 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { Plus } from 'lucide-react';
+import { HandCoins, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useOutletContext } from 'react-router';
 import type { components } from '@/api/schema.gen';
+import { ActionButton } from '@/components/ui/action-button';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Spinner } from '@/components/ui/field';
 import { ExportButton } from '@/components/ui/export-button';
 import { Card, DataTable, Pager } from '@/components/ui/list';
 import { Td, Th } from '@/components/ui/table';
+import { useCan } from '@/features/auth/permissions';
 import type { Doctor } from '@/features/doctors/api';
+import { RefundDialog } from '@/features/outgoing/RefundDialog';
 import { settingsQuery } from '@/features/shell/settings';
 import { todayIn } from '@/i18n/format';
 import { isIsoDate } from '@/lib/dates';
@@ -21,10 +24,16 @@ import { AddPaymentDialog, VoidPaymentDialog } from './PaymentDialogs';
 import { BalanceText, MoneyCell } from './parts';
 import type { Payment } from './api';
 
-/** The doctor's balance under his name: the number the whole ledger agrees on (SPEC §7.3). */
-export function DoctorBalanceCard({ doctor }: { doctor: Pick<Doctor, 'id'> }) {
+/**
+ * The doctor's balance under his name: the number the whole ledger agrees on (SPEC §7.3), the
+ * refunds already paid to him, and «استرداد رصيد» (limited to the refundable credit the API reports).
+ */
+export function DoctorBalanceCard({ doctor }: { doctor: Pick<Doctor, 'id' | 'name'> }) {
   const { t } = useTranslation();
+  const can = useCan();
   const { data } = useQuery(doctorBalanceQuery(doctor.id));
+  const [refunding, setRefunding] = useState(false);
+  const mayRefund = can('expenses.write') && can('ledger.read');
   return (
     <section
       aria-label={t('balance.title')}
@@ -40,6 +49,36 @@ export function DoctorBalanceCard({ doctor }: { doctor: Pick<Doctor, 'id'> }) {
           {t('balance.pendingCheques', { amount: '' })}
           <MoneyCell minor={data.pendingCheques} />
         </span>
+      )}
+      {data && data.paidOut > 0 && (
+        <span className="text-[13.5px] text-muted" data-testid="balance-paid-out">
+          {t('balance.paidOut', { amount: '' })}
+          <MoneyCell minor={data.paidOut} />
+        </span>
+      )}
+      {data && data.pendingRefundCheques > 0 && (
+        <span className="text-[13.5px] text-muted" data-testid="balance-pending-refunds">
+          {t('balance.pendingRefundCheques', { amount: '' })}
+          <MoneyCell minor={data.pendingRefundCheques} />
+        </span>
+      )}
+      {mayRefund && (
+        <>
+          <span className="flex-1" />
+          <ActionButton
+            variant="secondary"
+            size="sm"
+            disabled={!data}
+            disabledReason={data && data.refundable === 0 ? t('outgoing.noCreditReason') : null}
+            onClick={() => setRefunding(true)}
+          >
+            <HandCoins aria-hidden="true" />
+            {t('outgoing.refundAction')}
+          </ActionButton>
+          {refunding && (
+            <RefundDialog open onOpenChange={setRefunding} doctor={{ id: doctor.id, name: doctor.name }} />
+          )}
+        </>
       )}
     </section>
   );
