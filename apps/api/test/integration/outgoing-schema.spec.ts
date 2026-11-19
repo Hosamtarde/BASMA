@@ -1,6 +1,16 @@
 import { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { drizzle } from 'drizzle-orm/node-postgres';
 import { DatabaseError, Pool } from 'pg';
+import {
+  CHEQUE_STATUSES,
+  isCounted,
+  PAYMENT_METHODS,
+  PAYMENT_STATUSES,
+} from '../../src/modules/payments/domain/payment-rules';
+import { LedgerRepository } from '../../src/modules/payments/infrastructure/ledger.repository';
+import { PaymentsRepository } from '../../src/modules/payments/infrastructure/payments.repository';
 import { getMigrationStatus, runMigrations } from '../../src/shared/db/migrator';
+import * as schema from '../../src/shared/db/schema';
 import { startPostgres, testConfig } from '../support/database';
 import { migrationsUpTo } from '../support/migrations';
 
@@ -187,6 +197,120 @@ describe('B4b migration 0007 — outgoing payments (PostgreSQL 16)', () => {
       const out = await outgoing({ method: 'cheque' });
       await cheque({ outgoing_payment_id: out }, 'KEEP');
       expect((await pgError(pool.query(`DELETE FROM outgoing_payments WHERE id = $1`, [out])))?.code).toBe('23503');
+    });
+  });
+
+  describe('ledger reads refunds with the same counted rule (SQL twin of isCounted)', () => {
+    it('refunds over the whole status × method × cheque-status matrix: inputs, balance CTE and statement agree', async () => {
+      const matrixDoctor = await insert('doctors', { name: 'Dr Refund Matrix', opening_balance: 0 });
+      let expectedCounted = 0;
+      let expectedPending = 0;
+      let amount = 1;
+      for (const status of PAYMENT_STATUSES) {
+        for (const method of PAYMENT_METHODS) {
+          for (const chequeStatus of method === 'cheque' ? CHEQUE_STATUSES : [null]) {
+            amount *= 2; // distinct powers of two: the sum names exactly the rows that counted
+            const id = await outgoing({
+              kind: 'doctor_refund',
+              category_id: refundCategory,
+              payee: null,
+              doctor_id: matrixDoctor,
+              method,
+              amount,
+              ...(status === 'void' ? { status: 'void', void_reason: 'x', voided_at: '2026-11-02T00:00:00Z' } : {}),
+            });
+            if (method === 'cheque') {
+              const chequeId = await cheque({ outgoing_payment_id: id, status: chequeStatus, status_date: chequeStatus === 'pending' ? null : '2026-11-03' }, `M${id}`);
+              await pool.query(
+                `INSERT INTO cheque_status_history (cheque_id, from_status, to_status, status_date) VALUES ($1, NULL, 'pending', '2026-11-01')`,
+                [chequeId],
+              );
+              if (chequeStatus !== 'pending') {
+                await pool.query(
+                  `INSERT INTO cheque_status_history (cheque_id, from_status, to_status, status_date) VALUES ($1, 'pending', $2, '2026-11-03')`,
+                  [chequeId, chequeStatus],
+                );
+              }
+            }
+            if (isCounted({ status, method, chequeStatus })) expectedCounted += amount;
+            if (status === 'active' && chequeStatus === 'pending') expectedPending += amount;
+          }
+        }
+      }
+      // And an expense of the same size per row: it must change nothing for the doctor.
+      await outgoing({ amount: 999 });
+
+      const repo = new LedgerRepository();
+      const db = drizzle(pool, { schema });
+      const input = await repo.doctorInput(db, matrixDoctor);
+      expect(input?.refunds.reduce((s, r) => s + r.amount, 0)).toBe(expectedCounted);
+      expect(input?.pendingRefundCheques).toBe(expectedPending);
+      expect(input?.counted).toEqual([]);
+      // A cleared cheque refund is dated the day it cleared.
+      expect(new Set(input?.refunds.map((r) => r.date))).toEqual(new Set(['2026-11-01', '2026-11-03']));
+      const debts = await repo.debts(db, { direction: 'all', offset: 0, limit: 100 });
+      expect(debts.rows.find((r) => r.doctorId === matrixDoctor)?.balance).toBe(expectedCounted);
+      expect((await repo.balancesOf(db, [matrixDoctor])).get(matrixDoctor)?.balance).toBe(expectedCounted);
+      const st = await repo.statement(db, matrixDoctor, 0, {}, 0, 100);
+      expect(st.periodOpening + st.periodNet).toBe(expectedCounted);
+    });
+  });
+
+  describe('isolation: incoming reads never see outgoing money, and the reverse', () => {
+    it('incoming lists, totals, receipts, register, Home and duplicate check are unchanged by outgoing rows', async () => {
+      const repo = new LedgerRepository();
+      const pay = new PaymentsRepository();
+      const db = drizzle(pool, { schema });
+      const iso = await insert('doctors', { name: 'Dr Isolation', opening_balance: 0 });
+      const inPay = await insert('payments', {
+        voucher_no: ++inVoucher,
+        doctor_id: iso,
+        method: 'cheque',
+        amount: 700,
+        currency_code: 'ILS',
+        paid_at: '2026-11-01',
+      });
+      await cheque({ payment_id: inPay, status: 'pending' }, 'ISO-SAME');
+
+      const snapshot = async () => ({
+        input: await repo.doctorInput(db, iso),
+        debts: await repo.debts(db, { direction: 'all', offset: 0, limit: 500 }),
+        summary: await repo.summary(db, '2026-11-01', '2026-11-30', '2026-12-07'),
+        list: await pay.list(db, {}, 1, 100),
+        receipts: await pay.receiptsSummary(db, {}),
+        cheques: await pay.listCheques(db, {}, '2026-11-15', '2026-11-22', 1, 100),
+        chequeSummary: await pay.chequeSummary(db, {}, '2026-11-15', '2026-11-22'),
+      });
+      const before = await snapshot();
+
+      // Outgoing money of every shape, including a cheque with the SAME bank and number as the incoming one.
+      const e1 = await outgoing({ method: 'cheque', amount: 12345 });
+      await cheque({ outgoing_payment_id: e1, status: 'pending' }, 'ISO-SAME');
+      const e2 = await outgoing({ method: 'cheque', amount: 2222 });
+      await cheque({ outgoing_payment_id: e2, status: 'cleared', status_date: '2026-11-05' }, 'ISO-2');
+      await outgoing({ method: 'cash', amount: 333 });
+      await outgoing({ kind: 'expense', method: 'transfer', amount: 444 });
+
+      const after = await snapshot();
+      const { summary: s0, ...rest0 } = before;
+      const { summary: s1, ...rest1 } = after;
+      expect(rest1).toEqual(rest0);
+      // Home: every incoming figure is unchanged; only the outgoing figures moved.
+      const incomingOf = (s: typeof s0) => ({
+        owedToLab: s.owedToLab,
+        receivedTotal: s.receivedTotal,
+        receivedThisMonth: s.receivedThisMonth,
+        pendingChequesCount: s.pendingChequesCount,
+        pendingChequesAmount: s.pendingChequesAmount,
+        chequesDueSoon: s.chequesDueSoon,
+        chequesOverdue: s.chequesOverdue,
+      });
+      expect(incomingOf(s1)).toEqual(incomingOf(s0));
+      expect(s1.outgoingTotal - s0.outgoingTotal).toBe(2222 + 333 + 444);
+      // The incoming duplicate check does not collide with the lab's own cheque of the same bank + number.
+      const tx = db as never; // each statement is its own transaction here; the advisory lock is released at once
+      expect(await pay.chequeDuplicate(tx, 'B', 'ISO-2')).toBe(false);
+      expect(await pay.chequeDuplicate(tx, 'B', 'ISO-SAME')).toBe(true); // the incoming one itself
     });
   });
 

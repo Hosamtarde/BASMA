@@ -26,6 +26,8 @@ import type {
   PaymentStatus,
 } from '../domain/payment-rules';
 import { CHEQUE_STATUSES, PAYMENT_METHODS, PAYMENT_STATUSES } from '../domain/payment-rules';
+import { STATEMENT_KINDS } from '../infrastructure/ledger.repository';
+import type { StatementKind } from '../infrastructure/ledger.repository';
 
 const amountDoc = { description: 'Integer minor units', minimum: 0 };
 const toBool = ({ value }: { value: unknown }) =>
@@ -299,21 +301,31 @@ export class DoctorBalanceResponse {
   @ApiProperty({ description: 'Signed, minor units' }) openingBalance!: number;
   @ApiProperty({ description: 'Opening balance + sum of non-cancelled case totals' }) charges!: number;
   @ApiProperty({ description: 'Sum of counted payments' }) received!: number;
+  @ApiProperty({ description: 'Sum of counted refunds to the doctor (SPEC 7.3 paid_out); raises the balance' })
+  paidOut!: number;
   @ApiProperty({ description: 'Sum of pending cheques (not in received)' }) pendingCheques!: number;
-  @ApiProperty({ description: 'Positive = owed to the lab; negative = the lab owes the doctor' })
+  @ApiProperty({ description: 'Sum of refund cheques not cleared yet (not in paidOut; they reserve the credit)' })
+  pendingRefundCheques!: number;
+  @ApiProperty({ description: 'balance = charges - received + paidOut. Positive = owed to the lab; negative = the lab owes the doctor' })
   balance!: number;
   @ApiProperty({ enum: ['owed_to_lab', 'owed_by_lab', 'settled'] }) direction!: BalanceDirection;
+  @ApiProperty({ description: 'What may be refunded now: credit minus pending refund cheques, never below 0' })
+  refundable!: number;
 }
 
 class StatementLineResponse {
   @ApiProperty() date!: string;
-  @ApiProperty({ enum: ['case', 'payment', 'cheque_return'] }) kind!: 'case' | 'payment' | 'cheque_return';
-  @ApiProperty({ description: 'Case id or payment id' }) refId!: number;
+  @ApiProperty({
+    enum: STATEMENT_KINDS,
+    description: 'refund / refund_cheque_return: money returned to the doctor (B4b) and a returned refund cheque',
+  })
+  kind!: StatementKind;
+  @ApiProperty({ description: 'Case id, payment id or outgoing payment id' }) refId!: number;
   @ApiProperty({ description: 'Case number or voucher number' }) ref!: string;
   @ApiProperty(amountDoc) debit!: number;
   @ApiProperty(amountDoc) credit!: number;
   @ApiProperty({ description: 'Balance after this line, over all of the doctor history' }) running!: number;
-  @ApiProperty({ type: String, nullable: true, example: 'IN-000012', description: 'Payment and cheque-return lines' })
+  @ApiProperty({ type: String, nullable: true, example: 'IN-000012', description: 'Payment, refund (OUT-) and cheque-return lines' })
   voucher!: string | null;
   @ApiProperty({ type: String, nullable: true, description: 'Case lines; null without cases.read' })
   patientName!: string | null;
@@ -367,6 +379,22 @@ export class LedgerSummaryResponse {
   @ApiProperty() pendingChequesAmount!: number;
   @ApiProperty({ description: 'Pending cheques due within 7 days' }) chequesDueSoon!: number;
   @ApiProperty({ description: 'Pending cheques past due' }) chequesOverdue!: number;
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'B4b: counted outgoing money (expenses and refunds) this month, by effective date; null without expenses.read',
+  })
+  outgoingThisMonth!: number | null;
+  @ApiProperty({ type: Number, nullable: true, description: 'All counted outgoing money; null without expenses.read' })
+  outgoingTotal!: number | null;
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Outgoing cheques pending and due within 7 days; null without expenses.read',
+  })
+  outgoingChequesDueSoon!: number | null;
+  @ApiProperty({ type: Number, nullable: true, description: 'Outgoing cheques pending and past due; null without expenses.read' })
+  outgoingChequesOverdue!: number | null;
 }
 
 export class CasePaymentsResponse {
@@ -384,10 +412,23 @@ export class CasePaymentsResponse {
 class BreakdownTieOut {
   @ApiProperty({ description: 'Unpaid part of a positive opening balance' }) openingRemaining!: number;
   @ApiProperty({ description: 'Sum of remaining over ALL open cases, not of the page' }) casesRemaining!: number;
+  @ApiProperty({ description: 'Sum of the refunds the doctor money no longer covers (B4b)' })
+  refundsRemaining!: number;
   @ApiProperty({ description: 'Money the lab holds for the doctor (overpayment, negative opening balance)' })
   credit!: number;
-  @ApiProperty({ description: 'openingRemaining + casesRemaining - credit; equals GET /doctors/{id}/balance' })
+  @ApiProperty({
+    description: 'openingRemaining + casesRemaining + refundsRemaining - credit; equals GET /doctors/{id}/balance',
+  })
   balance!: number;
+}
+
+class BreakdownRefund {
+  @ApiProperty({ description: 'Outgoing payment id' }) id!: number;
+  @ApiProperty({ example: 'OUT-000003' }) voucherNo!: string;
+  @ApiProperty({ description: 'Effective date: payment date, or the day the cheque cleared' }) date!: string;
+  @ApiProperty(amountDoc) amount!: number;
+  @ApiProperty({ ...amountDoc, description: 'Part covered by the doctor money' }) covered!: number;
+  @ApiProperty({ ...amountDoc, description: 'Part the doctor owes back; always above 0 here' }) remaining!: number;
 }
 
 class BreakdownCase {
@@ -423,7 +464,13 @@ export class DebtBreakdownResponse {
   @ApiProperty({ type: DoctorBalanceResponse }) figures!: DoctorBalanceResponse;
   @ApiProperty() openingRemaining!: number;
   @ApiProperty() credit!: number;
+  @ApiProperty({ description: 'Sum of openRefunds remaining (B4b)' }) refundsRemaining!: number;
   @ApiProperty({ type: BreakdownTieOut }) tieOut!: BreakdownTieOut;
+  @ApiProperty({
+    type: [BreakdownRefund],
+    description: 'Refunds not covered any more (e.g. the doctor cheque bounced after the refund), oldest first',
+  })
+  openRefunds!: BreakdownRefund[];
   @ApiProperty({ type: BreakdownOpenCases }) openCases!: BreakdownOpenCases;
   @ApiProperty({ type: [BreakdownPayment], description: 'Latest 10 active payments, newest first' })
   latestPayments!: BreakdownPayment[];

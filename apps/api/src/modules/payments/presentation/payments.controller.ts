@@ -352,9 +352,18 @@ export class LedgerController {
 
   @Get('ledger/summary')
   @RequirePermission(Permission.LedgerRead)
-  @ApiOperation({ summary: 'Figures for Home: received this month, owed to the lab, cheques' })
+  @ApiOperation({ summary: 'Figures for Home: received this month, owed to the lab, cheques, outgoing money' })
   @ApiOkResponse({ type: LedgerSummaryResponse })
-  async summary(): Promise<LedgerSummaryResponse> {
-    return this.ledger.summary();
+  async summary(@CurrentUser() user: AuthUser): Promise<LedgerSummaryResponse> {
+    const s = await this.ledger.summary();
+    if (user.permissions.includes(Permission.ExpensesRead)) return s;
+    // Outgoing figures need expenses.read (B4b X10).
+    return {
+      ...s,
+      outgoingThisMonth: null,
+      outgoingTotal: null,
+      outgoingChequesDueSoon: null,
+      outgoingChequesOverdue: null,
+    };
   }
 }
