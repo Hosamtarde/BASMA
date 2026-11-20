@@ -226,7 +226,7 @@ describe('Delivery and the collect date (e2e)', () => {
         cheque: cheque({ dueDate: '2026-11-15' }),
         collectOn: '2026-11-25',
       });
-      expect(r.case).toMatchObject({ collectOn: '2026-11-25', paid: 0, remaining: 30_000, pendingCheques: 12_000 });
+      expect(r.case).toMatchObject({ collectOn: '2026-11-25', paid: 0, remaining: 30_000, pendingCheques: 12_000, collectDue: false });
       expect(r.payment).toMatchObject({ amount: 12_000, counted: false, cheque: { status: 'pending' } });
       expect(r.doctorBalance).toBe(30_000);
       const reg = await get(`/cheques/register?doctorId=${d}`).expect(200);
@@ -280,7 +280,7 @@ describe('Delivery and the collect date (e2e)', () => {
         'error.delivery.amount_not_allowed',
       );
       const r = await delivered(c, { received: 'none', collectOn: TODAY });
-      expect(r).toMatchObject({ payment: null, doctorBalance: null, case: { collectOn: TODAY, remaining: 8_000 } });
+      expect(r).toMatchObject({ payment: null, doctorBalance: null, case: { collectOn: TODAY, remaining: 8_000, collectDue: true } });
       expect((await tieOut(d)).balance).toBe(8_000);
     });
   });

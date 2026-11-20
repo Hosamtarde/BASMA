@@ -338,6 +338,10 @@ export class CaseDetailResponse extends CaseSummaryResponse {
       'B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled',
   })
   deliveryDue!: number | null;
+  @ApiProperty({
+    description: 'B5: delivered, the collect date has come (lab today) and something is still owed («تحصيل مستحق»)',
+  })
+  collectDue!: boolean;
   @ApiProperty(amountDoc) discount!: number;
   @ApiProperty({ type: String, nullable: true }) notes!: string | null;
   @ApiProperty({ type: [CaseLineResponse] }) lines!: CaseLineResponse[];

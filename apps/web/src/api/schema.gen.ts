@@ -1657,6 +1657,8 @@ export interface components {
             pendingCheques: number;
             /** @description B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled */
             deliveryDue: number | null;
+            /** @description B5: delivered, the collect date has come (lab today) and something is still owed («تحصيل مستحق») */
+            collectDue: boolean;
             /** @description Integer minor units */
             discount: number;
             notes: string | null;
@@ -1699,6 +1701,8 @@ export interface components {
             pendingCheques: number;
             /** @description B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled */
             deliveryDue: number | null;
+            /** @description B5: delivered, the collect date has come (lab today) and something is still owed («تحصيل مستحق») */
+            collectDue: boolean;
             /** @description Integer minor units */
             discount: number;
             notes: string | null;

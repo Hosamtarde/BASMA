@@ -35,6 +35,7 @@ import {
   totalOf,
 } from '../domain/case-rules';
 import { collectOnValid, decideDelivery, deliveryDue, DeliveryReceived } from '../domain/delivery-rules';
+import { collectPhase } from '../../notifications/domain/notification-rules';
 import {
   CaseChanges,
   CaseFilter,
@@ -81,6 +82,8 @@ export interface CaseDetail extends CaseRow {
   pendingCheques: number;
   /** What the delivery dialog may still ask for (B5, N1); null when the case cannot be delivered now. */
   deliveryDue: number | null;
+  /** «تحصيل مستحق»: delivered, the collect date has come and something is still owed (B5). */
+  collectDue: boolean;
   overdue: boolean;
   items: CaseItemRow[];
   history: HistoryRow[];
@@ -193,6 +196,10 @@ export class CasesService {
             boundRoom(found.total, await this.paymentsRepo.boundTotal(this.db, id)),
           )
         : null,
+      collectDue:
+        found.status === 'delivered' &&
+        found.collectOn !== null &&
+        collectPhase(found.collectOn, today, figures?.remaining ?? 0) !== null,
       overdue: isOverdue(found, today),
       items,
       history,

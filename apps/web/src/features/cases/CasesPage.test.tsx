@@ -34,6 +34,7 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   remaining: 47000,
   pendingCheques: 0,
   deliveryDue: 47000,
+  collectDue: false,
   discount: 0,
   notes: null,
   lines: [],

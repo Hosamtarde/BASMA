@@ -75,6 +75,7 @@ const toDetail = (c: CaseDetail): CaseDetailResponse => ({
   remaining: c.remaining,
   pendingCheques: c.pendingCheques,
   deliveryDue: c.deliveryDue,
+  collectDue: c.collectDue,
   discount: c.discount,
   notes: c.notes,
   lines: c.items.map((i) => ({
