@@ -63,6 +63,7 @@ Items to decide or build before selling the product to other labs (SPEC §2.4). 
 | S22 | Cheques | Two register endpoints; the B3 pair is now unused | **Done in B5:** `GET /cheques` and `/cheques/summary` are removed with their service, repository code and DTOs (a test asserts 404); the tests that read them read the register's incoming side. `openapi.json` and the client regenerated |
 | S23 | Notifications | The collect reminder reads the ledger | Cases and cheques are counted in SQL (B5 scale test, 20 000 cases: `count` p95 45 ms with cases only, 23–38 ms with cheques). «تحصيل مستحق» needs the FIFO figures, so it runs `allocate` for every doctor who still owes and has a case with a collect date reached: in the harsh scale dataset (≈470 collect dates spread over nearly all 500 doctors) the whole `count` is p95 ≈ 260 ms, polled once a minute per open window. A collect date stays on a case after it is paid (history), so the candidates grow with time; only doctors with a positive balance are computed. Options if it matters: a cheaper "still owed" test per case, or caching per ledger change |
 | S24 | Notifications | Opening the bell marks everything read | Decided while unattended in B5 (N6): opening the bell marks every item of the feed read, also the ones beyond the 20 listed per type, so the badge counts only what is new. «إخفاء» hides one item until it changes phase or date. There is no screen to show hidden items again (the API supports it) . **Follow-up (B5b, not built):** a screen to show hidden items again, e.g. a «المخفية» section at the end of the bell with «إظهار» per item (the API already takes `dismissed: false`) |
+| S25 | Audit | A dedicated `audit.read` permission (B8) | `GET /audit/recent` (B5b) reuses `settings.read` because adding a permission needs a migration. B8 adds `audit.read` (migration + grant to `owner`) and moves the endpoint and the Home «آخر العمليات» panel to it |
 
 ## B3 defaults pending owner sign-off (Ibrahim)
 
@@ -92,3 +93,20 @@ Approved as defaults with the B4b plan (`docs/plans/b4b-outgoing-expenses.md` §
 | X1 | Where outgoing payments live | A separate `outgoing_payments` table; `cheques` shared with exactly one owner (database CHECK) | built; pending owner sign-off (Ibrahim) |
 | X2 | Refund larger than the credit | Refused at creation (limit = credit − pending refund cheques); a later shrink shows the uncovered part as debt on the refund line (S19) | built; pending owner sign-off (Ibrahim) |
 | X3 | Where a refund sits in the FIFO | A dated charge item among the cases (like the opening balance, D4) | built; pending owner sign-off (Ibrahim) |
+| X9 | Salaries and technicians | A salary is an ordinary «رواتب» expense with the payee typed; technicians have no ledger (SPEC §7.2) | built; pending owner sign-off (Ibrahim) |
+
+## Provisional decisions used by B6 (pending Ibrahim's sign-off; they do not block B6)
+
+Recorded for the B6 plan (`docs/plans/b6-invoices.md`). Each is built or planned as stated and stays **provisional, pending Ibrahim's sign-off**; none of them blocks B6.
+
+| # | Decision (as built) | Status |
+|---|---|---|
+| Q1 | Delivery allows full / part / none, with a collect date for part or none | provisional, pending Ibrahim's sign-off |
+| Q2 | Cheques count only when cleared (SPEC §7.4) | owner-confirmed 2026-11-06 (SPEC §12 answer 5); the delivery detail N1 stays provisional, pending Ibrahim's sign-off |
+| D2 | Cancel from «مرتجعة» allowed with a reason; bound payments stay as account credit (B6 blocks it once the case is on an active invoice, S13) | provisional, pending Ibrahim's sign-off |
+| D3 | A cleared cheque can still be returned; `returned` is final | provisional, pending Ibrahim's sign-off |
+| D9 | Voiding a payment (including an outgoing one with a cheque) needs a reason; never a delete | provisional, pending Ibrahim's sign-off |
+| X1 | Outgoing payments in their own table | provisional, pending Ibrahim's sign-off |
+| X2 | A refund is limited to the doctor's refundable credit | provisional, pending Ibrahim's sign-off |
+| X3 | A refund is a dated charge item in the FIFO | provisional, pending Ibrahim's sign-off |
+| X9 | Salaries are ordinary expenses | provisional, pending Ibrahim's sign-off |
