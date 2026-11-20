@@ -1,6 +1,6 @@
 # B5 — Delivery flow, cheque rules check, notifications feed, and the backlog (plan)
 
-Status: **plan only, waiting for the owner's approval.** No code and no migration were written for this plan.
+Status: **approved 2026-11-20 (defaults N1–N10, with three conditions); B5 (items 1–13) built on this branch — see §13 build notes and §14 decisions taken while unattended.** B5b (items 14–18) is a separate branch after B5 is merged.
 Branch: `feat/b5-delivery-notifications-backlog` (from `main` at `4b59eee`, after PR #13, B4b).
 Sources read (2026-11-20): SPEC §3, §4, §5.1/5.5/5.6/5.7/5.13/5.16, §6.1, §7, §8, §9, §10, §11, §12; CLAUDE.md; ENGINEERING_STANDARDS; `docs/production-readiness.md`; `docs/plans/b3-payments.md`, `b4-debts-reports-search.md`, `b4b-outgoing-expenses.md`; skills feature-workflow, money-ledger, db-migrations, security-review, `smile-artec-web-*`. Code read: `case-rules.ts`, `CasesService.changeStatus/cancel`, `cases.ts` schema (indexes, `cases_delivered_date_ck`), `payment-rules.ts` (`isCounted`, cheque `TRANSITIONS`, `dueState`), `ChequesService.changeStatus/changeOutgoingStatus`, `payments.controller.ts` (`@Controller('cheques')`), `outgoing.controller.ts` (`cheques/register`), `CaseDialogs.tsx` (status dialog), `ActionCards.tsx`, `UserMenu.tsx`, `router.tsx`, `vite.config.ts`, `e2e/first-run.spec.ts`, `e2e/first-run-outgoing.spec.ts`, `e2e/cases.spec.ts`, `e2e/support.ts`, `playwright.config.ts`.
 
@@ -263,3 +263,67 @@ New catalog keys (API, ar + en): `error.delivery.*`, `error.case.already_deliver
 | N10 | First-run browser test for the currency lock. | The first amount in `first-run.spec.ts` becomes an incoming payment; the price lock stays tested in the API e2e. | A fifth Playwright project (another empty installation) for the payment case. |
 
 Still waiting on Ibrahim (class C, item 29): D2, D3, D9 (B3) and X1, X2, X3 (B4b).
+
+---
+
+## 13. Build notes (2026-11-20)
+
+Owner conditions with the approval: (1) the cheque returned-date gap proven by a failing test first, then fixed, and covered by the tie-out / statement tests; (2) N3 applied everywhere (tests, OpenAPI, demo seed, docs), internal paths still working and tested; (3) Ibrahim's pending sign-offs and two new questions recorded in `docs/production-readiness.md`. All three are done; details below.
+
+### 13.1 Order of the commits
+1. Test hygiene (items 9, 11, 12, 13): Vitest from any shell (`scripts/vitest.ts`), timeouts for heavy screens, `expect.poll` instead of the 150 ms sleep (the chart test now also seeds its own work type: it failed when run alone), `switchLanguage` in `e2e/support.ts` used by both first-run files, the first-run currency lock now caused by an incoming payment (item 10).
+2. Item 6: the failing tests committed on their own (`test(api): … (failing)`: outgoing `expected 400, got 200`, incoming the same), then the fix `chequeStatusDateValid` with a tie-out test over every demo doctor and an early return on a demo cheque, then a test reading the `cheque_status_history` rows in both directions (the §7.4 check found none).
+3. Migration 0008, pure rules, delivery endpoint + collect date + the status-endpoint refusal (with the demo seed and every existing test moved), notifications feed, S22 removal, the S13 note, `collectDue`, `all: true` for opening the bell.
+4. Web: delivery dialog, collect-date dialog, «تحصيل مستحق» marker, bell; component tests; Playwright `e2e/delivery.spec.ts`; the case-actions test delivers through the dialog.
+5. Docs (this section, SPEC §5.7 / §5.16 / §8 / §11, production-readiness, skills).
+
+### 13.2 SPEC §7.4 traceability (rule → code → test)
+| Rule | Code | Tests |
+|---|---|---|
+| Incoming cheque counts only when cleared; pending apart; returned never | `isCounted`, `COUNTED_SQL` | `payment-rules.spec.ts`, `payments-schema.spec.ts` matrix |
+| Outgoing cheque counts only when cleared | `OUT_COUNTED_SQL` | `outgoing-schema.spec.ts` |
+| `pending → cleared / returned`, `cleared → returned`, `returned` final | `TRANSITIONS`, `canChequeMove` | `payment-rules.spec.ts` (all 9 pairs); e2e `invalid_transition` in `payments.e2e` (plan example 1) and `outgoing.e2e` ("status rules") |
+| No change on a void payment's cheque | `ChequesService` | `payments.e2e` "voids a cleared cheque (D9) and then freezes its status", `outgoing.e2e` "a voided outgoing cheque is frozen" |
+| Returned cheque restores the debt / the refund credit | ledger reads | `payments.e2e` plan example 1, `outgoing.e2e` R3, `ledger-tieout.e2e` |
+| Status date ≤ today, ≥ payment date | `chequeStatusDateValid` | `payment-rules.spec.ts` table, `payments.e2e` "dates are validated", `outgoing.e2e` "status rules" |
+| **Status date ≥ the current status date (new, item 6)** | `chequeStatusDateValid` | `payment-rules.spec.ts`; `payments.e2e` and `outgoing.e2e` "a status date may not be earlier than the current status date"; `ledger-tieout.e2e` "B5 item 6" |
+| History row and audit on every change, same transaction | both services | the two item-6 e2e tests read `cheque_status_history`; audit in plan example 1 |
+
+### 13.3 Endpoints (as built)
+| Method + path | Change |
+|---|---|
+| `POST /cases/{id}/delivery` | new (cases.write; payments.write + Idempotency-Key when received full / partial) |
+| `PATCH /cases/{id}/collect-on` | new (cases.write) |
+| `GET /cases/{id}` | + `collectOn`, `pendingCheques`, `deliveryDue`, `collectDue` |
+| `GET /cases` | + `collectOn` on each item |
+| `POST /cases/{id}/status` | `to = delivered` → 409 `error.case.delivery_required` (or `already_delivered`); a return clears the collect date |
+| `GET /notifications`, `GET /notifications/count`, `PATCH /notifications/state` | new (notifications.read; each type also needs its own read permission) |
+| `PATCH /cheques/{id}/status`, `PATCH /outgoing-cheques/{id}/status` | status date ≥ the current status date |
+| `GET /cheques`, `GET /cheques/summary` | removed (S22) |
+
+### 13.4 Measured (dev machine, 20 000 cases / 50 000 payments / 10 000 outgoing, `notifications-scale.spec.ts`)
+- Statements per request, fixed whatever the data: `count` 14, feed 15.
+- `GET /notifications/count` with cases only: p95 45 ms; incoming cheques only 23 ms; both cheque directions 38 ms.
+- Whole feed (with «تحصيل مستحق», ≈470 collect dates over nearly all 500 doctors): `count` p95 ≈ 260 ms, list p95 ≈ 290 ms; after moving all but 60 in-lab cases into the future ("normal backlog"): 239 / 279 ms. The 50 ms / 100 ms targets of §5.3 are met for cases and cheques, **not** for the collect reminder (it runs `allocate` for every owing doctor with a collect date reached); recorded as production-readiness S23.
+- Web bundle after B5 (B5b baseline): 1,182 KB, 341 KB gzip, one chunk.
+
+## 14. Decisions taken while unattended
+
+Safest default from this plan each time; each is easy to change.
+
+1. **Status endpoint name.** The plan said `PATCH /cases/{id}/status`; the existing route is `POST /cases/{id}/status`. The N3 refusal is on that route.
+2. **Who sees `deliveryDue`.** Returned with `cases.read`, like `paid` / `remaining` already are on the case details (the plan said "+ ledger.read"); no figure is exposed that was not already there.
+3. **Part payment equal to the amount due** → 400 `error.delivery.partial_equals_due` («اختر المبلغ كاملًا») instead of silently treating it as full.
+4. **Nothing due any more** (another payment arrived while the dialog was open) with `partial` / `none` → 409 `error.delivery.nothing_due`; with `full` or no answer the case is delivered without a payment.
+5. **Payment date at delivery** = the delivery date (no separate field).
+6. **Audit.** Delivery writes `case.delivered` {caseNo, from, deliveredDate, received, collectOn?} (not `case.status_changed`); a return writes the cleared collect date in its `case.status_changed` entry; `payment.created` carries `viaDelivery: true`.
+7. **Opening the bell marks the whole feed read** (`PATCH /notifications/state {all: true, seen: true}`), not only the 20 items listed per type, so the badge can reach zero; therefore no separate «تحديد الكل كمقروء» button. Hidden items cannot be shown again from the screen (the API accepts `dismissed: false`). Recorded as S24.
+8. **«عرض في القائمة»** per group: cases → `/cases?overdue=1`, cheques → the register with direction and `due=soon`, collect → `/debts`.
+9. **Retention (N8)** is applied to marks created more than 180 days ago whose item is no longer in the feed, purged during any state write.
+10. **`collectDue` on the case details** (added, contract first) so the page never decides «تحصيل مستحق» itself.
+11. **Without `payments.write`** the delivery dialog offers only «لا، لم أستلم شيئًا»; the bell is hidden without `notifications.read`.
+12. **Item 12** became one config change (Vitest `testTimeout` 15 s, Testing Library `asyncUtilTimeout` 4 s): three files timed out under a parallel run, not only NewCasePage, and the slow parts are real renders.
+13. **Item 13** was fixed, not only documented: the cause is a lower-case drive letter in the working directory; `npm test` now normalises it.
+14. **Demo seed.** Delivered cases go through the delivery endpoint in turn: full (one by a cheque still pending), part with a collect date already reached or later, nothing with a collect date today or past; the payment is dated on the delivery date (before: "today"), so the demo's "received this month" differs from B4b. `home-demo.spec.ts` compares with the API; the tie-out test asserts the three kinds exist.
+15. **The B3 migration test** now ignores the 0008 `collect_on` column as it ignored the 0006 search column, and asserts it is empty on every old case.
+16. **First-run currency test.** The price lock is no longer shown in the browser; it stays covered by `settings.e2e.spec.ts` (each source of an amount) — N10.
