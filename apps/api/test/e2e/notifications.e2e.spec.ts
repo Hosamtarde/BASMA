@@ -154,7 +154,8 @@ describe('Notifications feed (e2e)', () => {
       expect(find(f, 'case_due', returned.id)).toMatchObject({ phase: 'overdue' });
       expect(find(f, 'case_due', later.id)).toBeUndefined();
       expect(find(f, 'case_due', cancelled.id)).toBeUndefined();
-      expect(find(f, 'case_due', soon.id)?.text).toBe(`الحالة رقم ${soon.caseNo} للطبيب «${(await get(`/doctors/${d}`).expect(200)).body.name}» موعد تسليمها 2026-11-12.`);
+      expect(find(f, 'case_due', soon.id)?.text).toBe(`الحالة رقم ${soon.caseNo} للطبيب «${(await get(`/doctors/${d}`).expect(200)).body.name}» موعد تسليمها ⁦2026-11-12⁩.`);
+      // In Arabic the date sits in an LTR isolate (LRI … PDI) so it keeps its reading order.
       // Overdue items come first.
       const caseItems = f.groups.find((g) => g.type === 'case_due')!.items;
       const firstSoon = caseItems.findIndex((i) => i.phase === 'soon');

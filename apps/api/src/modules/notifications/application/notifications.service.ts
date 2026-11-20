@@ -58,6 +58,22 @@ export interface Caller {
 /** An item before its text: what a group returns. */
 type RawItem = Omit<NotificationItem, 'text'>;
 
+/**
+ * Values for the text. In Arabic, dates, amounts and cheque numbers are wrapped in a left-to-right
+ * isolate (LRI … PDI) so the bidi algorithm keeps "2026-11-23" and "300.00 ₪" in reading order.
+ */
+function textParams(
+  params: Record<string, string | number>,
+  money: (minor: number) => string,
+  language: Language,
+): Record<string, string | number> {
+  const ltr = (v: string) => (language === 'ar' ? `⁦${v}⁩` : v);
+  const out: Record<string, string | number> = { ...params };
+  if (typeof params.amount === 'number') out.amount = ltr(money(params.amount));
+  for (const k of ['date', 'chequeNo'] as const) if (typeof params[k] === 'string') out[k] = ltr(params[k]);
+  return out;
+}
+
 const SOON_DAYS: Record<DatedType, number> = {
   case_due: CASE_DUE_SOON_DAYS,
   cheque_in_due: CHEQUE_DUE_SOON_DAYS,
@@ -99,7 +115,7 @@ export class NotificationsService {
             ...i,
             text: this.i18n.translate(
               `notification.${i.type}.${i.phase}`,
-              { ...i.params, ...(typeof i.params.amount === 'number' ? { amount: money(i.params.amount) } : {}) },
+              textParams(i.params, money, language),
               language,
             ),
           })),

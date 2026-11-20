@@ -188,7 +188,7 @@ test('nothing received, collect date today: «تحصيل مستحق» in the bel
   const panel = page.getByRole('dialog', { name: 'الإشعارات' });
   const group = panel.getByRole('region', { name: /^تحصيل مستحق/ });
   const item = group.getByRole('listitem').filter({ hasText: `الحالة رقم ${c.caseNo} ` });
-  await expect(item).toContainText('الباقي 300.00 ₪');
+  await expect(item).toContainText(/الباقي ⁦?300\.00 ₪/);
   await expect(item).toContainText('حان موعده');
   await expect(item.getByRole('link')).toHaveAttribute('href', `/cases/${c.id}`);
   await page.mouse.move(10, 890);
