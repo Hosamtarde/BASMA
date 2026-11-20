@@ -1062,6 +1062,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The notifications feed (SPEC §5.16): cases due or overdue, incoming and outgoing cheques due, collect dates reached. A type the caller cannot read is left out */
+        get: operations["NotificationsController_feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unread and total items of the feed (the bell badge) */
+        get: operations["NotificationsController_count"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mark items read, hide them or show them again (per user); keys not in the caller’s feed now are ignored */
+        patch: operations["NotificationsController_state"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2455,6 +2506,71 @@ export interface components {
             /** @description The text searched, normalised */
             q: string;
             groups: components["schemas"]["SearchGroups"];
+        };
+        NotificationEntityResponse: {
+            /** @enum {string} */
+            kind: "case" | "cheque";
+            /** @description Case id or cheque id */
+            id: number;
+            /**
+             * @description Cheques only
+             * @enum {string}
+             */
+            direction?: "in" | "out";
+            /** @description Cheques only */
+            chequeNo?: string;
+        };
+        NotificationItemResponse: {
+            /**
+             * @description Names this item in this phase
+             * @example case_due:41:soon:2026-11-12
+             */
+            key: string;
+            /** @enum {string} */
+            type: "case_due" | "cheque_in_due" | "cheque_out_due" | "collect_due";
+            /** @enum {string} */
+            phase: "soon" | "overdue" | "due";
+            /** @description Expected date, cheque due date or collect date */
+            date: string;
+            entity: components["schemas"]["NotificationEntityResponse"];
+            /** @description Values used in the text (amount in integer minor units) */
+            params: {
+                [key: string]: string | number;
+            };
+            /** @description Rendered in the request language */
+            text: string;
+            seen: boolean;
+        };
+        NotificationGroupResponse: {
+            /** @enum {string} */
+            type: "case_due" | "cheque_in_due" | "cheque_out_due" | "collect_due";
+            /** @description Items of this type not hidden (exact) */
+            total: number;
+            unread: number;
+            items: components["schemas"]["NotificationItemResponse"][];
+        };
+        NotificationsResponse: {
+            /** @description The lab’s today */
+            today: string;
+            unread: number;
+            total: number;
+            /** @description One group per type the caller may see */
+            groups: components["schemas"]["NotificationGroupResponse"][];
+        };
+        NotificationCountResponse: {
+            unread: number;
+            total: number;
+        };
+        NotificationStateRequest: {
+            /** @description Keys from GET /notifications */
+            keys: string[];
+            /**
+             * @description Mark as read (opening the bell does this)
+             * @enum {boolean}
+             */
+            seen?: true;
+            /** @description true hides the items until they change; false shows them again */
+            dismissed?: boolean;
         };
         FieldError: {
             /**
@@ -5340,6 +5456,77 @@ export interface operations {
                 };
             };
             /** @description error.validation.failed (empty or longer than 100 characters) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    NotificationsController_feed: {
+        parameters: {
+            query?: {
+                /** @description Items listed per type */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationsResponse"];
+                };
+            };
+        };
+    };
+    NotificationsController_count: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationCountResponse"];
+                };
+            };
+        };
+    };
+    NotificationsController_state: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationStateRequest"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description error.validation.failed */
             400: {
                 headers: {
                     [name: string]: unknown;

@@ -5102,6 +5102,113 @@
           "search"
         ]
       }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_feed",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items listed per type",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The notifications feed (SPEC §5.16): cases due or overdue, incoming and outgoing cheques due, collect dates reached. A type the caller cannot read is left out",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/count": {
+      "get": {
+        "operationId": "NotificationsController_count",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationCountResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unread and total items of the feed (the bell badge)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/state": {
+      "patch": {
+        "operationId": "NotificationsController_state",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "error.validation.failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark items read, hide them or show them again (per user); keys not in the caller’s feed now are ignored",
+        "tags": [
+          "notifications"
+        ]
+      }
     }
   },
   "info": {
@@ -9888,6 +9995,207 @@
         "required": [
           "q",
           "groups"
+        ]
+      },
+      "NotificationEntityResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "case",
+              "cheque"
+            ]
+          },
+          "id": {
+            "type": "number",
+            "description": "Case id or cheque id"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "in",
+              "out"
+            ],
+            "description": "Cheques only"
+          },
+          "chequeNo": {
+            "type": "string",
+            "description": "Cheques only"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ]
+      },
+      "NotificationItemResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "case_due:41:soon:2026-11-12",
+            "description": "Names this item in this phase"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "case_due",
+              "cheque_in_due",
+              "cheque_out_due",
+              "collect_due"
+            ]
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "soon",
+              "overdue",
+              "due"
+            ]
+          },
+          "date": {
+            "type": "string",
+            "description": "Expected date, cheque due date or collect date"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/NotificationEntityResponse"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "description": "Values used in the text (amount in integer minor units)"
+          },
+          "text": {
+            "type": "string",
+            "description": "Rendered in the request language"
+          },
+          "seen": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "phase",
+          "date",
+          "entity",
+          "params",
+          "text",
+          "seen"
+        ]
+      },
+      "NotificationGroupResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "case_due",
+              "cheque_in_due",
+              "cheque_out_due",
+              "collect_due"
+            ]
+          },
+          "total": {
+            "type": "number",
+            "description": "Items of this type not hidden (exact)"
+          },
+          "unread": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationItemResponse"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "total",
+          "unread",
+          "items"
+        ]
+      },
+      "NotificationsResponse": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "string",
+            "description": "The lab’s today"
+          },
+          "unread": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "groups": {
+            "description": "One group per type the caller may see",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationGroupResponse"
+            }
+          }
+        },
+        "required": [
+          "today",
+          "unread",
+          "total",
+          "groups"
+        ]
+      },
+      "NotificationCountResponse": {
+        "type": "object",
+        "properties": {
+          "unread": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "unread",
+          "total"
+        ]
+      },
+      "NotificationStateRequest": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "minItems": 1,
+            "maxItems": 200,
+            "description": "Keys from GET /notifications",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "seen": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Mark as read (opening the bell does this)"
+          },
+          "dismissed": {
+            "type": "boolean",
+            "description": "true hides the items until they change; false shows them again"
+          }
+        },
+        "required": [
+          "keys"
         ]
       },
       "FieldError": {
