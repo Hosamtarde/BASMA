@@ -46,6 +46,8 @@ export interface SeedReport {
   extras?: { doctors: number; cases: number };
   /** B4b: outgoing payments (expenses and refunds) and their cheques. */
   outgoing: { payments: number; cheques: number; refunds: number };
+  /** B6: invoices issued by the demo (all three types, one voided and re-issued), from the chosen start number. */
+  invoices?: { cases: number; statements: number; free: number; voided: number; startNo: number };
 }
 
 export class DemoSeedRefused extends Error {}
