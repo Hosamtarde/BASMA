@@ -387,3 +387,22 @@ export class CaseCountsResponse {
   @ApiProperty({ description: 'Matching cases that are overdue (lab’s today, same rule as the list)' })
   overdue!: number;
 }
+
+export class ShadeUsageQuery {
+  @ApiPropertyOptional({ minimum: 1, maximum: 24, default: 8, description: 'How many shades to return' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(24)
+  limit: number = 8;
+}
+
+export class ShadeUsageItem {
+  @ApiProperty({ description: 'The shade as written on the lines (free text, up to 20 characters)' }) shade!: string;
+  @ApiProperty({ description: 'Lines of cases that are not cancelled' }) count!: number;
+}
+
+export class ShadeUsageResponse {
+  @ApiProperty({ type: [ShadeUsageItem], description: 'Most used first, then by shade' }) items!: ShadeUsageItem[];
+}

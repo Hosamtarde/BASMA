@@ -171,6 +171,11 @@ export class CasesService {
     return summarizeCounts(await this.repo.countByStatus(this.db, filter, today));
   }
 
+  /** Shades by use (SPEC §5.5), most used first. */
+  shadeUsage(limit: number) {
+    return this.repo.shadeUsage(this.db, limit);
+  }
+
   async get(id: number): Promise<CaseDetail> {
     const found = await this.repo.find(this.db, id);
     if (!found) throw notFound();

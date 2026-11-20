@@ -48,6 +48,8 @@ import {
   DeliverCaseRequest,
   DeliverCaseResponse,
   SetCollectOnRequest,
+  ShadeUsageQuery,
+  ShadeUsageResponse,
   UpdateCaseLineRequest,
   UpdateCaseRequest,
 } from './dto';
@@ -128,6 +130,15 @@ export class CasesController {
   @ApiOkResponse({ type: CaseCountsResponse })
   async summary(@Query() q: CaseFilterQueryDto): Promise<CaseCountsResponse> {
     return this.service.counts(definedOnly({ ...q }));
+  }
+
+  // Declared before ':id' too.
+  @Get('shade-usage')
+  @RequirePermission(Permission.CasesRead)
+  @ApiOperation({ summary: 'Shades by use on case lines (not cancelled), most used first: the shade picker’s top row' })
+  @ApiOkResponse({ type: ShadeUsageResponse })
+  async shadeUsage(@Query() q: ShadeUsageQuery): Promise<ShadeUsageResponse> {
+    return { items: await this.service.shadeUsage(q.limit) };
   }
 
   @Post()

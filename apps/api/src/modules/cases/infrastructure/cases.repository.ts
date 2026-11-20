@@ -30,6 +30,11 @@ import { offsetOf } from '../../../shared/http/pagination';
 import { containsPattern } from '../../../shared/text/names';
 import type { Area, CaseStatus, PriceSource, StatusCountRow } from '../domain/case-rules';
 
+export interface ShadeUsageRow {
+  shade: string;
+  count: number;
+}
+
 type Executor = Database | Tx;
 
 export interface CaseRow {
@@ -328,5 +333,21 @@ export class CasesRepository {
       .where(filterSql(f, today))
       .groupBy(cases.status);
     return rows as StatusCountRow[];
+  }
+
+  /**
+   * How many lines use each shade (cancelled cases left out; lines without a shade are not counted),
+   * most used first: the picker's «الأكثر استخدامًا» row (SPEC §5.5). One statement, counts only.
+   */
+  async shadeUsage(db: Executor, limit: number): Promise<ShadeUsageRow[]> {
+    const rows = await db
+      .select({ shade: caseItems.shade, count: count() })
+      .from(caseItems)
+      .innerJoin(cases, eq(cases.id, caseItems.caseId))
+      .where(and(sql`${caseItems.shade} is not null`, sql`${cases.status} <> 'cancelled'`))
+      .groupBy(caseItems.shade)
+      .orderBy(desc(count()), asc(caseItems.shade))
+      .limit(limit);
+    return rows.map((r) => ({ shade: r.shade ?? '', count: Number(r.count) }));
   }
 }

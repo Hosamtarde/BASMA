@@ -124,7 +124,7 @@ describe('Audit feed and shade usage (e2e)', () => {
       expect(text).not.toContain('7654321');
       expect(text).not.toContain('76543.21');
       expect(text).not.toMatch(/password|token|127\.0\.0\.1|::1|params|ip/i);
-      expect(Object.keys(res.body)).toEqual(['items']);
+      expect(Object.keys(res.body as object)).toEqual(['items']);
     });
 
     it('has a fixed size and no input: 20 at most, no query accepted', async () => {
