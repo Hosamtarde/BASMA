@@ -129,6 +129,57 @@ function stepsTo(status: DemoStatus): DemoStatus[] {
   }
 }
 
+/**
+ * B6 (docs/plans/b6-invoices.md §9): the owner's start number is set before the first invoice (1001); cases
+ * invoices for several doctors (some finished cases are left un-invoiced so «حالات منجزة غير مفوترة» is not
+ * empty), one invoice voided with a reason and its cases re-issued on a new number, two statements (whole
+ * history and a period), two free invoices (to a doctor, to a typed name, one in English). All through the API.
+ */
+async function seedInvoices(
+  api: Api,
+  ctx: { doctorIds: number[]; timeZone: string; log: (line: string) => void },
+): Promise<NonNullable<SeedReport['invoices']>> {
+  const startNo = 1001;
+  await api.call('PATCH', '/settings/numbering', { invoiceNoStart: startNo });
+  type Issued = { id: number; no: number; rowVersion: number; total: number | null };
+  const issue = (body: object) => api.call<Issued>('POST', '/invoices', body, { 'Idempotency-Key': randomUUID() });
+  const counts = { cases: 0, statements: 0, free: 0, voided: 0, startNo };
+  let first: { doctorId: number; caseIds: number[]; total: number; invoice: Issued } | undefined;
+  for (const doctorId of ctx.doctorIds) {
+    if (counts.cases >= 5) break;
+    const eligible = await api.call<{ items: { caseId: number; total: number }[] }>(
+      'GET',
+      `/invoices/eligible-cases?doctorId=${doctorId}&pageSize=100`,
+    );
+    if (eligible.items.length === 0) continue;
+    // Leave the newest finished case un-invoiced when there are several.
+    const chosen = eligible.items.length > 1 ? eligible.items.slice(0, -1) : eligible.items;
+    const caseIds = chosen.map((c) => c.caseId);
+    const total = chosen.reduce((sum, c) => sum + c.total, 0);
+    const invoice = await issue({ type: 'cases', doctorId, caseIds, expectedTotal: total, notes: 'شكرًا لتعاملكم معنا.' });
+    counts.cases += 1;
+    first ??= { doctorId, caseIds, total, invoice };
+  }
+  if (first) {
+    await api.call('POST', `/invoices/${first.invoice.id}/void`, {
+      rowVersion: first.invoice.rowVersion,
+      reason: 'أُصدرت بخصم خاطئ (تجريبي).',
+    });
+    counts.voided += 1;
+    await issue({ type: 'cases', doctorId: first.doctorId, caseIds: first.caseIds, expectedTotal: first.total });
+    counts.cases += 1;
+  }
+  const [a, b] = ctx.doctorIds as [number, number];
+  await issue({ type: 'statement', doctorId: a });
+  await issue({ type: 'statement', doctorId: b, from: labDate(ctx.timeZone, 30), to: labDate(ctx.timeZone, 0) });
+  counts.statements += 2;
+  await issue({ type: 'free', doctorId: b, reason: 'أجرة توصيل عاجل', amount: 2_500 });
+  await issue({ type: 'free', partyName: 'عيادة الأمل (زائرة)', reason: 'Repair of a night guard', amount: 7_500, language: 'en' });
+  counts.free += 2;
+  ctx.log(`Invoices: ${JSON.stringify(counts)}`);
+  return counts;
+}
+
 /** Extra doctors that exercise the debts breakdown and the search (B4); see docs/plans/b4-debts-reports-search.md §7. */
 async function seedLedgerExtras(
   api: Api,
@@ -628,7 +679,10 @@ export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
     log('B4b extras: a full refund by a cleared cheque, a refund followed by a bounced cheque');
   }
 
+  const invoices = await seedInvoices(api, { doctorIds, timeZone, log });
+
   return {
+    invoices,
     payments,
     cheques,
     workTypes: WORK_TYPES.length,
