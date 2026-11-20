@@ -1,6 +1,16 @@
 import { expect, test } from '@playwright/test';
 import type { APIRequestContext, Page } from '@playwright/test';
-import { apiPost, apiPostKey, apiToken, expectAccessible, expectDirection, setLanguage, shot, signedIn, uid } from './support';
+import {
+  apiPost,
+  apiPostKey,
+  apiToken,
+  expectAccessible,
+  expectDirection,
+  setLanguage,
+  shot,
+  signedIn,
+  uid,
+} from './support';
 
 /**
  * B5b items 14 and 18: every route at 390 px (a phone), in both languages. The page itself never

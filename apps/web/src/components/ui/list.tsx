@@ -223,8 +223,9 @@ export function DataTable({
     // containing block of the table's visually-hidden parts (caption, sr-only spans): otherwise they
     // escape the clip and widen the whole document. Focusable so the keyboard can scroll it.
     <div
-      role="region"
+      role="group"
       aria-label={caption}
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scrollable region must be focusable (axe: scrollable-region-focusable)
       tabIndex={0}
       className="relative overflow-x-auto outline-none focus-visible:outline-2 focus-visible:outline-focus"
     >
