@@ -219,7 +219,15 @@ export function DataTable({
   emptyText: string;
 }) {
   return (
-    <div className="overflow-x-auto">
+    // The card scrolls the table, never the page (S14, WCAG 1.4.10). "relative" makes it the
+    // containing block of the table's visually-hidden parts (caption, sr-only spans): otherwise they
+    // escape the clip and widen the whole document. Focusable so the keyboard can scroll it.
+    <div
+      role="region"
+      aria-label={caption}
+      tabIndex={0}
+      className="relative overflow-x-auto outline-none focus-visible:outline-2 focus-visible:outline-focus"
+    >
       <table className="w-full border-collapse text-[14.5px]">
         <caption className="sr-only">{caption}</caption>
         <thead>
