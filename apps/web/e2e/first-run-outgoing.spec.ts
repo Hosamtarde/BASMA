@@ -1,28 +1,14 @@
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
-import { AR, apiToken, expectAccessible, expectDirection, setLanguage, shot, signIn } from './support';
+import { AR, apiToken, expectAccessible, expectDirection, setLanguage, shot, signIn, switchLanguage } from './support';
 
 /**
  * Project "first-run-outgoing": its own empty database. The first-run file locks the currency with
- * the first PRICE; this file proves the other half of production-readiness #14 — the first OUTGOING
+ * the first INCOMING payment; this file proves the other half of production-readiness #14 — the first OUTGOING
  * payment locks it too (B4b) — and shows the empty expenses page of a new installation.
  */
 test.describe.configure({ mode: 'serial' });
 
 const OWNER = { username: 'owner', password: 'first-pass-1234' };
-
-/**
- * The UI language flips at once but is saved for the installation by a request that follows. A test
- * that ends (and closes its page) before that request lands leaves the installation in the wrong
- * language for the next test; so every switch waits for its own save (an event, not a delay).
- */
-async function switchLanguage(page: Page, button: RegExp): Promise<void> {
-  const saved = page.waitForResponse(
-    (r) => r.request().method() === 'PATCH' && r.url().endsWith('/api/v1/settings/language') && r.ok(),
-  );
-  await page.getByRole('button', { name: button }).click();
-  await saved;
-}
 
 test('setup creates the owner; the expenses page of a new installation is empty but ready to use (ar, axe)', async ({ page, request }) => {
   // This file lives once in an installation's life: a retry cannot repeat the wizard. Say so

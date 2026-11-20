@@ -66,6 +66,18 @@ export async function setLanguage(page: Page, lang: 'ar' | 'en'): Promise<void> 
   await expectDirection(page, lang);
 }
 
+/**
+ * Signed in: clicks a language button and waits until the installation has saved the choice
+ * (`PATCH /settings/language`), so the next test (or a reload) starts in that language. No sleep.
+ */
+export async function switchLanguage(page: Page, button: RegExp): Promise<void> {
+  const saved = page.waitForResponse(
+    (r) => r.request().method() === 'PATCH' && r.url().endsWith('/api/v1/settings/language') && r.ok(),
+  );
+  await page.getByRole('button', { name: button }).click();
+  await saved;
+}
+
 /** Bearer token for seeding data through the real API (same rules as the UI). */
 export async function apiToken(request: APIRequestContext, password = OWNER.password): Promise<string> {
   const res = await request.post('/api/v1/auth/login', { data: { username: OWNER.username, password } });
