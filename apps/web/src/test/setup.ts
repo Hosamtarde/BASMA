@@ -1,6 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterEach } from 'vitest';
+
+// findBy*/waitFor wait up to 1 s by default. With every file running in parallel the first render
+// of a heavy screen (settings, debts) sometimes took longer on the dev machine (B5 item 12); the
+// query still fails if the element never appears.
+configure({ asyncUtilTimeout: 4_000 });
 
 afterEach(() => {
   cleanup();

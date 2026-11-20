@@ -28,5 +28,9 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts', 'eslint-rules/**/*.test.ts'],
     css: false,
+    // The heavy screens (new case with the tooth chart, settings) render for real: alone they take
+    // up to ~4.5 s, and with every file in parallel they passed 5 s (the default) on the dev machine
+    // (B5 item 12). 15 s keeps a hung test visible while leaving room for honest work.
+    testTimeout: 15_000,
   },
 });
