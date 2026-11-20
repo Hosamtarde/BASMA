@@ -7906,7 +7906,7 @@
           },
           "statusDate": {
             "type": "string",
-            "description": "Default today; between the payment date and today"
+            "description": "Default today; between the payment date and today, not before the current status date"
           },
           "note": {
             "type": "string",

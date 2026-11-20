@@ -82,7 +82,7 @@ export class VoidPaymentRequest extends VersionedPatch {
 
 export class ChangeChequeStatusRequest extends VersionedPatch {
   @ApiProperty({ enum: CHEQUE_STATUSES }) @IsIn(CHEQUE_STATUSES) status!: ChequeStatus;
-  @ApiPropertyOptional({ description: 'Default today; between the payment date and today' })
+  @ApiPropertyOptional({ description: 'Default today; between the payment date and today, not before the current status date' })
   @IsOptionalNonNull()
   @IsDateOnly()
   statusDate?: string;

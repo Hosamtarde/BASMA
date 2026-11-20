@@ -420,6 +420,7 @@ export class PaymentsRepository {
         id: cheques.id,
         chequeNo: cheques.chequeNo,
         status: cheques.status,
+        statusDate: cheques.statusDate,
         rowVersion: cheques.rowVersion,
         paymentId: cheques.paymentId,
         paymentStatus: payments.status,

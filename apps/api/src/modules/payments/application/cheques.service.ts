@@ -7,7 +7,13 @@ import { notFound } from '../../../shared/errors/common-errors';
 import { DomainError } from '../../../shared/errors/domain-error';
 import { LabCalendar } from '../../settings/application/lab-calendar.service';
 import { addDays } from '../../../shared/time/lab-date';
-import { canChequeMove, CHEQUE_DUE_SOON_DAYS, ChequeStatus, formatVoucher } from '../domain/payment-rules';
+import {
+  canChequeMove,
+  CHEQUE_DUE_SOON_DAYS,
+  chequeStatusDateValid,
+  ChequeStatus,
+  formatVoucher,
+} from '../domain/payment-rules';
 import { ChequeRegisterRepository, RegisterFilter } from '../infrastructure/cheque-register.repository';
 import { PaymentsRepository } from '../infrastructure/payments.repository';
 import { OutgoingRepository } from '../infrastructure/outgoing.repository';
@@ -52,7 +58,9 @@ export class ChequesService {
       }
       const today = await this.calendar.today(tx);
       const date = statusDate ?? today;
-      if (date > today || date < c.paidAt) throw err('error.cheque.date_invalid', HttpStatus.BAD_REQUEST);
+      if (!chequeStatusDateValid(date, today, c.paidAt, c.statusDate)) {
+        throw err('error.cheque.date_invalid', HttpStatus.BAD_REQUEST);
+      }
       await this.repo.changeChequeStatus(tx, id, from, to, date, note, userId);
       await this.audit.write(tx, {
         userId,
@@ -96,7 +104,9 @@ export class ChequesService {
       }
       const today = await this.calendar.today(tx);
       const date = statusDate ?? today;
-      if (date > today || date < c.paidAt) throw err('error.cheque.date_invalid', HttpStatus.BAD_REQUEST);
+      if (!chequeStatusDateValid(date, today, c.paidAt, c.statusDate)) {
+        throw err('error.cheque.date_invalid', HttpStatus.BAD_REQUEST);
+      }
       await this.repo.changeChequeStatus(tx, id, from, to, date, note, userId);
       await this.audit.write(tx, {
         userId,

@@ -39,6 +39,19 @@ const TRANSITIONS: Record<ChequeStatus, readonly ChequeStatus[]> = {
 export const canChequeMove = (from: ChequeStatus, to: ChequeStatus): boolean =>
   TRANSITIONS[from].includes(to);
 
+/**
+ * The date of a cheque status change (SPEC §7.4): not after the lab's today, not before the payment
+ * date, and not before the date of the cheque's current status (B5 item 6: a cheque cleared on the
+ * 8th cannot come back on the 5th, or the bounce would sort above the clearing in the statement).
+ * `currentStatusDate` is null while the cheque is pending. Dates are ISO `YYYY-MM-DD` strings.
+ */
+export const chequeStatusDateValid = (
+  date: string,
+  today: string,
+  paidAt: string,
+  currentStatusDate: string | null,
+): boolean => date <= today && date >= paidAt && (currentStatusDate === null || date >= currentStatusDate);
+
 /** What the UI may offer for a cheque now; empty when its payment is void. */
 export const allowedChequeStatuses = (status: ChequeStatus, paymentVoid: boolean): ChequeStatus[] =>
   paymentVoid ? [] : [...TRANSITIONS[status]];

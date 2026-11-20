@@ -3,6 +3,7 @@ import {
   allowedChequeStatuses,
   boundRoom,
   canChequeMove,
+  chequeStatusDateValid,
   CHEQUE_STATUSES,
   CountedPayment,
   directionOf,
@@ -66,6 +67,23 @@ describe('cheque transitions (D3)', () => {
     expect(allowedChequeStatuses('pending', true)).toEqual([]);
     expect(allowedChequeStatuses('returned', false)).toEqual([]);
     expect(allowedChequeStatuses('pending', false)).toEqual(['cleared', 'returned']);
+  });
+});
+
+describe('chequeStatusDateValid', () => {
+  const today = '2026-11-10';
+  it.each([
+    ['today, pending', '2026-11-10', '2026-11-01', null, true],
+    ['the payment day, pending', '2026-11-01', '2026-11-01', null, true],
+    ['before the payment', '2026-10-31', '2026-11-01', null, false],
+    ['after today', '2026-11-11', '2026-11-01', null, false],
+    ['the day it cleared', '2026-11-08', '2026-11-01', '2026-11-08', true],
+    ['after it cleared', '2026-11-09', '2026-11-01', '2026-11-08', true],
+    ['before it cleared', '2026-11-05', '2026-11-01', '2026-11-08', false],
+    ['across a month end', '2026-10-31', '2026-10-01', '2026-11-01', false],
+    ['across a year end', '2026-01-01', '2025-12-01', '2025-12-31', true],
+  ] as const)('%s', (_l, date, paidAt, current, ok) => {
+    expect(chequeStatusDateValid(date, today, paidAt, current)).toBe(ok);
   });
 });
 

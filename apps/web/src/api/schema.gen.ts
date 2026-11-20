@@ -1881,7 +1881,7 @@ export interface components {
             rowVersion: number;
             /** @enum {string} */
             status: "pending" | "cleared" | "returned";
-            /** @description Default today; between the payment date and today */
+            /** @description Default today; between the payment date and today, not before the current status date */
             statusDate?: string;
             note?: string | null;
         };

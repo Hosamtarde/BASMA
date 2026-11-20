@@ -106,7 +106,7 @@
   "error.cheque.duplicate": "A cheque with this number from the same bank is already registered.",
   "error.cheque.invalid_transition": "A cheque cannot move from «{from}» to «{to}».",
   "error.cheque.payment_void": "The payment of this cheque is cancelled; its status cannot change.",
-  "error.cheque.date_invalid": "The status date must be between the payment date and today.",
+  "error.cheque.date_invalid": "The status date must be between the payment date and today, and not before the cheque's previous status date.",
   "error.outgoing.payee_required": "Enter who was paid (the payee).",
   "error.outgoing.payee_not_allowed": "A refund to a doctor has no payee; choose the doctor instead.",
   "error.outgoing.doctor_required": "Choose the doctor who receives the refund.",

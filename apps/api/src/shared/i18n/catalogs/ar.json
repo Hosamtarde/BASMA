@@ -106,7 +106,7 @@
   "error.cheque.duplicate": "يوجد شيك مسجّل بنفس الرقم ومن نفس البنك.",
   "error.cheque.invalid_transition": "لا يمكن نقل الشيك من «{from}» إلى «{to}».",
   "error.cheque.payment_void": "دفعة هذا الشيك ملغاة ولا يمكن تغيير حالته.",
-  "error.cheque.date_invalid": "تاريخ الحالة يجب أن يكون بين تاريخ الدفعة واليوم.",
+  "error.cheque.date_invalid": "تاريخ الحالة يجب أن يكون بين تاريخ الدفعة واليوم، ولا يسبق تاريخ الحالة السابقة للشيك.",
   "error.outgoing.payee_required": "اكتب اسم الجهة المستفيدة.",
   "error.outgoing.payee_not_allowed": "الاسترداد للطبيب لا يحتاج جهة مستفيدة؛ اختر الطبيب بدلًا منها.",
   "error.outgoing.doctor_required": "اختر الطبيب الذي يُعاد له المبلغ.",
