@@ -9,7 +9,7 @@
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "node --disable-warning=ExperimentalWarning scripts/vitest.ts run",
     "i18n:check": "node --disable-warning=ExperimentalWarning scripts/check-i18n.ts",
     "rtl:check": "node --disable-warning=ExperimentalWarning scripts/check-rtl.ts",
     "api:generate": "openapi-typescript ../api/openapi.json --output src/api/schema.gen.ts",

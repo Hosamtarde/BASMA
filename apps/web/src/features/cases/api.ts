@@ -15,6 +15,9 @@ export type CreateCase = components['schemas']['CreateCaseRequest'];
 export type UpdateCase = components['schemas']['UpdateCaseRequest'];
 export type UpdateCaseLine = components['schemas']['UpdateCaseLineRequest'];
 export type ChangeCaseStatus = components['schemas']['ChangeCaseStatusRequest'];
+export type DeliverCase = components['schemas']['DeliverCaseRequest'];
+export type DeliverCaseResult = components['schemas']['DeliverCaseResponse'];
+export type DeliveryReceived = NonNullable<DeliverCase['received']>;
 export type InitialStatus = NonNullable<CreateCase['status']>;
 export type CaseCounts = components['schemas']['CaseCountsResponse'];
 /** The list filters the counts honour (everything except status and paging). */
@@ -137,6 +140,17 @@ export const caseApi = {
     ),
   changeStatus: (id: number, body: ChangeCaseStatus) =>
     unwrap(api.POST('/api/v1/cases/{id}/status', { ...byId(id), body })),
+  /** B5: the only way to "delivered"; `key` is required when money is taken (received full or partial). */
+  deliver: (id: number, body: DeliverCase, key?: string) =>
+    unwrap(
+      api.POST('/api/v1/cases/{id}/delivery', {
+        ...byId(id),
+        body,
+        params: { path: { id }, header: key ? { 'Idempotency-Key': key } : {} },
+      }),
+    ),
+  setCollectOn: (id: number, rowVersion: number, collectOn: string | null) =>
+    unwrap(api.PATCH('/api/v1/cases/{id}/collect-on', { ...byId(id), body: { rowVersion, collectOn } })),
   cancel: (id: number, rowVersion: number, reason: string | null) =>
     unwrap(api.POST('/api/v1/cases/{id}/cancel', { ...byId(id), body: { rowVersion, reason } })),
 };
@@ -151,5 +165,7 @@ export async function storeCase(queryClient: QueryClient, saved: CaseDetail): Pr
     queryClient.invalidateQueries({ queryKey: caseKeys.lists }),
     queryClient.invalidateQueries({ queryKey: caseKeys.summaries }),
     queryClient.invalidateQueries({ queryKey: ['settings'] }),
+    // Due dates and collect dates feed the bell (B5).
+    queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   ]);
 }

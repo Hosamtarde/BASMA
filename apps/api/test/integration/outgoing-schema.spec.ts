@@ -7,6 +7,7 @@ import {
   PAYMENT_METHODS,
   PAYMENT_STATUSES,
 } from '../../src/modules/payments/domain/payment-rules';
+import { ChequeRegisterRepository } from '../../src/modules/payments/infrastructure/cheque-register.repository';
 import { LedgerRepository } from '../../src/modules/payments/infrastructure/ledger.repository';
 import { PaymentsRepository } from '../../src/modules/payments/infrastructure/payments.repository';
 import { getMigrationStatus, runMigrations } from '../../src/shared/db/migrator';
@@ -260,6 +261,7 @@ describe('B4b migration 0007 — outgoing payments (PostgreSQL 16)', () => {
     it('incoming lists, totals, receipts, register, Home and duplicate check are unchanged by outgoing rows', async () => {
       const repo = new LedgerRepository();
       const pay = new PaymentsRepository();
+      const register = new ChequeRegisterRepository();
       const db = drizzle(pool, { schema });
       const iso = await insert('doctors', { name: 'Dr Isolation', opening_balance: 0 });
       const inPay = await insert('payments', {
@@ -278,8 +280,9 @@ describe('B4b migration 0007 — outgoing payments (PostgreSQL 16)', () => {
         summary: await repo.summary(db, '2026-11-01', '2026-11-30', '2026-12-07'),
         list: await pay.list(db, {}, 1, 100),
         receipts: await pay.receiptsSummary(db, {}),
-        cheques: await pay.listCheques(db, {}, '2026-11-15', '2026-11-22', 1, 100),
-        chequeSummary: await pay.chequeSummary(db, {}, '2026-11-15', '2026-11-22'),
+        // The register's incoming side (the B3 list it replaced was removed in B5, S22).
+        cheques: await register.list(db, { direction: 'in' }, '2026-11-15', '2026-11-22', 1, 100),
+        chequeSummary: await register.summary(db, { direction: 'in' }, '2026-11-15', '2026-11-22'),
       });
       const before = await snapshot();
 

@@ -317,6 +317,7 @@ export class OutgoingRepository {
         id: cheques.id,
         chequeNo: cheques.chequeNo,
         status: cheques.status,
+        statusDate: cheques.statusDate,
         rowVersion: cheques.rowVersion,
         outgoingId: outgoingPayments.id,
         paymentStatus: outgoingPayments.status,

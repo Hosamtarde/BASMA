@@ -120,6 +120,10 @@ describe('B4 tie-out over the demo data (e2e)', () => {
     expect(report.outgoing.refunds).toBeGreaterThanOrEqual(4);
     expect(withPaidOut).toBeGreaterThanOrEqual(3);
     expect(withOpenRefund).toBeGreaterThanOrEqual(1);
+    // B5: the demo delivers cases with full, part and no payment (one by a cheque still pending).
+    expect(report.deliveries.full).toBeGreaterThanOrEqual(3);
+    expect(report.deliveries.partial).toBeGreaterThanOrEqual(3);
+    expect(report.deliveries.none).toBeGreaterThanOrEqual(3);
   });
 
   it('R3 in the demo: a refund followed by the doctor’s own cheque bouncing — 300.00 = case 200.00 + refund 100.00', async () => {
@@ -151,6 +155,88 @@ describe('B4 tie-out over the demo data (e2e)', () => {
       fromParts += bal.charges - bal.received + bal.paidOut;
     }
     expect(fromParts).toBe(list.reduce((s, d) => s + d.balance, 0));
+  });
+
+  it('B5 item 6: a bounce never sorts above its clearing; an early return date is refused and the tie-out still holds', async () => {
+    const order = (lines: { kind: string; voucher: string | null }[]) => {
+      for (const [clear, back] of [
+        ['payment', 'cheque_return'],
+        ['refund', 'refund_cheque_return'],
+      ] as const) {
+        lines.forEach((l, i) => {
+          if (l.kind !== back) return;
+          const cleared = lines.findIndex((x) => x.kind === clear && x.voucher === l.voucher);
+          expect({ voucher: l.voucher, clearedBeforeReturn: cleared >= 0 && cleared < i }).toEqual({
+            voucher: l.voucher,
+            clearedBeforeReturn: true,
+          });
+        });
+      }
+    };
+    const list = (await get('/doctors?pageSize=100').expect(200)).body.items as {
+      id: number;
+      balance: number;
+    }[];
+    type Line = { kind: string; voucher: string | null };
+    for (const d of list) {
+      const st = (await get(`/doctors/${d.id}/statement?pageSize=100`).expect(200)).body as { lines: Line[] };
+      order(st.lines);
+    }
+
+    // A new cheque on a demo doctor with debt: paid 5 days ago, cleared 2 days ago, returned "3 days ago".
+    const settings = (await get('/settings').expect(200)).body as { labProfile: { timeZone: string } };
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: settings.labProfile.timeZone }).format(
+      new Date(),
+    );
+    const day = (n: number) =>
+      new Date(Date.parse(`${today}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10);
+    const target = list.find((d) => d.balance > 50_000)!;
+    const send = (method: 'post' | 'patch', p: string, body: object) => {
+      const r = method === 'post' ? request(t.http).post(`/api/v1${p}`) : request(t.http).patch(`/api/v1${p}`);
+      return r
+        .set('Authorization', t.auth)
+        .set('Idempotency-Key', crypto.randomUUID())
+        .send(body);
+    };
+    const made = await send('post', '/payments', {
+      doctorId: target.id,
+      method: 'cheque',
+      amount: 10_000,
+      paidAt: day(5),
+      cheque: { chequeNo: `B5-${Date.now()}`, bank: 'Tie-out Bank', dueDate: day(4) },
+    }).expect(201);
+    const ch = made.body.payment.cheque as { id: number; rowVersion: number };
+    const cleared = await send('patch', `/cheques/${ch.id}/status`, {
+      rowVersion: ch.rowVersion,
+      status: 'cleared',
+      statusDate: day(2),
+    }).expect(200);
+    const cc = cleared.body.payment.cheque as { id: number; rowVersion: number };
+    const early = await send('patch', `/cheques/${cc.id}/status`, {
+      rowVersion: cc.rowVersion,
+      status: 'returned',
+      statusDate: day(3),
+    }).expect(400);
+    expect(early.body.error.code).toBe('error.cheque.date_invalid');
+    await send('patch', `/cheques/${cc.id}/status`, {
+      rowVersion: cc.rowVersion,
+      status: 'returned',
+      statusDate: day(2),
+    }).expect(200);
+
+    const bal = (await get(`/doctors/${target.id}/balance`).expect(200)).body as { balance: number };
+    expect(bal.balance).toBe(target.balance); // cleared then returned: back where it was
+    const b = (await get(`/doctors/${target.id}/debt-breakdown?pageSize=100`).expect(200))
+      .body as BreakdownBody;
+    expect(
+      b.tieOut.openingRemaining + b.tieOut.casesRemaining + b.tieOut.refundsRemaining - b.tieOut.credit,
+    ).toBe(bal.balance);
+    const st = (await get(`/doctors/${target.id}/statement?pageSize=100`).expect(200)).body as {
+      closing: number;
+      lines: { kind: string; voucher: string | null }[];
+    };
+    expect(st.closing).toBe(bal.balance);
+    order(st.lines);
   });
 
   it('the debts summary equals the sum of the doctor balances', async () => {

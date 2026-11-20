@@ -40,6 +40,10 @@ export function checkTransition(from: CaseStatus, to: CaseStatus): TransitionChe
  * Cancel before delivery, and (owner decision D2, B3) from 'returned' with a mandatory reason: a case the
  * doctor never takes back would otherwise be a debt nobody can remove. Final. Payments bound to a
  * cancelled case stay as account credit (SPEC §5.6).
+ *
+ * B6 hook (S13, SPEC §7.8): once invoices exist, a case on an active invoice can be neither edited nor
+ * cancelled, including from "returned". That check belongs here (and in canEdit) when B6 adds
+ * invoices; nothing can enforce it before. Recorded in B5 (docs/plans/b5-delivery-notifications-backlog.md).
  */
 export const canCancel = (status: CaseStatus): boolean =>
   PRE_DELIVERY.includes(status) || status === 'returned';

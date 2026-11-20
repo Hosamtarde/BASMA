@@ -9,7 +9,7 @@ import { signOut } from '@/features/auth/api';
 const itemClass =
   'flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[14px] font-semibold outline-none data-[highlighted]:bg-hover [&_svg]:size-[18px] [&_svg]:text-muted';
 
-/** Change password and sign out. Search and the notification bell arrive with their own slices. */
+/** Change password and sign out (search and the notification bell sit beside it in the top bar). */
 export function UserMenu({ username }: { username: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();

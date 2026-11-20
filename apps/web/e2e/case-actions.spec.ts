@@ -132,7 +132,13 @@ test('change status and cancel from the row menu, with the details-page dialogs 
   await page.getByRole('menuitem', { name: 'Change status' }).click();
   const en = page.getByRole('dialog', { name: 'Change the case status' });
   await en.getByRole('radio', { name: 'Delivered' }).check();
-  await en.getByRole('button', { name: 'Save' }).click();
+  // B5: «Delivered» continues in the delivery dialog, which asks about the money.
+  await en.getByRole('button', { name: 'Continue to delivery' }).click();
+  const deliver = page.getByRole('dialog', { name: `Deliver case ${delivered.caseNo}` });
+  await deliver.getByRole('radio', { name: 'No, nothing' }).check();
+  await deliver.getByRole('textbox', { name: 'Collect the rest on' }).fill('2099-12-31');
+  await deliver.getByRole('button', { name: 'Deliver case' }).click();
+  await expect(deliver).toBeHidden();
   await expect(rowOf(page, delivered.caseNo)).toContainText('Delivered');
   await page.getByRole('button', { name: `More actions for case ${delivered.caseNo}` }).click();
   await expect(page.getByRole('menuitem', { name: 'Change status' })).toBeVisible();

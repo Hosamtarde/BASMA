@@ -1,10 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { AR, expectAccessible, expectDirection, shot, signIn, uid } from './support';
+import { AR, expectAccessible, expectDirection, shot, signIn, switchLanguage, uid } from './support';
 
 /**
  * Project "first-run": its own empty database (no owner). This file is the only one using it and
  * runs in order: the wizard, then what changes only once in an installation's life (the currency
- * lock after the first amount, the numbering lock after the first case, a password change).
+ * lock after the first amount — an incoming payment —, the numbering lock after the first case, a
+ * password change). The price lock is covered by the API e2e (settings), the outgoing one by the
+ * first-run-outgoing project.
  */
 test.describe.configure({ mode: 'serial' });
 
@@ -97,7 +99,9 @@ test('Home before the first case: a friendly empty state with a button to add th
   await expect(cards.locator('[aria-disabled="true"]')).toHaveCount(1);
   await expectAccessible(page);
   await shot(page, 'home-empty-ar', { fullPage: false });
-  await page.getByRole('button', { name: /^English/ }).click();
+  // Signed in, the language is saved for the installation: wait for each save, so the next tests
+  // start in Arabic whatever the timing (no sleep).
+  await switchLanguage(page, /^English/);
   await expectDirection(page, 'en');
   await expect(page.getByRole('region', { name: 'No cases yet' })).toBeVisible();
   await expect(
@@ -108,14 +112,15 @@ test('Home before the first case: a friendly empty state with a button to add th
   );
   await expectAccessible(page);
   await shot(page, 'home-empty-en', { fullPage: false });
-  await page.getByRole('button', { name: /^العربية/ }).click();
+  await switchLanguage(page, /^العربية/);
   await expectDirection(page, 'ar');
   await empty.getByRole('link', { name: 'أضف أول حالة' }).click();
   await expect(page).toHaveURL(/\/cases\/new$/);
 });
 
-test('currency: editable while no amount exists, locked with an explanation after the first price', async ({
+test('currency: editable while no amount exists, locked with an explanation after the first incoming payment', async ({
   page,
+  request,
 }) => {
   await signedInFirst(page);
   await page.getByRole('link', { name: 'الإعدادات' }).click();
@@ -123,16 +128,31 @@ test('currency: editable while no amount exists, locked with an explanation afte
   await expect(code).toBeEnabled();
   await expect(page.getByText(/لا يمكن تغيير رمز العملة ولا عدد الخانات العشرية \(المبالغ/)).toHaveCount(0);
 
-  // The first amount in the installation: a work type with a price.
-  await page.getByRole('link', { name: 'أنواع العمل' }).click();
-  await page.getByRole('button', { name: 'إضافة نوع عمل' }).click();
-  const dialog = page.getByRole('dialog');
-  await dialog.getByRole('textbox', { name: 'نوع العمل' }).fill(`زيركون ${uid()}`);
-  await dialog.getByRole('textbox', { name: 'سعر السن الواحد' }).fill('250');
-  await dialog.getByRole('button', { name: 'حفظ' }).click();
-  await expect(page.getByText('تمت إضافة نوع العمل.')).toBeVisible();
+  // A doctor without an opening balance is not an amount: the currency stays editable.
+  const login = await request.post('/api/v1/auth/login', {
+    data: { username: FIRST.username, password: FIRST.password },
+  });
+  const token = ((await login.json()) as { accessToken: string }).accessToken;
+  const doctorName = `د. أول دفعة ${uid()}`;
+  const doctor = await request.post('/api/v1/doctors', {
+    headers: { Authorization: `Bearer ${token}` },
+    data: { name: doctorName },
+  });
+  expect(doctor.status()).toBe(201);
+  await page.reload();
+  await expect(code).toBeEnabled();
 
-  await page.getByRole('link', { name: 'عام' }).click();
+  // The first amount in the installation: an incoming payment (no case, no price exists yet).
+  await page.getByRole('link', { name: 'دفعة واردة', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'دفعة واردة', level: 1 })).toBeVisible();
+  await page.getByRole('combobox', { name: 'الطبيب', exact: true }).click();
+  await page.getByRole('combobox', { name: 'ابحث…' }).fill(doctorName);
+  await page.getByRole('option', { name: doctorName }).click();
+  await page.getByRole('textbox', { name: 'المبلغ' }).fill('100');
+  await page.getByRole('button', { name: 'تسجيل الدفعة' }).click();
+  await expect(page.getByText(/تم تسجيل الدفعة IN-\d{6}\./)).toBeVisible();
+
+  await page.getByRole('link', { name: 'الإعدادات' }).click();
   await expect(code).toBeDisabled();
   await expect(page.getByRole('combobox', { name: 'عدد الخانات العشرية' })).toBeDisabled();
   await expect(page.getByText(/لذلك لا يمكن تغيير رمز العملة ولا عدد الخانات العشرية/)).toBeVisible();
@@ -162,14 +182,18 @@ test('numbering: editable before the first case, locked with the next number aft
   const doctor = await (
     await request.post('/api/v1/doctors', { headers, data: { name: `د. أول ${uid()}` } })
   ).json();
-  const types = await (await request.get('/api/v1/work-types', { headers })).json();
+  // No work type exists yet in this installation (the currency test used a payment): add one with
+  // price 0, which is not an amount.
+  const workType = await (
+    await request.post('/api/v1/work-types', { headers, data: { name: `نوع ${uid()}`, unitPrice: 0 } })
+  ).json();
   const created = await request.post('/api/v1/cases', {
     headers,
     data: {
       doctorId: doctor.id,
       patientName: 'مريض',
       expectedDate: '2099-01-01',
-      lines: [{ workTypeId: types.items[0].id, toothNo: 11 }],
+      lines: [{ workTypeId: workType.id, toothNo: 11 }],
     },
   });
   expect(created.status()).toBe(201);

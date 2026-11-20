@@ -41,6 +41,8 @@ export interface SeedReport {
   cases: number;
   byStatus: Record<DemoStatus, number>;
   overdue: number;
+  /** B5: how the delivered cases were handed over (POST /cases/{id}/delivery). */
+  deliveries: { full: number; partial: number; none: number; nothingDue: number };
   extras?: { doctors: number; cases: number };
   /** B4b: outgoing payments (expenses and refunds) and their cheques. */
   outgoing: { payments: number; cheques: number; refunds: number };
@@ -54,6 +56,16 @@ interface Created {
   /** Present on case answers. */
   total?: number;
   doctor?: { id: number };
+}
+
+/** GET /cases/{id}: what a delivery may still ask for (B5). */
+interface CaseDue extends Created {
+  deliveryDue: number | null;
+}
+
+interface DeliveredAnswer {
+  case: Created;
+  payment: { method: string } | null;
 }
 
 interface PaidAnswer {
@@ -433,6 +445,58 @@ export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
   let payments = 0;
   let cheques = 0;
   let creditShown = false;
+  const deliveries = { full: 0, partial: 0, none: 0, nothingDue: 0 };
+  /**
+   * B5: every delivery goes through POST /cases/{id}/delivery (the status endpoint refuses it). The
+   * delivered cases take turns: paid in full at delivery (one of them by a cheque still pending), part
+   * paid with a collect date already reached or later, nothing paid with a collect date today or past.
+   * A case delivered and then returned was delivered without money (its collect date is cleared).
+   */
+  const deliverCase = async (current: Created, i: number, deliveredDate: string, finalStatus: DemoStatus) => {
+    const c = await api.call<CaseDue>('GET', `/cases/${current.id}`);
+    const due = c.deliveryDue ?? 0;
+    const today = labDate(timeZone, 0);
+    const later = labDate(timeZone, -10);
+    const turn = finalStatus === 'returned' ? 'none' : (['full', 'partial', 'none'] as const)[i % 3];
+    const base = { rowVersion: c.rowVersion, deliveredDate };
+    let body: Record<string, unknown> = base;
+    if (due === 0) {
+      deliveries.nothingDue += 1;
+    } else if (turn === 'full') {
+      const byCheque = i === 21;
+      body = {
+        ...base,
+        received: 'full',
+        method: byCheque ? 'cheque' : i % 2 === 0 ? 'cash' : 'transfer',
+        ...(byCheque ? { cheque: { chequeNo: `D-${i}01`, bank: 'بنك فلسطين', dueDate: labDate(timeZone, -5) } } : {}),
+      };
+      deliveries.full += 1;
+    } else if (turn === 'partial' && Math.min(Math.floor((c.total ?? 0) * 0.4), due - 1) >= 1) {
+      body = {
+        ...base,
+        received: 'partial',
+        method: 'cash',
+        amount: Math.min(Math.floor((c.total ?? 0) * 0.4), due - 1),
+        collectOn: i % 2 === 0 ? deliveredDate : later,
+      };
+      deliveries.partial += 1;
+    } else {
+      body = { ...base, received: 'none', collectOn: i % 2 === 0 ? today : deliveredDate };
+      deliveries.none += 1;
+    }
+    const paying = body.received === 'full' || body.received === 'partial';
+    const answer = await api.call<DeliveredAnswer>(
+      'POST',
+      `/cases/${current.id}/delivery`,
+      body,
+      paying ? { 'Idempotency-Key': randomUUID() } : {},
+    );
+    if (answer.payment) {
+      payments += 1;
+      if (answer.payment.method === 'cheque') cheques += 1;
+    }
+    return answer.case;
+  };
   const pay = async (body: Record<string, unknown>) => {
     payments += 1;
     if (body.method === 'cheque') cheques += 1;
@@ -460,12 +524,14 @@ export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
       lines,
     });
     for (const to of stepsTo(status)) {
-      // Delivered on the expected date, or today when that is still ahead.
-      const deliveredDate = to === 'delivered' ? labDate(timeZone, Math.max(daysAgo - lead, 0)) : undefined;
+      if (to === 'delivered') {
+        // Delivered on the expected date, or today when that is still ahead.
+        current = await deliverCase(current, i, labDate(timeZone, Math.max(daysAgo - lead, 0)), status);
+        continue;
+      }
       current = await api.call<Created>('POST', `/cases/${current.id}/status`, {
         rowVersion: current.rowVersion,
         to,
-        ...(deliveredDate ? { deliveredDate } : {}),
         ...(to === 'returned' ? { note: 'تعديل بسيط في الإطباق (تجريبي).' } : {}),
       });
     }
@@ -473,23 +539,8 @@ export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
     const caseTotal = current.total ?? 0;
     const caseDoctor = doctorIds[(i * 7) % doctorIds.length] as number;
     const today = labDate(timeZone, 0);
-    if (status === 'delivered' && i % 3 === 0 && caseTotal > 0) {
-      await pay({
-        doctorId: caseDoctor,
-        caseId: current.id,
-        method: i % 2 === 0 ? 'cash' : 'transfer',
-        amount: caseTotal,
-        paidAt: today,
-      });
-    } else if (status === 'delivered' && i % 3 === 1 && caseTotal > 4) {
-      await pay({
-        doctorId: caseDoctor,
-        caseId: current.id,
-        method: 'cash',
-        amount: Math.floor(caseTotal * 0.4),
-        paidAt: today,
-      });
-    } else if (PRE_DELIVERY.includes(status) && i % 4 === 0 && caseTotal > 4) {
+    // Delivered cases were paid (or not) at delivery above (B5).
+    if (PRE_DELIVERY.includes(status) && i % 4 === 0 && caseTotal > 4) {
       // An advance: a payment taken when the work was received.
       await pay({
         doctorId: caseDoctor,
@@ -519,6 +570,7 @@ export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
     if ((PRE_DELIVERY.includes(status) || status === 'returned') && lead < daysAgo) overdue += 1;
   }
   log(`Cases: ${PLAN.length} ${JSON.stringify(byStatus)}, overdue about ${overdue}`);
+  log(`Deliveries: ${JSON.stringify(deliveries)}`);
 
   // Unbound payments (paid FIFO at read time), cheques in every state, one voided payment, one credit.
   const today = labDate(timeZone, 0);
@@ -584,6 +636,7 @@ export async function seedDemo(options: SeedOptions): Promise<SeedReport> {
     cases: PLAN.length,
     byStatus,
     overdue,
+    deliveries,
     ...(extras ? { extras } : {}),
     outgoing,
   };

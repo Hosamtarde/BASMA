@@ -2400,7 +2400,7 @@
             }
           },
           "409": {
-            "description": "error.case.invalid_transition | error.case.same_status",
+            "description": "error.case.invalid_transition | error.case.same_status | error.case.delivery_required | error.case.already_delivered",
             "content": {
               "application/json": {
                 "schema": {
@@ -2415,7 +2415,158 @@
             "bearer": []
           }
         ],
-        "summary": "Change status (machine of SPEC §9 as approved for B2)",
+        "summary": "Change status (machine of SPEC §9 as approved for B2), except delivery: POST /cases/{id}/delivery",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/v1/cases/{id}/delivery": {
+      "post": {
+        "operationId": "CasesController_deliver",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required with received=full or partial (a UUID per attempt); a replay returns the original answer",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliverCaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliverCaseResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed | error.delivery.* (received, amount, method, collect date) | error.case.delivered_date_invalid | error.payment.cheque_required | error.payment.cheque_not_allowed | error.idempotency.required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.case.already_delivered | error.case.cancelled | error.case.invalid_transition | error.delivery.exceeds_remaining {max} | error.delivery.nothing_due | error.cheque.duplicate | error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deliver a case (B5, SPEC §5.7): received full / partial / none, the collect date, and the payment taken at delivery in one transaction",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/v1/cases/{id}/collect-on": {
+      "patch": {
+        "operationId": "CasesController_setCollectOn",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCollectOnRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed | error.delivery.collect_on_invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.case.not_delivered | error.case.cancelled | error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change or remove the collect date of a delivered case (B5)",
         "tags": [
           "cases"
         ]
@@ -3088,194 +3239,6 @@
           }
         ],
         "summary": "Chip counts per status and direction, due soon, overdue, pending amounts",
-        "tags": [
-          "cheques"
-        ]
-      }
-    },
-    "/api/v1/cheques": {
-      "get": {
-        "operationId": "ChequesController_list",
-        "parameters": [
-          {
-            "name": "doctorId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "dueFrom",
-            "required": false,
-            "in": "query",
-            "description": "Due date from (inclusive)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "dueTo",
-            "required": false,
-            "in": "query",
-            "description": "Due date to (inclusive)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "due",
-            "required": false,
-            "in": "query",
-            "description": "Pending cheques due within 7 days / past due",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "soon",
-                "overdue"
-              ]
-            }
-          },
-          {
-            "name": "search",
-            "required": false,
-            "in": "query",
-            "description": "Cheque number, bank, doctor name or voucher number",
-            "schema": {
-              "maxLength": 100,
-              "type": "string"
-            }
-          },
-          {
-            "name": "status",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "pending",
-                "cleared",
-                "returned"
-              ]
-            }
-          },
-          {
-            "name": "page",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "minimum": 1,
-              "default": 1,
-              "type": "number"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "minimum": 1,
-              "maximum": 100,
-              "default": 25,
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChequePage"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Cheque register (incoming cheques of active payments), by due date; each row is its payment",
-        "tags": [
-          "cheques"
-        ]
-      }
-    },
-    "/api/v1/cheques/summary": {
-      "get": {
-        "operationId": "ChequesController_summary",
-        "parameters": [
-          {
-            "name": "doctorId",
-            "required": false,
-            "in": "query",
-            "schema": {
-              "type": "number"
-            }
-          },
-          {
-            "name": "dueFrom",
-            "required": false,
-            "in": "query",
-            "description": "Due date from (inclusive)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "dueTo",
-            "required": false,
-            "in": "query",
-            "description": "Due date to (inclusive)",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "due",
-            "required": false,
-            "in": "query",
-            "description": "Pending cheques due within 7 days / past due",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "soon",
-                "overdue"
-              ]
-            }
-          },
-          {
-            "name": "search",
-            "required": false,
-            "in": "query",
-            "description": "Cheque number, bank, doctor name or voucher number",
-            "schema": {
-              "maxLength": 100,
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChequeSummaryResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Counts per status, due soon and overdue; same filters as the list except status",
         "tags": [
           "cheques"
         ]
@@ -4951,6 +4914,113 @@
           "search"
         ]
       }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_feed",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items listed per type",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The notifications feed (SPEC §5.16): cases due or overdue, incoming and outgoing cheques due, collect dates reached. A type the caller cannot read is left out",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/count": {
+      "get": {
+        "operationId": "NotificationsController_count",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationCountResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unread and total items of the feed (the bell badge)",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/notifications/state": {
+      "patch": {
+        "operationId": "NotificationsController_state",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotificationStateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          },
+          "400": {
+            "description": "error.validation.failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark items read, hide them or show them again (per user); keys not in the caller’s feed now are ignored",
+        "tags": [
+          "notifications"
+        ]
+      }
     }
   },
   "info": {
@@ -6174,6 +6244,11 @@
             "type": "string",
             "nullable": true
           },
+          "collectOn": {
+            "type": "string",
+            "nullable": true,
+            "description": "B5: agreed date to collect what is still owed; only while delivered"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -6218,6 +6293,7 @@
           "receivedDate",
           "expectedDate",
           "deliveredDate",
+          "collectOn",
           "status",
           "total",
           "overdue",
@@ -6803,6 +6879,11 @@
             "type": "string",
             "nullable": true
           },
+          "collectOn": {
+            "type": "string",
+            "nullable": true,
+            "description": "B5: agreed date to collect what is still owed; only while delivered"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -6842,6 +6923,20 @@
             "description": "total - paid; 0 for a cancelled case",
             "minimum": 0
           },
+          "pendingCheques": {
+            "type": "number",
+            "description": "B5: payments bound to this case whose cheque has not cleared yet",
+            "minimum": 0
+          },
+          "deliveryDue": {
+            "type": "number",
+            "nullable": true,
+            "description": "B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled"
+          },
+          "collectDue": {
+            "type": "boolean",
+            "description": "B5: delivered, the collect date has come (lab today) and something is still owed («تحصيل مستحق»)"
+          },
           "discount": {
             "type": "number",
             "description": "Integer minor units",
@@ -6865,7 +6960,7 @@
           },
           "allowedStatuses": {
             "type": "array",
-            "description": "Statuses this case may move to now (POST /cases/{id}/status); empty when none",
+            "description": "Statuses this case may move to now; empty when none. \"delivered\" goes through POST /cases/{id}/delivery (B5), every other one through POST /cases/{id}/status",
             "items": {
               "type": "string",
               "enum": [
@@ -6907,6 +7002,7 @@
           "receivedDate",
           "expectedDate",
           "deliveredDate",
+          "collectOn",
           "status",
           "total",
           "overdue",
@@ -6914,6 +7010,9 @@
           "subtotal",
           "paid",
           "remaining",
+          "pendingCheques",
+          "deliveryDue",
+          "collectDue",
           "discount",
           "notes",
           "lines",
@@ -6958,6 +7057,11 @@
             "type": "string",
             "nullable": true
           },
+          "collectOn": {
+            "type": "string",
+            "nullable": true,
+            "description": "B5: agreed date to collect what is still owed; only while delivered"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -6997,6 +7101,20 @@
             "description": "total - paid; 0 for a cancelled case",
             "minimum": 0
           },
+          "pendingCheques": {
+            "type": "number",
+            "description": "B5: payments bound to this case whose cheque has not cleared yet",
+            "minimum": 0
+          },
+          "deliveryDue": {
+            "type": "number",
+            "nullable": true,
+            "description": "B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled"
+          },
+          "collectDue": {
+            "type": "boolean",
+            "description": "B5: delivered, the collect date has come (lab today) and something is still owed («تحصيل مستحق»)"
+          },
           "discount": {
             "type": "number",
             "description": "Integer minor units",
@@ -7020,7 +7138,7 @@
           },
           "allowedStatuses": {
             "type": "array",
-            "description": "Statuses this case may move to now (POST /cases/{id}/status); empty when none",
+            "description": "Statuses this case may move to now; empty when none. \"delivered\" goes through POST /cases/{id}/delivery (B5), every other one through POST /cases/{id}/status",
             "items": {
               "type": "string",
               "enum": [
@@ -7052,6 +7170,7 @@
           "receivedDate",
           "expectedDate",
           "deliveredDate",
+          "collectOn",
           "status",
           "total",
           "overdue",
@@ -7059,6 +7178,9 @@
           "subtotal",
           "paid",
           "remaining",
+          "pendingCheques",
+          "deliveryDue",
+          "collectDue",
           "discount",
           "notes",
           "lines",
@@ -7168,7 +7290,7 @@
               "delivered",
               "returned"
             ],
-            "description": "Cancel uses POST /cases/{id}/cancel"
+            "description": "Cancel uses POST /cases/{id}/cancel. B5: to=delivered is refused (409 error.case.delivery_required); deliver with POST /cases/{id}/delivery"
           },
           "note": {
             "type": "string",
@@ -7177,12 +7299,115 @@
           },
           "deliveredDate": {
             "type": "string",
-            "description": "Only with to=delivered; default today; ≥ received, ≤ today"
+            "description": "Refused (400 error.case.delivered_date_invalid): a date belongs to a delivery"
           }
         },
         "required": [
           "rowVersion",
           "to"
+        ]
+      },
+      "DeliverCaseRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "deliveredDate": {
+            "type": "string",
+            "description": "Default today (lab time zone); ≥ received date, ≤ today"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true,
+            "description": "Into the status history"
+          },
+          "received": {
+            "type": "string",
+            "enum": [
+              "full",
+              "partial",
+              "none"
+            ],
+            "description": "Required when something is due (deliveryDue > 0); omit (or full) when nothing is due"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Only with received=partial: integer minor units, below deliveryDue",
+            "minimum": 1
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "cheque",
+              "transfer"
+            ],
+            "description": "With received=full or partial"
+          },
+          "cheque": {
+            "description": "Required for method=cheque, forbidden otherwise",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChequeInput"
+              }
+            ]
+          },
+          "collectOn": {
+            "type": "string",
+            "description": "Required with partial / none; ≥ the delivery date; refused otherwise"
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "DeliverCaseResponse": {
+        "type": "object",
+        "properties": {
+          "case": {
+            "$ref": "#/components/schemas/CaseDetailResponse"
+          },
+          "payment": {
+            "nullable": true,
+            "description": "The payment taken at delivery, if any",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentResponse"
+              }
+            ]
+          },
+          "doctorBalance": {
+            "type": "number",
+            "nullable": true,
+            "description": "Doctor balance after the payment; null without one"
+          }
+        },
+        "required": [
+          "case",
+          "payment",
+          "doctorBalance"
+        ]
+      },
+      "SetCollectOnRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "collectOn": {
+            "type": "string",
+            "nullable": true,
+            "description": "≥ the delivery date; null removes it"
+          }
+        },
+        "required": [
+          "rowVersion",
+          "collectOn"
         ]
       },
       "CancelCaseRequest": {
@@ -7817,78 +8042,6 @@
           "pendingAmount"
         ]
       },
-      "ChequePage": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "number"
-          },
-          "pageSize": {
-            "type": "number"
-          },
-          "total": {
-            "type": "number"
-          },
-          "items": {
-            "description": "The payment of each cheque, cheque included",
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PaymentResponse"
-            }
-          }
-        },
-        "required": [
-          "page",
-          "pageSize",
-          "total",
-          "items"
-        ]
-      },
-      "ChequeStatusCounts": {
-        "type": "object",
-        "properties": {
-          "pending": {
-            "type": "number"
-          },
-          "cleared": {
-            "type": "number"
-          },
-          "returned": {
-            "type": "number"
-          }
-        },
-        "required": [
-          "pending",
-          "cleared",
-          "returned"
-        ]
-      },
-      "ChequeSummaryResponse": {
-        "type": "object",
-        "properties": {
-          "byStatus": {
-            "$ref": "#/components/schemas/ChequeStatusCounts"
-          },
-          "dueSoon": {
-            "type": "number",
-            "description": "Pending, due within 7 days (lab today)"
-          },
-          "overdue": {
-            "type": "number",
-            "description": "Pending and past due"
-          },
-          "pendingAmount": {
-            "type": "number",
-            "description": "Sum of pending cheques"
-          }
-        },
-        "required": [
-          "byStatus",
-          "dueSoon",
-          "overdue",
-          "pendingAmount"
-        ]
-      },
       "ChangeChequeStatusRequest": {
         "type": "object",
         "properties": {
@@ -7906,7 +8059,7 @@
           },
           "statusDate": {
             "type": "string",
-            "description": "Default today; between the payment date and today"
+            "description": "Default today; between the payment date and today, not before the current status date"
           },
           "note": {
             "type": "string",
@@ -9593,6 +9746,211 @@
           "q",
           "groups"
         ]
+      },
+      "NotificationEntityResponse": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "case",
+              "cheque"
+            ]
+          },
+          "id": {
+            "type": "number",
+            "description": "Case id or cheque id"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "in",
+              "out"
+            ],
+            "description": "Cheques only"
+          },
+          "chequeNo": {
+            "type": "string",
+            "description": "Cheques only"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ]
+      },
+      "NotificationItemResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "case_due:41:soon:2026-11-12",
+            "description": "Names this item in this phase"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "case_due",
+              "cheque_in_due",
+              "cheque_out_due",
+              "collect_due"
+            ]
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "soon",
+              "overdue",
+              "due"
+            ]
+          },
+          "date": {
+            "type": "string",
+            "description": "Expected date, cheque due date or collect date"
+          },
+          "entity": {
+            "$ref": "#/components/schemas/NotificationEntityResponse"
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "description": "Values used in the text (amount in integer minor units)"
+          },
+          "text": {
+            "type": "string",
+            "description": "Rendered in the request language"
+          },
+          "seen": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "phase",
+          "date",
+          "entity",
+          "params",
+          "text",
+          "seen"
+        ]
+      },
+      "NotificationGroupResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "case_due",
+              "cheque_in_due",
+              "cheque_out_due",
+              "collect_due"
+            ]
+          },
+          "total": {
+            "type": "number",
+            "description": "Items of this type not hidden (exact)"
+          },
+          "unread": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationItemResponse"
+            }
+          }
+        },
+        "required": [
+          "type",
+          "total",
+          "unread",
+          "items"
+        ]
+      },
+      "NotificationsResponse": {
+        "type": "object",
+        "properties": {
+          "today": {
+            "type": "string",
+            "description": "The lab’s today"
+          },
+          "unread": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "groups": {
+            "description": "One group per type the caller may see",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationGroupResponse"
+            }
+          }
+        },
+        "required": [
+          "today",
+          "unread",
+          "total",
+          "groups"
+        ]
+      },
+      "NotificationCountResponse": {
+        "type": "object",
+        "properties": {
+          "unread": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "unread",
+          "total"
+        ]
+      },
+      "NotificationStateRequest": {
+        "type": "object",
+        "properties": {
+          "keys": {
+            "minItems": 1,
+            "maxItems": 200,
+            "description": "Keys from GET /notifications; required unless all=true",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "all": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "With seen=true: every item of the caller’s feed now (opening the bell). Not with keys or dismissed"
+          },
+          "seen": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Mark as read (opening the bell does this)"
+          },
+          "dismissed": {
+            "type": "boolean",
+            "description": "true hides the items until they change; false shows them again"
+          }
+        }
       },
       "FieldError": {
         "type": "object",

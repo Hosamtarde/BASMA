@@ -89,10 +89,13 @@ describe('B3 payments migration (PostgreSQL 16)', () => {
     const before = await pool.query('SELECT * FROM cases');
     await runMigrations(pool, migrationsDir);
     expect((await getMigrationStatus(pool, migrationsDir)).current).toBe(true);
-    // Later migrations may add columns (0006: the generated search column): every old value is unchanged.
+    // Later migrations may add columns (0006: the generated search column; 0008: the collect date,
+    // empty on every existing case): every old value is unchanged.
     const after = await pool.query<Record<string, unknown>>('SELECT * FROM cases');
-    const stripped = after.rows.map((row) => Object.fromEntries(Object.entries(row).filter(([k]) => k !== 'patient_search')));
+    const later = ['patient_search', 'collect_on'];
+    const stripped = after.rows.map((row) => Object.fromEntries(Object.entries(row).filter(([k]) => !later.includes(k))));
     expect(stripped).toEqual(before.rows);
+    expect(after.rows.map((row) => row.collect_on)).toEqual(before.rows.map(() => null));
     expect((await pool.query('SELECT opening_balance FROM doctors')).rows[0]).toEqual({
       opening_balance: '1234',
     });

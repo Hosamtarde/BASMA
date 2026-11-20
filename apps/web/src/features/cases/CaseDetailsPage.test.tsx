@@ -17,6 +17,7 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   receivedDate: '2026-11-01',
   expectedDate: '2026-11-05',
   deliveredDate: null,
+  collectOn: null,
   status: 'design',
   total: 47000,
   overdue: true,
@@ -24,6 +25,9 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   subtotal: 50000,
   paid: 0,
   remaining: 50000,
+  pendingCheques: 0,
+  deliveryDue: 50000,
+  collectDue: false,
   discount: 3000,
   notes: 'لون فاتح',
   lines: [
@@ -136,10 +140,9 @@ describe('CaseDetailsPage', () => {
         json(
           200,
           detail({
-            status: 'delivered',
-            deliveredDate: '2026-11-03',
+            status: 'returned',
             rowVersion: 5,
-            allowedStatuses: ['returned'],
+            allowedStatuses: ['in_progress', 'ready', 'delivered'],
             canCancel: false,
           }),
         ),
@@ -148,20 +151,16 @@ describe('CaseDetailsPage', () => {
     renderCase();
     await userEvent.click(await screen.findByRole('button', { name: 'تغيير المرحلة' }));
     const dialog = await screen.findByRole('dialog', { name: 'تغيير مرحلة الحالة' });
-    await userEvent.click(within(dialog).getByRole('radio', { name: 'تم التسليم' }));
-    const delivered = within(dialog).getByRole('textbox', { name: 'تاريخ التسليم' });
-    await userEvent.clear(delivered);
-    await userEvent.type(delivered, '20261103');
-    await userEvent.type(within(dialog).getByRole('textbox', { name: 'ملاحظة' }), 'سُلّمت للطبيب');
+    await userEvent.click(within(dialog).getByRole('radio', { name: 'جاهزة للتسليم' }));
+    await userEvent.type(within(dialog).getByRole('textbox', { name: 'ملاحظة' }), 'جاهزة للطبيب');
     await userEvent.click(within(dialog).getByRole('button', { name: 'حفظ' }));
     await waitFor(() =>
-      expect(screen.getByRole('heading', { level: 1 }).parentElement).toHaveTextContent('تم التسليم'),
+      expect(screen.getByRole('heading', { level: 1 }).parentElement).toHaveTextContent('مرتجعة للتعديل'),
     );
     expect(JSON.parse(calls.find((c) => c.key === 'POST /api/v1/cases/41/status')?.body ?? '{}')).toEqual({
       rowVersion: 4,
-      to: 'delivered',
-      note: 'سُلّمت للطبيب',
-      deliveredDate: '2026-11-03',
+      to: 'ready',
+      note: 'جاهزة للطبيب',
     });
     // The answer said no cancel any more: the button turns disabled (no client-side lifecycle rule).
     await waitFor(() =>

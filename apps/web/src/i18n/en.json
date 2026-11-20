@@ -601,7 +601,9 @@
       "to": "New status",
       "note": "Note",
       "deliveredDate": "Delivery date",
-      "changed": "Status changed to “{{status}}”."
+      "changed": "Status changed to “{{status}}”.",
+      "deliveryNext": "Delivery is a step of its own: the next window asks about the money and the date to collect the rest.",
+      "continueToDelivery": "Continue to delivery"
     },
     "cancelDialog": {
       "title": "Cancel case {{no}}?",
@@ -635,7 +637,20 @@
       "cancelled": "The case is cancelled and cannot be changed.",
       "cancelAfterDelivery": "A case can be cancelled only before delivery.",
       "noStatus": "The status cannot be changed now.",
-      "noEdit": "This case cannot be edited now."
+      "noEdit": "This case cannot be edited now.",
+      "alreadyDelivered": "This case is already delivered."
+    },
+    "deliver": "Deliver case",
+    "collectOn": "Collect the rest on",
+    "editCollectOn": "Change the collect date",
+    "collectDue": "Collection due",
+    "collectDialog": {
+      "title": "Date to collect the rest",
+      "field": "Date",
+      "hint": "Not before the delivery date ({{date}}).",
+      "remove": "Remove the date",
+      "saved": "The collect date was saved.",
+      "removed": "The collect date was removed."
     }
   },
   "payments": {
@@ -993,5 +1008,61 @@
     "expenses": "Expenses",
     "refunds": "Refunds",
     "negative": "negative"
+  },
+  "delivery": {
+    "title": "Deliver case {{no}}",
+    "description": "For «{{doctor}}». Record what you received at delivery.",
+    "due": "Due at delivery:",
+    "nothingDue": "The case is fully paid: nothing to ask for at delivery.",
+    "pendingCheques": "Cheques for this case not cleared yet ({{amount}}) are not asked for again.",
+    "deliveredDate": "Delivery date",
+    "received": "Did you receive the money?",
+    "receivedFull": "Yes, in full ({{amount}})",
+    "receivedOptions": {
+      "partial": "Part of it",
+      "none": "No, nothing"
+    },
+    "noPaymentPermission": "Recording money needs the payments permission; you can deliver with a date to collect.",
+    "amount": "Amount received",
+    "amountHint": "Less than {{max}}.",
+    "collectOn": "Collect the rest on",
+    "collectOnHint": "On that day the case appears in the notifications under «Collection due».",
+    "note": "Note",
+    "submit": "Deliver case",
+    "done": "Case {{no}} delivered.",
+    "donePaid": "Case {{no}} delivered and payment {{voucher}} recorded. New balance: {{balance}}.",
+    "errors": {
+      "deliveredDate": "The delivery date is between the received date and today.",
+      "receivedRequired": "Choose what you received.",
+      "partialBelowDue": "A part payment is less than the amount due; for all of it choose «in full».",
+      "collectOnRequired": "Set the date to collect the rest.",
+      "collectOnBeforeDelivery": "The collect date cannot be before the delivery date."
+    }
+  },
+  "notifications": {
+    "bell": "Notifications",
+    "bellUnread_one": "Notifications, {{count}} unread",
+    "bellUnread_other": "Notifications, {{count}} unread",
+    "title": "Notifications",
+    "loadError": "The notifications could not be loaded.",
+    "empty": "No notifications",
+    "emptyHint": "Cases and cheques near or past their date will appear here.",
+    "types": {
+      "case_due": "Cases due soon or overdue",
+      "cheque_in_due": "Incoming cheques due",
+      "cheque_out_due": "Outgoing cheques due",
+      "collect_due": "Collection due"
+    },
+    "viewAll": "View in the list",
+    "more_one": "and {{count}} more in the list",
+    "more_other": "and {{count}} more in the list",
+    "new": "New:",
+    "phase": {
+      "soon": "Soon",
+      "overdue": "Overdue",
+      "due": "Due"
+    },
+    "dismiss": "Hide: {{text}}",
+    "dismissShort": "Hide"
   }
 }

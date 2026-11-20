@@ -286,6 +286,8 @@ export async function refreshMoney(queryClient: QueryClient): Promise<void> {
     queryClient.invalidateQueries({ queryKey: catalogKeys.expenseCategories }),
     queryClient.invalidateQueries({ queryKey: ['cases'] }),
     queryClient.invalidateQueries({ queryKey: ['settings'] }),
+    // Cheques due and what is still owed feed the bell (B5).
+    queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   ]);
 }
 

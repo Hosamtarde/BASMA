@@ -43,7 +43,7 @@ function onField<T extends FieldValues>(e: unknown, map: Record<string, Path<T>>
   return false;
 }
 
-function Textarea({
+export function Textarea({
   label,
   error,
   required,
@@ -79,7 +79,7 @@ function Textarea({
   );
 }
 
-function DialogButtons({ busy, submit, onCancel, danger }: { busy: boolean; submit: string; onCancel: () => void; danger?: boolean }) {
+export function DialogButtons({ busy, submit, onCancel, danger }: { busy: boolean; submit: string; onCancel: () => void; danger?: boolean }) {
   const { t } = useTranslation();
   return (
     <div className="flex gap-2.5">
@@ -98,30 +98,30 @@ function DialogButtons({ busy, submit, onCancel, danger }: { busy: boolean; subm
 const statusSchema = z.object({
   to: z.string().min(1, msg('validation.required')),
   note: text(500),
-  deliveredDate: z.string(),
 });
 
 /**
- * «تغيير المرحلة»: only the statuses the API allows now (allowedStatuses); an optional note; the
- * delivery date when delivering (default the lab's today). No lifecycle rule is repeated here.
+ * «تغيير المرحلة»: only the statuses the API allows now (allowedStatuses) and an optional note. No
+ * lifecycle rule is repeated here. «تم التسليم» is a step of its own (B5, N3): choosing it hands
+ * over to the delivery dialog, which asks about the money.
  */
 export function StatusDialog({
   detail,
-  today,
   open,
   onOpenChange,
+  onDeliver,
 }: {
   detail: CaseDetail;
-  today: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  onDeliver: () => void;
 }) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [formError, setFormError] = useState<string | null>(null);
   const form = useForm<z.input<typeof statusSchema>, unknown, z.output<typeof statusSchema>>({
     resolver: zodResolver(statusSchema),
-    values: { to: detail.allowedStatuses.find((s) => s !== 'cancelled') ?? '', note: '', deliveredDate: today },
+    values: { to: detail.allowedStatuses.find((s) => s !== 'cancelled') ?? '', note: '' },
   });
   const to = useWatch({ control: form.control, name: 'to' });
   const { errors } = form.formState;
@@ -133,7 +133,6 @@ export function StatusDialog({
         rowVersion: detail.rowVersion,
         to: v.to as Exclude<CaseStatus, 'cancelled'>,
         note: blankToNull(v.note),
-        ...(v.to === 'delivered' ? { deliveredDate: v.deliveredDate } : {}),
       }),
     meta: { inlineErrors: true },
     onSuccess: async (saved) => {
@@ -141,10 +140,7 @@ export function StatusDialog({
       toast.success(t('caseDetails.statusDialog.changed', { status: t(`caseStatus.${saved.status}`) }));
       onOpenChange(false);
     },
-    onError: (e) => {
-      if (onField(e, { 'error.case.delivered_date_invalid': 'deliveredDate' }, form.setError)) return;
-      setFormError(applyServerErrors(e, form.setError, ['to', 'note', 'deliveredDate']));
-    },
+    onError: (e) => setFormError(applyServerErrors(e, form.setError, ['to', 'note'])),
   });
 
   return (
@@ -154,10 +150,7 @@ export function StatusDialog({
         className="flex flex-col gap-4"
         onSubmit={form.handleSubmit((v) => {
           setFormError(null);
-          if (v.to === 'delivered' && !isIsoDate(v.deliveredDate)) {
-            form.setError('deliveredDate', { type: 'client', message: msg('date.invalid') });
-            return;
-          }
+          if (v.to === 'delivered') return onDeliver();
           save.mutate(v);
         })}
       >
@@ -181,32 +174,22 @@ export function StatusDialog({
             </label>
           ))}
         </fieldset>
-        {to === 'delivered' && (
-          <Controller
-            control={form.control}
-            name="deliveredDate"
-            render={({ field }) => (
-              <DateField
-                label={t('caseDetails.statusDialog.deliveredDate')}
-                required
-                today={today}
-                min={detail.receivedDate}
-                max={today}
-                value={field.value}
-                onChange={field.onChange}
-                onBlur={field.onBlur}
-                inputRef={field.ref}
-                error={renderMessage(t, errors.deliveredDate?.message)}
-              />
-            )}
+        {to === 'delivered' ? (
+          <p role="note" className="rounded-lg bg-info-bg px-3 py-2 text-[14px] font-semibold">
+            {t('caseDetails.statusDialog.deliveryNext')}
+          </p>
+        ) : (
+          <Textarea
+            label={t('caseDetails.statusDialog.note')}
+            error={renderMessage(t, errors.note?.message)}
+            {...form.register('note')}
           />
         )}
-        <Textarea
-          label={t('caseDetails.statusDialog.note')}
-          error={renderMessage(t, errors.note?.message)}
-          {...form.register('note')}
+        <DialogButtons
+          busy={save.isPending}
+          submit={to === 'delivered' ? t('caseDetails.statusDialog.continueToDelivery') : t('common.save')}
+          onCancel={() => onOpenChange(false)}
         />
-        <DialogButtons busy={save.isPending} submit={t('common.save')} onCancel={() => onOpenChange(false)} />
       </form>
     </FormDialog>
   );

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Ban, EllipsisVertical, ExternalLink, Pencil, Repeat } from 'lucide-react';
+import { Ban, EllipsisVertical, ExternalLink, PackageCheck, Pencil, Repeat } from 'lucide-react';
 import { DropdownMenu } from 'radix-ui';
 import { useState } from 'react';
 import type { MouseEvent } from 'react';
@@ -11,6 +11,7 @@ import { settingsQuery } from '@/features/shell/settings';
 import { todayIn } from '@/i18n/format';
 import { caseQuery } from './api';
 import { CancelCaseDialog, StatusDialog } from './CaseDialogs';
+import { DeliveryDialog } from './DeliveryDialog';
 
 /** «عرض / تعديل»: the explicit, labelled way into a case from any list. */
 export function ViewCaseButton({ id, caseNo }: { id: number; caseNo: number }) {
@@ -45,7 +46,7 @@ export function useRowOpen() {
 export const clickableRow =
   'cursor-pointer hover:bg-hover has-[:focus-visible]:bg-hover has-[:focus-visible]:outline-2 has-[:focus-visible]:-outline-offset-2 has-[:focus-visible]:outline-focus';
 
-export type CaseAction = { kind: 'status' | 'cancel'; id: number } | null;
+export type CaseAction = { kind: 'status' | 'deliver' | 'cancel'; id: number } | null;
 
 const itemClass =
   'flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-[14px] font-semibold outline-none data-[highlighted]:bg-hover data-[disabled]:cursor-default data-[disabled]:text-muted [&_svg]:size-[18px] [&_svg]:text-muted';
@@ -68,6 +69,7 @@ export function CaseRowMenu({
   const [open, setOpen] = useState(false);
   const { data: detail } = useQuery({ ...caseQuery(id), enabled: open });
   const canChange = detail ? detail.allowedStatuses.some((s) => s !== 'cancelled') : false;
+  const canDeliver = detail ? detail.allowedStatuses.includes('delivered') : false;
   return (
     // Not modal: a dialog opened from an item must get the focus and the pointer at once.
     <DropdownMenu.Root modal={false} open={open} onOpenChange={setOpen}>
@@ -93,6 +95,12 @@ export function CaseRowMenu({
           ) : (
             <>
               <DropdownMenu.Separator className="my-1 h-px bg-border" />
+              {canDeliver && (
+                <DropdownMenu.Item className={itemClass} onSelect={() => onAction({ kind: 'deliver', id })}>
+                  <PackageCheck aria-hidden="true" />
+                  {t('caseDetails.deliver')}
+                </DropdownMenu.Item>
+              )}
               {canChange && (
                 <DropdownMenu.Item className={itemClass} onSelect={() => onAction({ kind: 'status', id })}>
                   <Repeat aria-hidden="true" />
@@ -121,19 +129,24 @@ export function CaseRowMenu({
   );
 }
 
-/** The same status and cancel dialogs as the details page, for a case chosen from a list. */
+/** The same status, delivery and cancel dialogs as the details page, for a case chosen from a list. */
 export function CaseActionDialogs({ action, onClose }: { action: CaseAction; onClose: () => void }) {
   const { data: detail } = useQuery({ ...caseQuery(action?.id ?? 0), enabled: action !== null });
   const { data: settings } = useQuery(settingsQuery);
+  // «تم التسليم» chosen in the status dialog continues in the delivery dialog (B5).
+  const [delivering, setDelivering] = useState<number | null>(null);
   if (!action || !detail) return null;
-  const close = (o: boolean) => !o && onClose();
+  const close = (o: boolean) => {
+    if (o) return;
+    setDelivering(null);
+    onClose();
+  };
+  const today = todayIn(settings?.labProfile?.timeZone ?? 'UTC');
+  if (action.kind === 'deliver' || delivering === action.id) {
+    return <DeliveryDialog detail={detail} today={today} open onOpenChange={close} />;
+  }
   return action.kind === 'status' ? (
-    <StatusDialog
-      detail={detail}
-      today={todayIn(settings?.labProfile?.timeZone ?? 'UTC')}
-      open
-      onOpenChange={close}
-    />
+    <StatusDialog detail={detail} open onOpenChange={close} onDeliver={() => setDelivering(action.id)} />
   ) : (
     <CancelCaseDialog detail={detail} open onOpenChange={close} />
   );

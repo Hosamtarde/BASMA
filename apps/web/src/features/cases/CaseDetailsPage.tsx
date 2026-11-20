@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, Ban, ListPlus, Pencil, Repeat, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Ban, CalendarClock, ListPlus, PackageCheck, Pencil, Repeat, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
@@ -19,11 +19,12 @@ import { cn } from '@/lib/cn';
 import { caseApi, caseQuery, storeCase } from './api';
 import type { CaseDetail, CaseLine } from './api';
 import { AddLinesDialog, CancelCaseDialog, EditCaseDialog, LineDialog, StatusDialog } from './CaseDialogs';
+import { CollectOnDialog, DeliveryDialog } from './DeliveryDialog';
 import { useLineName } from './DraftLinesTable';
 import { ShadeSwatch } from './shade/ShadeGuideDialog';
 import { shadeColor } from './shade/shades';
 import { CasePaymentsPanel } from '@/features/payments/CasePaymentsPanel';
-import { OverdueMarker, STATUS_STYLE, StatusBadge } from './status';
+import { CollectDueMarker, OverdueMarker, STATUS_STYLE, StatusBadge } from './status';
 
 function Info({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -46,7 +47,7 @@ export function CaseDetailsPage() {
   const { data: settings } = useQuery(settingsQuery);
   const timeZone = settings?.labProfile?.timeZone ?? 'UTC';
   const Back = currentLanguage() === 'ar' ? ArrowRight : ArrowLeft;
-  const [dialog, setDialog] = useState<'status' | 'cancel' | 'edit' | 'lines' | null>(null);
+  const [dialog, setDialog] = useState<'status' | 'deliver' | 'collect' | 'cancel' | 'edit' | 'lines' | null>(null);
 
   if (!valid) return <NotFoundPage />;
   if (!detail) return <Spinner label={t('common.loading')} />;
@@ -69,10 +70,28 @@ export function CaseDetailsPage() {
         </h1>
         <StatusBadge status={detail.status} />
         {detail.overdue && <OverdueMarker />}
+        {detail.collectDue && <CollectDueMarker />}
         <span className="flex-1" />
-        {/* Always the same three actions; what is allowed comes from the API, and an action that is
+        {/* Always the same four actions; what is allowed comes from the API, and an action that is
             not allowed now stays visible, disabled, with the reason. */}
         <div className="flex flex-wrap gap-2">
+          <ActionButton
+            onClick={() => setDialog('deliver')}
+            disabledReason={
+              detail.allowedStatuses.includes('delivered')
+                ? null
+                : t(
+                    cancelled
+                      ? 'caseDetails.why.cancelled'
+                      : detail.status === 'delivered'
+                        ? 'caseDetails.why.alreadyDelivered'
+                        : 'caseDetails.why.noStatus',
+                  )
+            }
+          >
+            <PackageCheck aria-hidden="true" />
+            {t('caseDetails.deliver')}
+          </ActionButton>
           <ActionButton
             variant="secondary"
             onClick={() => setDialog('edit')}
@@ -84,6 +103,7 @@ export function CaseDetailsPage() {
             {t('caseDetails.edit')}
           </ActionButton>
           <ActionButton
+            variant="secondary"
             onClick={() => setDialog('status')}
             disabledReason={
               detail.allowedStatuses.some((s) => s !== 'cancelled')
@@ -148,6 +168,22 @@ export function CaseDetailsPage() {
                   <span className="num">{detail.deliveredDate}</span>
                 </Info>
               )}
+              {detail.status === 'delivered' && (
+                <Info label={t('caseDetails.collectOn')}>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="num">{detail.collectOn ?? '—'}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="px-1.5"
+                      aria-label={t('caseDetails.editCollectOn')}
+                      onClick={() => setDialog('collect')}
+                    >
+                      <CalendarClock aria-hidden="true" />
+                    </Button>
+                  </span>
+                </Info>
+              )}
             </dl>
           </Card>
           <LinesCard detail={detail} onAdd={() => setDialog('lines')} />
@@ -169,7 +205,14 @@ export function CaseDetailsPage() {
         <History detail={detail} timeZone={timeZone} />
       </div>
 
-      <StatusDialog detail={detail} today={today} open={dialog === 'status'} onOpenChange={close} />
+      <StatusDialog
+        detail={detail}
+        open={dialog === 'status'}
+        onOpenChange={close}
+        onDeliver={() => setDialog('deliver')}
+      />
+      <DeliveryDialog detail={detail} today={today} open={dialog === 'deliver'} onOpenChange={close} />
+      <CollectOnDialog detail={detail} today={today} open={dialog === 'collect'} onOpenChange={close} />
       <CancelCaseDialog detail={detail} open={dialog === 'cancel'} onOpenChange={close} />
       <EditCaseDialog detail={detail} today={today} open={dialog === 'edit'} onOpenChange={close} />
       <AddLinesDialog detail={detail} open={dialog === 'lines'} onOpenChange={close} />

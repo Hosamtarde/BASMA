@@ -251,6 +251,8 @@ When status changes to «تم التسليم» (from any path) show the dialog:
    - None: asks for the collect date the same way.
 3. Message if already delivered: «هذه الحالة مسلّمة بالفعل.»
 
+**As built in B5 (owner defaults N1–N4, `docs/plans/b5-delivery-notifications-backlog.md` §4):** every delivery goes through `POST /cases/{id}/delivery`; a plain status change to delivered is refused (`error.case.delivery_required`) and choosing «تم التسليم» in the status dialog opens this dialog. The amount due at delivery (`deliveryDue`) = what is unpaid on the case (FIFO) minus the doctor's cheques for this case that have not cleared, never below 0; when it is 0 the question is skipped. «كاملًا» pays exactly that amount (computed by the server); «جزء منه» takes an amount below it; the collect date is required for part or nothing, on or after the delivery date, can be changed or removed later, and is cleared when the case is returned. Cash, transfer or cheque. The payment, the status, both dates and the audit entries are one transaction under the payment lock order, with an Idempotency-Key when money is taken.
+
 ### 5.8 Incoming payment «دفعة واردة»
 Fields: doctor (required) → show his current balance; amount (> 0); method **cash / cheque / bank transfer**; if cheque: cheque no., bank, due date; payment date (default today); optional bound case (dropdown of his open cases, default «غير مرتبطة بحالة»); note.
 Button «تسجيل الدفعة». Success toast shows new balance.
@@ -311,6 +313,8 @@ Generated, not manually created; dismissible (store dismissals):
 - Cheque due within 7 days / overdue pending.
 - «تحصيل مستحق» — a `collect_on` date reached for a partially paid delivered case.
 Bell shows the count; panel groups by type.
+
+**As built in B5 (N5–N8):** cases still in the lab (waiting, design, in progress, ready, returned) due within 2 days or overdue; pending incoming and outgoing cheques of active payments due within 7 days or overdue (outgoing ones need `expenses.read`); delivered cases whose collect date has come while something is still owed (needs `ledger.read`). Items are computed at read time; each has a key `type:id:phase:date`. Read / hidden marks are per user (`notification_states`) and purged 180 days after the item stops appearing. Opening the bell marks the feed read (the badge counts what is new); «إخفاء» hides one item until its phase or date changes. Texts come from the API catalogs in the user's language.
 
 ### 5.17 Global search
 Single box; matches doctor name, patient name or case number as you type (debounce 150 ms); grouped results (doctors / cases); no exact match → show closest matches.
@@ -538,6 +542,9 @@ CREATE TABLE invoice_cases (
 );
 
 CREATE TABLE dismissed_notifications (key TEXT PRIMARY KEY, at TEXT NOT NULL);
+-- As built (B5, migration 0008): per user, read and hidden apart.
+-- notification_states(user_id → users ON DELETE CASCADE, key 1..100 chars, seen_at, dismissed_at, created_at, PK (user_id, key))
+-- cases.collect_on DATE NULL, CHECK collect_on IS NULL OR (status = 'delivered' AND collect_on >= delivered_date)
 
 CREATE TABLE audit_log (
   id INTEGER PRIMARY KEY,
@@ -630,7 +637,7 @@ The look is agreed (§1.1, `docs/design-directions/`). Each slice delivers its A
 | B3 | Payments in/out/void, cheques, idempotency, balance engine (`allocate`, `doctorBalance`) **+ their screens** | Exhaustive unit tests; numbers tie to hand calculations |
 | B4 | Debts + breakdown, doctor statement, receipts report, CSV export (debts, breakdown, statement, payments), global search **+ screens**. The **expenses report moved to B4b** (it needs outgoing payments, which B3 did not build) | Breakdown ties out to the ledger |
 | B4b | **Outgoing payments and expenses** (owner decision, B4 plan O1): «إنشاء دفعة صادرة» (§5.9) with `OUT-` vouchers, expense categories, refunds to doctors (`paid_out` of §7.3 and its rule in `allocate`), cheque direction in the register (§5.13), void for outgoing (§5.10), «تقرير المصاريف» by category with CSV (§10), Home «دفعة صادرة» card. Depends on B3 (payments, cheques, currency lock) and B4 (CSV module, tie-out test) — plan: `docs/plans/b4b-outgoing-expenses.md` (approved with defaults X1–X11; built: backend and screens) | Expenses report ties to the payments; a refund leaves the tie-out of B4 intact |
-| B5 | Delivery flow, cheque status transitions, notifications feed **+ screens** | Cheque rules (§7.4) verified |
+| B5 | Delivery flow, cheque status transitions, notifications feed **+ screens** | Cheque rules (§7.4) verified — built 2026-11-20 (a status date may not be earlier than the cheque's current status date was added); screen-quality items moved to B5b |
 | B6 | Invoices (3 types), immutable snapshots, void, template storage **+ invoice appearance and printing** | Snapshot never changes after later edits |
 | B7 | **Windows installer** (§2.1) including the UI (ADR-0017): bundled API + portable PostgreSQL as services, first-run setup, upgrade + rollback, scheduled backups & tested restore, uninstall that keeps data | Clean Windows VM: install → use → upgrade → restore works |
 | B8 | Security review and hardening (API and UI), index/query review, concurrency tests, frozen OpenAPI | **Sign-off by the owner** |

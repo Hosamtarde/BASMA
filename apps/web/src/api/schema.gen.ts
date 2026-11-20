@@ -522,12 +522,46 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Change status (machine of SPEC §9 as approved for B2) */
+        /** Change status (machine of SPEC §9 as approved for B2), except delivery: POST /cases/{id}/delivery */
         post: operations["CasesController_changeStatus"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cases/{id}/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deliver a case (B5, SPEC §5.7): received full / partial / none, the collect date, and the payment taken at delivery in one transaction */
+        post: operations["CasesController_deliver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cases/{id}/collect-on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change or remove the collect date of a delivered case (B5) */
+        patch: operations["CasesController_setCollectOn"];
         trace?: never;
     };
     "/api/v1/cases/{id}/cancel": {
@@ -644,40 +678,6 @@ export interface paths {
         };
         /** Chip counts per status and direction, due soon, overdue, pending amounts */
         get: operations["ChequeRegisterController_summary"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cheques": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Cheque register (incoming cheques of active payments), by due date; each row is its payment */
-        get: operations["ChequesController_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cheques/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Counts per status, due soon and overdue; same filters as the list except status */
-        get: operations["ChequesController_summary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1026,6 +1026,57 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The notifications feed (SPEC §5.16): cases due or overdue, incoming and outgoing cheques due, collect dates reached. A type the caller cannot read is left out */
+        get: operations["NotificationsController_feed"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unread and total items of the feed (the bell badge) */
+        get: operations["NotificationsController_count"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Mark items read, hide them or show them again (per user); keys not in the caller’s feed now are ignored */
+        patch: operations["NotificationsController_state"];
         trace?: never;
     };
 }
@@ -1410,6 +1461,8 @@ export interface components {
             receivedDate: string;
             expectedDate: string;
             deliveredDate: string | null;
+            /** @description B5: agreed date to collect what is still owed; only while delivered */
+            collectOn: string | null;
             /** @enum {string} */
             status: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled";
             /** @description Integer minor units */
@@ -1585,6 +1638,8 @@ export interface components {
             receivedDate: string;
             expectedDate: string;
             deliveredDate: string | null;
+            /** @description B5: agreed date to collect what is still owed; only while delivered */
+            collectOn: string | null;
             /** @enum {string} */
             status: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled";
             /** @description Integer minor units */
@@ -1598,12 +1653,18 @@ export interface components {
             paid: number;
             /** @description total - paid; 0 for a cancelled case */
             remaining: number;
+            /** @description B5: payments bound to this case whose cheque has not cleared yet */
+            pendingCheques: number;
+            /** @description B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled */
+            deliveryDue: number | null;
+            /** @description B5: delivered, the collect date has come (lab today) and something is still owed («تحصيل مستحق») */
+            collectDue: boolean;
             /** @description Integer minor units */
             discount: number;
             notes: string | null;
             lines: components["schemas"]["CaseLineResponse"][];
             history: components["schemas"]["CaseHistoryResponse"][];
-            /** @description Statuses this case may move to now (POST /cases/{id}/status); empty when none */
+            /** @description Statuses this case may move to now; empty when none. "delivered" goes through POST /cases/{id}/delivery (B5), every other one through POST /cases/{id}/status */
             allowedStatuses: ("waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled")[];
             /** @description true when POST /cases/{id}/cancel is allowed now */
             canCancel: boolean;
@@ -1621,6 +1682,8 @@ export interface components {
             receivedDate: string;
             expectedDate: string;
             deliveredDate: string | null;
+            /** @description B5: agreed date to collect what is still owed; only while delivered */
+            collectOn: string | null;
             /** @enum {string} */
             status: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled";
             /** @description Integer minor units */
@@ -1634,12 +1697,18 @@ export interface components {
             paid: number;
             /** @description total - paid; 0 for a cancelled case */
             remaining: number;
+            /** @description B5: payments bound to this case whose cheque has not cleared yet */
+            pendingCheques: number;
+            /** @description B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled */
+            deliveryDue: number | null;
+            /** @description B5: delivered, the collect date has come (lab today) and something is still owed («تحصيل مستحق») */
+            collectDue: boolean;
             /** @description Integer minor units */
             discount: number;
             notes: string | null;
             lines: components["schemas"]["CaseLineResponse"][];
             history: components["schemas"]["CaseHistoryResponse"][];
-            /** @description Statuses this case may move to now (POST /cases/{id}/status); empty when none */
+            /** @description Statuses this case may move to now; empty when none. "delivered" goes through POST /cases/{id}/delivery (B5), every other one through POST /cases/{id}/status */
             allowedStatuses: ("waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled")[];
             /** @description true when POST /cases/{id}/cancel is allowed now */
             canCancel: boolean;
@@ -1674,13 +1743,50 @@ export interface components {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
             rowVersion: number;
             /**
-             * @description Cancel uses POST /cases/{id}/cancel
+             * @description Cancel uses POST /cases/{id}/cancel. B5: to=delivered is refused (409 error.case.delivery_required); deliver with POST /cases/{id}/delivery
              * @enum {string}
              */
             to: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned";
             note?: string | null;
-            /** @description Only with to=delivered; default today; ≥ received, ≤ today */
+            /** @description Refused (400 error.case.delivered_date_invalid): a date belongs to a delivery */
             deliveredDate?: string;
+        };
+        DeliverCaseRequest: {
+            /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
+            rowVersion: number;
+            /** @description Default today (lab time zone); ≥ received date, ≤ today */
+            deliveredDate?: string;
+            /** @description Into the status history */
+            note?: string | null;
+            /**
+             * @description Required when something is due (deliveryDue > 0); omit (or full) when nothing is due
+             * @enum {string}
+             */
+            received?: "full" | "partial" | "none";
+            /** @description Only with received=partial: integer minor units, below deliveryDue */
+            amount?: number;
+            /**
+             * @description With received=full or partial
+             * @enum {string}
+             */
+            method?: "cash" | "cheque" | "transfer";
+            /** @description Required for method=cheque, forbidden otherwise */
+            cheque?: components["schemas"]["ChequeInput"];
+            /** @description Required with partial / none; ≥ the delivery date; refused otherwise */
+            collectOn?: string;
+        };
+        DeliverCaseResponse: {
+            case: components["schemas"]["CaseDetailResponse"];
+            /** @description The payment taken at delivery, if any */
+            payment: components["schemas"]["PaymentResponse"] | null;
+            /** @description Doctor balance after the payment; null without one */
+            doctorBalance: number | null;
+        };
+        SetCollectOnRequest: {
+            /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
+            rowVersion: number;
+            /** @description ≥ the delivery date; null removes it */
+            collectOn: string | null;
         };
         CancelCaseRequest: {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
@@ -1855,33 +1961,12 @@ export interface components {
             /** @description Sum of pending cheques per direction */
             pendingAmount: components["schemas"]["DirectionAmounts"];
         };
-        ChequePage: {
-            page: number;
-            pageSize: number;
-            total: number;
-            /** @description The payment of each cheque, cheque included */
-            items: components["schemas"]["PaymentResponse"][];
-        };
-        ChequeStatusCounts: {
-            pending: number;
-            cleared: number;
-            returned: number;
-        };
-        ChequeSummaryResponse: {
-            byStatus: components["schemas"]["ChequeStatusCounts"];
-            /** @description Pending, due within 7 days (lab today) */
-            dueSoon: number;
-            /** @description Pending and past due */
-            overdue: number;
-            /** @description Sum of pending cheques */
-            pendingAmount: number;
-        };
         ChangeChequeStatusRequest: {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
             rowVersion: number;
             /** @enum {string} */
             status: "pending" | "cleared" | "returned";
-            /** @description Default today; between the payment date and today */
+            /** @description Default today; between the payment date and today, not before the current status date */
             statusDate?: string;
             note?: string | null;
         };
@@ -2370,6 +2455,76 @@ export interface components {
             /** @description The text searched, normalised */
             q: string;
             groups: components["schemas"]["SearchGroups"];
+        };
+        NotificationEntityResponse: {
+            /** @enum {string} */
+            kind: "case" | "cheque";
+            /** @description Case id or cheque id */
+            id: number;
+            /**
+             * @description Cheques only
+             * @enum {string}
+             */
+            direction?: "in" | "out";
+            /** @description Cheques only */
+            chequeNo?: string;
+        };
+        NotificationItemResponse: {
+            /**
+             * @description Names this item in this phase
+             * @example case_due:41:soon:2026-11-12
+             */
+            key: string;
+            /** @enum {string} */
+            type: "case_due" | "cheque_in_due" | "cheque_out_due" | "collect_due";
+            /** @enum {string} */
+            phase: "soon" | "overdue" | "due";
+            /** @description Expected date, cheque due date or collect date */
+            date: string;
+            entity: components["schemas"]["NotificationEntityResponse"];
+            /** @description Values used in the text (amount in integer minor units) */
+            params: {
+                [key: string]: string | number;
+            };
+            /** @description Rendered in the request language */
+            text: string;
+            seen: boolean;
+        };
+        NotificationGroupResponse: {
+            /** @enum {string} */
+            type: "case_due" | "cheque_in_due" | "cheque_out_due" | "collect_due";
+            /** @description Items of this type not hidden (exact) */
+            total: number;
+            unread: number;
+            items: components["schemas"]["NotificationItemResponse"][];
+        };
+        NotificationsResponse: {
+            /** @description The lab’s today */
+            today: string;
+            unread: number;
+            total: number;
+            /** @description One group per type the caller may see */
+            groups: components["schemas"]["NotificationGroupResponse"][];
+        };
+        NotificationCountResponse: {
+            unread: number;
+            total: number;
+        };
+        NotificationStateRequest: {
+            /** @description Keys from GET /notifications; required unless all=true */
+            keys?: string[];
+            /**
+             * @description With seen=true: every item of the caller’s feed now (opening the bell). Not with keys or dismissed
+             * @enum {boolean}
+             */
+            all?: true;
+            /**
+             * @description Mark as read (opening the bell does this)
+             * @enum {boolean}
+             */
+            seen?: true;
+            /** @description true hides the items until they change; false shows them again */
+            dismissed?: boolean;
         };
         FieldError: {
             /**
@@ -3958,7 +4113,105 @@ export interface operations {
                     "application/json": components["schemas"]["CaseDetailResponse"];
                 };
             };
-            /** @description error.case.invalid_transition | error.case.same_status */
+            /** @description error.case.invalid_transition | error.case.same_status | error.case.delivery_required | error.case.already_delivered */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    CasesController_deliver: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required with received=full or partial (a UUID per attempt); a replay returns the original answer */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliverCaseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliverCaseResponse"];
+                };
+            };
+            /** @description error.validation.failed | error.delivery.* (received, amount, method, collect date) | error.case.delivered_date_invalid | error.payment.cheque_required | error.payment.cheque_not_allowed | error.idempotency.required */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.case.already_delivered | error.case.cancelled | error.case.invalid_transition | error.delivery.exceeds_remaining {max} | error.delivery.nothing_due | error.cheque.duplicate | error.concurrency.stale */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    CasesController_setCollectOn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetCollectOnRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseDetailResponse"];
+                };
+            };
+            /** @description error.validation.failed | error.delivery.collect_on_invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.case.not_delivered | error.case.cancelled | error.concurrency.stale */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -4263,67 +4516,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChequeRegisterSummaryResponse"];
-                };
-            };
-        };
-    };
-    ChequesController_list: {
-        parameters: {
-            query?: {
-                doctorId?: number;
-                /** @description Due date from (inclusive) */
-                dueFrom?: string;
-                /** @description Due date to (inclusive) */
-                dueTo?: string;
-                /** @description Pending cheques due within 7 days / past due */
-                due?: "soon" | "overdue";
-                /** @description Cheque number, bank, doctor name or voucher number */
-                search?: string;
-                status?: "pending" | "cleared" | "returned";
-                page?: number;
-                pageSize?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChequePage"];
-                };
-            };
-        };
-    };
-    ChequesController_summary: {
-        parameters: {
-            query?: {
-                doctorId?: number;
-                /** @description Due date from (inclusive) */
-                dueFrom?: string;
-                /** @description Due date to (inclusive) */
-                dueTo?: string;
-                /** @description Pending cheques due within 7 days / past due */
-                due?: "soon" | "overdue";
-                /** @description Cheque number, bank, doctor name or voucher number */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChequeSummaryResponse"];
                 };
             };
         };
@@ -5157,6 +5349,77 @@ export interface operations {
                 };
             };
             /** @description error.validation.failed (empty or longer than 100 characters) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    NotificationsController_feed: {
+        parameters: {
+            query?: {
+                /** @description Items listed per type */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationsResponse"];
+                };
+            };
+        };
+    };
+    NotificationsController_count: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationCountResponse"];
+                };
+            };
+        };
+    };
+    NotificationsController_state: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotificationStateRequest"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description error.validation.failed */
             400: {
                 headers: {
                     [name: string]: unknown;

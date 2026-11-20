@@ -7,6 +7,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -83,4 +84,27 @@ export const auditLog = pgTable(
   },
   // «آخر العمليات» lists the latest entries.
   (t) => [index('audit_log_at_ix').on(t.at.desc())],
+);
+
+/**
+ * B5 (SPEC §5.16): what each user has seen or hidden in the notifications feed. The notifications
+ * themselves are computed at read time and never stored; a key names one notification in one phase
+ * (`type:entityId:phase:date`), so a hidden "soon" item comes back when it becomes "overdue" or its
+ * date changes. Per user (SPEC §3.3). Not financial data: deleted with the user, purged after 180 days.
+ */
+export const notificationStates = pgTable(
+  'notification_states',
+  {
+    userId: bigint('user_id', { mode: 'number' })
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    key: text('key').notNull(),
+    seenAt: timestamp('seen_at', { withTimezone: true }),
+    dismissedAt: timestamp('dismissed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.key] }),
+    check('notification_states_key_length_ck', sql`char_length(${t.key}) between 1 and 100`),
+  ],
 );

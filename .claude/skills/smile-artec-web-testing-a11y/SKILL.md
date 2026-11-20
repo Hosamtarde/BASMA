@@ -36,4 +36,11 @@ description: Use when writing or reviewing tests or accessibility for the Smile 
 - Filter changes replace the address (they do not push): test "Back" by leaving the page and coming back, not by `goBack()` after a chip.
 - `FormDialog` returns the focus to the control that opened it (it remembers the opener; Radix has no trigger there). Assert `toBeFocused()` after Esc for any new dialog.
 - Where a figure exists in two places (Home vs the expenses report), compare it with the OTHER endpoint's number, not with the same endpoint twice.
-- **Run vitest from PowerShell on this Windows machine.** Under the Bash tool the jsdom suites fail with "Vitest failed to find the current suite" (observed in the 2026-11-19 session, cause not established); the same command passes in PowerShell. Everything else (lint, tsc, Playwright, jest) runs in either.
+- **Vitest runs from any shell (fixed in B5).** The cause was a working directory spelled with a lower-case drive letter (`c:\…`, Git Bash `/c/…`): Vitest loaded itself twice and every jsdom suite failed with "Vitest failed to find the current suite". `npm test` now starts Vitest through `scripts/vitest.ts`, which upper-cases the drive letter. Calling `npx vitest` directly from such a shell still fails; use `npm test -- <files>`.
+
+**B5 notes**
+- Signed in, a language button click is saved by a request that follows: use `switchLanguage(page, /^English/)` from `e2e/support.ts` when a later test depends on the saved language (it waits for `PATCH /settings/language`, no sleep).
+- No sleeps: wait for a layout fact with `expect.poll` (the chart test after scrolling), for a request with `waitForResponse`.
+- Component tests have no Toaster: spy on `toast.success` (`vi.spyOn(toast, 'success')`) and assert the text it was called with.
+- Timeouts: Vitest `testTimeout` 15 s and Testing Library `asyncUtilTimeout` 4 s (heavy screens under a parallel run); a hung test still fails.
+- The bell lists the whole installation's feed (20 items per type): a Playwright test looks for its own case's item (`تحصيل مستحق` has few), or compares `GET /notifications/count` before and after marking everything read.

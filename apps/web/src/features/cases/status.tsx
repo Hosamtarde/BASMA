@@ -1,4 +1,4 @@
-import { TriangleAlert } from 'lucide-react';
+import { Banknote, TriangleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 import type { CaseStatus } from './api';
@@ -76,6 +76,17 @@ export function OverdueMarker() {
     <span className="inline-flex items-center gap-1 rounded-md bg-danger-bg px-1.5 py-0.5 text-[12.5px] font-bold whitespace-nowrap text-danger">
       <TriangleAlert aria-hidden="true" className="size-3.5" />
       {t('cases.overdue')}
+    </span>
+  );
+}
+
+/** «تحصيل مستحق» (B5): the collect date of a delivered case has come and money is still owed. */
+export function CollectDueMarker() {
+  const { t } = useTranslation();
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md bg-warning-bg px-1.5 py-0.5 text-[12.5px] font-bold whitespace-nowrap text-warning-ink">
+      <Banknote aria-hidden="true" className="size-3.5" />
+      {t('caseDetails.collectDue')}
     </span>
   );
 }

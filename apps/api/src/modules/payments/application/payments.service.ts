@@ -25,7 +25,6 @@ import {
   requestHash,
 } from '../domain/payment-rules';
 import {
-  ChequeFilter,
   ChequeRow,
   PaymentFilter,
   PaymentRow,
@@ -187,7 +186,8 @@ export class PaymentsService {
   /**
    * Inserts the payment (+ cheque + audit) inside the caller's transaction. The caller holds the
    * currency SHARE lock; this locks the doctor row. `advance` is set when the case is being created
-   * in the same transaction (its total is known and nothing is bound to it yet).
+   * in the same transaction (its total is known and nothing is bound to it yet). `via` names the
+   * flow in the audit entry when it is not a plain payment (B5: a payment taken at delivery).
    */
   async insert(
     tx: Tx,
@@ -196,6 +196,7 @@ export class PaymentsService {
     userId: number,
     idem: { key: string; hash: string } | null,
     advance?: AdvanceContext,
+    via?: 'delivery',
   ): Promise<number> {
     const today = await this.calendar.today(tx);
     const paidAt = input.paidAt ?? today;
@@ -266,6 +267,7 @@ export class PaymentsService {
         amount: input.amount,
         caseNo,
         viaAdvance: advance !== undefined,
+        ...(via === 'delivery' ? { viaDelivery: true } : {}),
       },
     });
     return id;
@@ -366,23 +368,5 @@ export class PaymentsService {
     };
   }
 
-  // ---- cheque register reads ----
 
-  async listCheques(f: ChequeFilter & { status?: ChequeStatus }, page: number, pageSize: number) {
-    const today = await this.calendar.today();
-    const r = await this.repo.listCheques(
-      this.db,
-      f,
-      today,
-      addDays(today, CHEQUE_DUE_SOON_DAYS),
-      page,
-      pageSize,
-    );
-    return { items: r.items.map((row) => this.toView(row, today)), page, pageSize, total: r.total };
-  }
-
-  async chequeSummary(f: ChequeFilter) {
-    const today = await this.calendar.today();
-    return this.repo.chequeSummary(this.db, f, today, addDays(today, CHEQUE_DUE_SOON_DAYS));
-  }
 }

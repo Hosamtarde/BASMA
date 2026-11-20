@@ -7,6 +7,7 @@ import { DoctorsModule } from './modules/doctors/doctors.module';
 import { HealthModule } from './modules/health/health.module';
 import { ExportsModule } from './modules/exports/exports.module';
 import { SearchModule } from './modules/search/search.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { SettingsModule } from './modules/settings/settings.module';
@@ -42,6 +43,7 @@ export class AppModule {
         PaymentsModule,
         ExportsModule,
         SearchModule,
+        NotificationsModule,
       ],
     };
   }

@@ -28,6 +28,7 @@ const savedCase = {
   receivedDate: '2026-11-07',
   expectedDate: '2099-01-01',
   deliveredDate: null,
+  collectOn: null,
   status: 'design',
   total: 41950,
   overdue: false,

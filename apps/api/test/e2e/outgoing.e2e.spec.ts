@@ -541,6 +541,36 @@ describe('Outgoing payments and refunds (e2e)', () => {
       expect(res.body.error.code).toBe('error.cheque.invalid_transition');
     });
 
+    it('a status date may not be earlier than the current status date (B5 item 6); refund statement and tie-out hold', async () => {
+      const d = await doctor();
+      await payIn({ doctorId: d, method: 'cash', amount: 15000, paidAt: '2026-11-01' });
+      const r = await outOk(refund(d, 5000, { method: 'cheque', paidAt: '2026-11-02', cheque: cheque() }));
+      const c = r.payment.cheque!;
+      const cleared = (await setOutCheque(c.id, c.rowVersion, 'cleared', { statusDate: '2026-11-08' }).expect(200))
+        .body as OutResult;
+      const cc = cleared.payment.cheque!;
+      const early = await setOutCheque(cc.id, cc.rowVersion, 'returned', { statusDate: '2026-11-05' }).expect(400);
+      expect(early.body.error.code).toBe('error.cheque.date_invalid');
+      await setOutCheque(cc.id, cc.rowVersion, 'returned', { statusDate: '2026-11-08' }).expect(200);
+      const { st } = await tieOut(d);
+      expect(st.lines.map((l) => l.kind)).toEqual(['payment', 'refund', 'refund_cheque_return']);
+      expect(st.closing).toBe(-15000);
+      // Every change writes its history row in the same transaction (both directions, SPEC §7.4).
+      const h = await t.pool.query<{ s: string }>(
+        `SELECT from_status || '>' || to_status || ' ' || status_date::text AS s FROM cheque_status_history
+         WHERE cheque_id = $1 AND from_status IS NOT NULL ORDER BY id`,
+        [c.id],
+      );
+      expect(h.rows.map((r) => r.s)).toEqual(['pending>cleared 2026-11-08', 'cleared>returned 2026-11-08']);
+      // An expense cheque follows the same rule.
+      const e = await outOk(expense({ method: 'cheque', cheque: cheque(), amount: 700, paidAt: '2026-11-02' }));
+      const ec = (await setOutCheque(e.payment.cheque!.id, e.payment.cheque!.rowVersion, 'cleared', { statusDate: '2026-11-09' }).expect(200))
+        .body as OutResult;
+      const bad = await setOutCheque(ec.payment.cheque!.id, ec.payment.cheque!.rowVersion, 'returned', { statusDate: '2026-11-03' });
+      expect(bad.status).toBe(400);
+      expect(bad.body.error.code).toBe('error.cheque.date_invalid');
+    });
+
     it('each endpoint only knows its own direction: an outgoing cheque is 404 on /cheques, and the reverse', async () => {
       const o = await outOk(expense({ method: 'cheque', cheque: cheque(), amount: 801 }));
       expect((await setInCheque(o.payment.cheque!.id, o.payment.cheque!.rowVersion, 'cleared')).status).toBe(404);
@@ -578,9 +608,10 @@ describe('Outgoing payments and refunds (e2e)', () => {
       expect(onlyOut.total).toBe(1);
       const sum = (await get(`/cheques/register/summary?search=${tag}`).expect(200)).body;
       expect(sum).toMatchObject({ byDirection: { in: 1, out: 1 }, pendingAmount: { in: 111, out: 222 } });
-      // The B3 register endpoint is unchanged: incoming only.
-      const old = (await get(`/cheques?search=${tag}`).expect(200)).body as { total: number };
-      expect(old.total).toBe(1);
+      // The incoming side alone, as the B3 endpoint gave it (removed in B5, S22).
+      const onlyIn = (await get(`/cheques/register?search=${tag}&direction=in`).expect(200)).body as { total: number };
+      expect(onlyIn.total).toBe(1);
+      await get(`/cheques?search=${tag}`).expect(404);
     });
 
     it('without expenses.read the register shows no outgoing cheque', async () => {
