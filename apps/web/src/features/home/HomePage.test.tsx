@@ -39,6 +39,8 @@ const summary = (over: Partial<CaseSummary> = {}): CaseSummary => ({
   remaining: 47000,
   overdue: false,
   rowVersion: 4,
+  invoice: null,
+  closed: false,
   ...over,
 });
 

@@ -36,6 +36,8 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   allowedStatuses: ['waiting', 'design', 'in_progress', 'delivered'],
   canCancel: true,
   canEdit: true,
+  editBlockedReason: null,
+  invoice: null,
   ...over,
 });
 const delivered = (over: Partial<CaseDetail> = {}) =>

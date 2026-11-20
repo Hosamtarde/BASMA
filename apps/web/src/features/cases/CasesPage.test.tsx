@@ -25,6 +25,8 @@ const row = (over: Partial<CaseSummary> = {}): CaseSummary => ({
   remaining: 47000,
   overdue: false,
   rowVersion: 4,
+  invoice: null,
+  closed: false,
   ...over,
 });
 const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
@@ -42,6 +44,8 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   allowedStatuses: ['waiting', 'in_progress', 'ready', 'delivered'],
   canCancel: true,
   canEdit: true,
+  editBlockedReason: null,
+  invoice: null,
   ...over,
 });
 const counts: CaseCounts = {
