@@ -83,9 +83,12 @@ describe('B4b isolation of incoming and outgoing money (e2e)', () => {
   const incomingReads = async () => ({
     payments: await read('/payments?pageSize=100'),
     receipts: await read('/payments/summary?from=2026-11-01&to=2026-11-30'),
-    cheques: await read('/cheques?pageSize=100'),
-    chequeChips: await read('/cheques/summary'),
+    // S22 (B5): the B3 incoming-only list and chips are gone; the register's incoming side replaces them.
     registerIn: await read('/cheques/register?direction=in&pageSize=100'),
+    registerChipsIn: ((s: { byDirection: { in: number }; pendingAmount: { in: number } }) => ({
+      count: s.byDirection.in,
+      pending: s.pendingAmount.in,
+    }))(JSON.parse(await read('/cheques/register/summary')) as { byDirection: { in: number }; pendingAmount: { in: number } }),
     balance: await read(`/doctors/${doctorIn}/balance`),
     statement: await read(`/doctors/${doctorIn}/statement?pageSize=100`),
     breakdown: await read(`/doctors/${doctorIn}/debt-breakdown?pageSize=100`),

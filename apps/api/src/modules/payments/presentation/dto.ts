@@ -152,44 +152,6 @@ export class PaymentSummaryQuery {
   search?: string;
 }
 
-export class ChequeFilterQuery {
-  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) doctorId?: number;
-  @ApiPropertyOptional({ description: 'Due date from (inclusive)' })
-  @IsOptional()
-  @IsDateOnly()
-  dueFrom?: string;
-  @ApiPropertyOptional({ description: 'Due date to (inclusive)' }) @IsOptional() @IsDateOnly() dueTo?: string;
-  @ApiPropertyOptional({
-    enum: ['soon', 'overdue'],
-    description: 'Pending cheques due within 7 days / past due',
-  })
-  @IsOptional()
-  @IsIn(['soon', 'overdue'])
-  due?: 'soon' | 'overdue';
-  @ApiPropertyOptional({ maxLength: 100, description: 'Cheque number, bank, doctor name or voucher number' })
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  search?: string;
-}
-
-export class ChequeListQuery extends ChequeFilterQuery {
-  @ApiPropertyOptional({ enum: CHEQUE_STATUSES }) @IsOptional() @IsIn(CHEQUE_STATUSES) status?: ChequeStatus;
-  @ApiPropertyOptional({ minimum: 1, default: 1 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page: number = 1;
-  @ApiPropertyOptional({ minimum: 1, maximum: MAX_PAGE_SIZE, default: DEFAULT_PAGE_SIZE })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(MAX_PAGE_SIZE)
-  pageSize: number = DEFAULT_PAGE_SIZE;
-}
-
 export class StatementQuery extends PagingQuery {
   @ApiPropertyOptional({ description: 'First day (inclusive)' }) @IsOptional() @IsDateOnly() from?: string;
   @ApiPropertyOptional({ description: 'Last day (inclusive)' }) @IsOptional() @IsDateOnly() to?: string;
@@ -276,24 +238,6 @@ class PaymentTotals {
 export class PaymentPage extends PageMeta {
   @ApiProperty({ type: [PaymentResponse] }) items!: PaymentResponse[];
   @ApiProperty({ type: PaymentTotals }) totals!: PaymentTotals;
-}
-
-export class ChequePage extends PageMeta {
-  @ApiProperty({ type: [PaymentResponse], description: 'The payment of each cheque, cheque included' })
-  items!: PaymentResponse[];
-}
-
-export class ChequeStatusCounts {
-  @ApiProperty() pending!: number;
-  @ApiProperty() cleared!: number;
-  @ApiProperty() returned!: number;
-}
-
-export class ChequeSummaryResponse {
-  @ApiProperty({ type: ChequeStatusCounts }) byStatus!: ChequeStatusCounts;
-  @ApiProperty({ description: 'Pending, due within 7 days (lab today)' }) dueSoon!: number;
-  @ApiProperty({ description: 'Pending and past due' }) overdue!: number;
-  @ApiProperty({ description: 'Sum of pending cheques' }) pendingAmount!: number;
 }
 
 export class DoctorBalanceResponse {

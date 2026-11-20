@@ -37,10 +37,6 @@ import {
   CasePaymentsResponse,
   DebtBreakdownResponse,
   ChangeChequeStatusRequest,
-  ChequeListQuery,
-  ChequeFilterQuery,
-  ChequePage,
-  ChequeSummaryResponse,
   CreatePaymentRequest,
   DebtsQuery,
   DebtsResponse,
@@ -213,35 +209,6 @@ export class ChequesController {
     private readonly payments: PaymentsService,
     private readonly cheques: ChequesService,
   ) {}
-
-  @Get()
-  @RequirePermission(Permission.ChequesRead)
-  @ApiOperation({
-    summary: 'Cheque register (incoming cheques of active payments), by due date; each row is its payment',
-  })
-  @ApiOkResponse({ type: ChequePage })
-  async list(@Query() q: ChequeListQuery): Promise<ChequePage> {
-    const { page, pageSize, ...filter } = q;
-    const r = await this.payments.listCheques(definedOnly(filter), page, pageSize);
-    return { ...r, items: r.items.map(toPaymentResponse) };
-  }
-
-  // Declared before ':id' routes so "summary" is never read as an id.
-  @Get('summary')
-  @RequirePermission(Permission.ChequesRead)
-  @ApiOperation({
-    summary: 'Counts per status, due soon and overdue; same filters as the list except status',
-  })
-  @ApiOkResponse({ type: ChequeSummaryResponse })
-  async summary(@Query() q: ChequeFilterQuery): Promise<ChequeSummaryResponse> {
-    const s = await this.payments.chequeSummary(definedOnly({ ...q }));
-    return {
-      byStatus: { pending: s.pending, cleared: s.cleared, returned: s.returned },
-      dueSoon: s.dueSoon,
-      overdue: s.overdue,
-      pendingAmount: s.pendingAmount,
-    };
-  }
 
   @Patch(':id/status')
   @RequirePermission(Permission.ChequesWrite)

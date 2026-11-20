@@ -178,8 +178,8 @@ describe('Payments, cheques and balances (e2e)', () => {
       ['get', '/payments', null],
       ['get', '/payments/1', null],
       ['post', '/payments/1/void', { rowVersion: 1, reason: 'x' }],
-      ['get', '/cheques', null],
-      ['get', '/cheques/summary', null],
+      ['get', '/cheques/register', null],
+      ['get', '/cheques/register/summary', null],
       ['patch', '/cheques/1/status', { rowVersion: 1, status: 'cleared' }],
       ['get', '/doctors/1/balance', null],
       ['get', '/doctors/1/statement', null],
@@ -187,6 +187,13 @@ describe('Payments, cheques and balances (e2e)', () => {
       ['get', '/debts', null],
       ['get', '/ledger/summary', null],
     ];
+    it('S22 (B5): the B3 incoming-only cheque list and its summary are gone; the register replaces them', async () => {
+      for (const path of ['/cheques', '/cheques/summary', '/cheques?doctorId=1']) {
+        const res = await get(path).expect(404);
+        expect(res.body.error.code).toBe('error.not_found');
+      }
+    });
+
     it.each(calls)('%s %s needs a token and a permission', async (method, path, body) => {
       const call = (auth?: string) => {
         const r = (request(t.http) as unknown as Record<string, (p: string) => request.Test>)[method]!(
@@ -415,10 +422,11 @@ describe('Payments, cheques and balances (e2e)', () => {
       const ret = await setCheque(ch.id, ch.rowVersion, 'returned', { note: 'no funds' }).expect(200);
       expect(ret.body.payment.cheque.status).toBe('returned');
 
-      const list = await get(`/cheques?doctorId=${d}`).expect(200);
+      const list = await get(`/cheques/register?direction=in&doctorId=${d}`).expect(200);
       expect(list.body.items).toHaveLength(1);
-      const summary = await get(`/cheques/summary?doctorId=${d}`).expect(200);
+      const summary = await get(`/cheques/register/summary?doctorId=${d}`).expect(200);
       expect(summary.body.byStatus).toEqual({ pending: 0, cleared: 0, returned: 1 });
+      expect(summary.body.byDirection).toEqual({ in: 1, out: 0 });
     });
 
     it('a status date may not be earlier than the current status date (B5 item 6); the statement keeps its order', async () => {
@@ -592,7 +600,7 @@ describe('Payments, cheques and balances (e2e)', () => {
       ).expect(409);
       expect(frozen.body.error.code).toBe('error.cheque.payment_void');
       // A void cheque leaves the register and the statement.
-      const list = await get(`/cheques?doctorId=${d}`).expect(200);
+      const list = await get(`/cheques/register?direction=in&doctorId=${d}`).expect(200);
       expect(list.body.items).toHaveLength(0);
       const st = await get(`/doctors/${d}/statement`).expect(200);
       expect(st.body.lines.map((l: { kind: string }) => l.kind)).toEqual(['case']);
@@ -883,16 +891,20 @@ describe('Payments, cheques and balances (e2e)', () => {
           chequesDueSoon: 1,
           chequesOverdue: 1,
         });
-        const chips = (await h('get', '/cheques/summary')).body;
+        // The register (S22: the B3 endpoints are gone); this installation has incoming cheques only.
+        const chips = (await h('get', '/cheques/register/summary')).body;
         expect(chips).toMatchObject({
           byStatus: { pending: 3, cleared: 1, returned: 0 },
+          byDirection: { in: 4, out: 0 },
           dueSoon: 1,
           overdue: 1,
-          pendingAmount: 700,
+          pendingAmount: { in: 700, out: 0 },
         });
-        expect((await h('get', '/cheques?due=overdue')).body.items).toHaveLength(1);
-        expect((await h('get', '/cheques?due=soon')).body.items).toHaveLength(1);
-        const ordered = (await h('get', '/cheques')).body.items.map((p: PaymentBody) => p.amount);
+        expect((await h('get', '/cheques/register?direction=in&due=overdue')).body.items).toHaveLength(1);
+        expect((await h('get', '/cheques/register?direction=in&due=soon')).body.items).toHaveLength(1);
+        const ordered = (await h('get', '/cheques/register?direction=in')).body.items.map(
+          (i: { payment: { amount: number } }) => i.payment.amount,
+        );
         expect(ordered).toEqual([100, 200, 800, 400]); // by due date
       } finally {
         await fresh.close();

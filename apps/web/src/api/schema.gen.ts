@@ -686,40 +686,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/cheques": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Cheque register (incoming cheques of active payments), by due date; each row is its payment */
-        get: operations["ChequesController_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/cheques/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Counts per status, due soon and overdue; same filters as the list except status */
-        get: operations["ChequesController_summary"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/cheques/{id}/status": {
         parameters: {
             query?: never;
@@ -1990,27 +1956,6 @@ export interface components {
             overdue: number;
             /** @description Sum of pending cheques per direction */
             pendingAmount: components["schemas"]["DirectionAmounts"];
-        };
-        ChequePage: {
-            page: number;
-            pageSize: number;
-            total: number;
-            /** @description The payment of each cheque, cheque included */
-            items: components["schemas"]["PaymentResponse"][];
-        };
-        ChequeStatusCounts: {
-            pending: number;
-            cleared: number;
-            returned: number;
-        };
-        ChequeSummaryResponse: {
-            byStatus: components["schemas"]["ChequeStatusCounts"];
-            /** @description Pending, due within 7 days (lab today) */
-            dueSoon: number;
-            /** @description Pending and past due */
-            overdue: number;
-            /** @description Sum of pending cheques */
-            pendingAmount: number;
         };
         ChangeChequeStatusRequest: {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
@@ -4562,67 +4507,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChequeRegisterSummaryResponse"];
-                };
-            };
-        };
-    };
-    ChequesController_list: {
-        parameters: {
-            query?: {
-                doctorId?: number;
-                /** @description Due date from (inclusive) */
-                dueFrom?: string;
-                /** @description Due date to (inclusive) */
-                dueTo?: string;
-                /** @description Pending cheques due within 7 days / past due */
-                due?: "soon" | "overdue";
-                /** @description Cheque number, bank, doctor name or voucher number */
-                search?: string;
-                status?: "pending" | "cleared" | "returned";
-                page?: number;
-                pageSize?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChequePage"];
-                };
-            };
-        };
-    };
-    ChequesController_summary: {
-        parameters: {
-            query?: {
-                doctorId?: number;
-                /** @description Due date from (inclusive) */
-                dueFrom?: string;
-                /** @description Due date to (inclusive) */
-                dueTo?: string;
-                /** @description Pending cheques due within 7 days / past due */
-                due?: "soon" | "overdue";
-                /** @description Cheque number, bank, doctor name or voucher number */
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChequeSummaryResponse"];
                 };
             };
         };

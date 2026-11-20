@@ -80,14 +80,6 @@ export interface PaymentFilter {
   search?: string;
 }
 
-export interface ChequeFilter {
-  doctorId?: number;
-  dueFrom?: string;
-  dueTo?: string;
-  due?: 'soon' | 'overdue';
-  search?: string;
-}
-
 const paymentCols = {
   id: payments.id,
   voucherNo: payments.voucherNo,
@@ -581,86 +573,4 @@ export class PaymentsRepository {
 
   // ---- cheque register ----
 
-  private chequeWhere(f: ChequeFilter, today: string, soonUntil: string): SQL | undefined {
-    const search = f.search?.trim();
-    const pattern = search ? containsPattern(search) : undefined;
-    const voucher = search ? /^(?:in-?)?(\d{1,15})$/i.exec(search) : null;
-    return and(
-      eq(payments.status, 'active'),
-      f.doctorId ? eq(payments.doctorId, f.doctorId) : undefined,
-      f.dueFrom ? gte(cheques.dueDate, f.dueFrom) : undefined,
-      f.dueTo ? lte(cheques.dueDate, f.dueTo) : undefined,
-      f.due === 'overdue'
-        ? and(eq(cheques.status, 'pending'), sql`${cheques.dueDate} < ${today}`)
-        : undefined,
-      f.due === 'soon'
-        ? and(eq(cheques.status, 'pending'), gte(cheques.dueDate, today), lte(cheques.dueDate, soonUntil))
-        : undefined,
-      pattern
-        ? or(
-            ilike(cheques.chequeNo, pattern),
-            ilike(cheques.bank, pattern),
-            ilike(doctors.name, pattern),
-            voucher ? eq(payments.voucherNo, Number(voucher[1])) : undefined,
-          )
-        : undefined,
-    );
-  }
-
-  async listCheques(
-    db: Executor,
-    f: ChequeFilter & { status?: ChequeStatus },
-    today: string,
-    soonUntil: string,
-    page: number,
-    pageSize: number,
-  ): Promise<{ items: PaymentRow[]; total: number }> {
-    const where = and(
-      f.status ? eq(cheques.status, f.status) : undefined,
-      this.chequeWhere(f, today, soonUntil),
-    );
-    const [rows, [agg]] = await Promise.all([
-      db
-        .select(paymentCols)
-        .from(cheques)
-        .innerJoin(payments, eq(payments.id, cheques.paymentId))
-        .innerJoin(doctors, eq(doctors.id, payments.doctorId))
-        .leftJoin(cases, eq(cases.id, payments.caseId))
-        .where(where)
-        .orderBy(asc(cheques.dueDate), asc(cheques.id))
-        .limit(pageSize)
-        .offset(offsetOf({ page, pageSize })),
-      db
-        .select({ total: sql<string>`count(*)` })
-        .from(cheques)
-        .innerJoin(payments, eq(payments.id, cheques.paymentId))
-        .innerJoin(doctors, eq(doctors.id, payments.doctorId))
-        .where(where),
-    ]);
-    return { items: rows.map(toRow), total: Number(agg?.total ?? 0) };
-  }
-
-  async chequeSummary(db: Executor, f: ChequeFilter, today: string, soonUntil: string) {
-    const [row] = await db
-      .select({
-        pending: sql<string>`count(*) filter (where ${cheques.status} = 'pending')`,
-        cleared: sql<string>`count(*) filter (where ${cheques.status} = 'cleared')`,
-        returned: sql<string>`count(*) filter (where ${cheques.status} = 'returned')`,
-        dueSoon: sql<string>`count(*) filter (where ${cheques.status} = 'pending' and ${cheques.dueDate} >= ${today} and ${cheques.dueDate} <= ${soonUntil})`,
-        overdue: sql<string>`count(*) filter (where ${cheques.status} = 'pending' and ${cheques.dueDate} < ${today})`,
-        pendingAmount: sql<string>`coalesce(sum(${payments.amount}) filter (where ${cheques.status} = 'pending'), 0)`,
-      })
-      .from(cheques)
-      .innerJoin(payments, eq(payments.id, cheques.paymentId))
-      .innerJoin(doctors, eq(doctors.id, payments.doctorId))
-      .where(this.chequeWhere(f, today, soonUntil));
-    return {
-      pending: Number(row?.pending ?? 0),
-      cleared: Number(row?.cleared ?? 0),
-      returned: Number(row?.returned ?? 0),
-      dueSoon: Number(row?.dueSoon ?? 0),
-      overdue: Number(row?.overdue ?? 0),
-      pendingAmount: Number(row?.pendingAmount ?? 0),
-    };
-  }
 }

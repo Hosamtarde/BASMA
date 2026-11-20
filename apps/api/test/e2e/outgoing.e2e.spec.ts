@@ -608,9 +608,10 @@ describe('Outgoing payments and refunds (e2e)', () => {
       expect(onlyOut.total).toBe(1);
       const sum = (await get(`/cheques/register/summary?search=${tag}`).expect(200)).body;
       expect(sum).toMatchObject({ byDirection: { in: 1, out: 1 }, pendingAmount: { in: 111, out: 222 } });
-      // The B3 register endpoint is unchanged: incoming only.
-      const old = (await get(`/cheques?search=${tag}`).expect(200)).body as { total: number };
-      expect(old.total).toBe(1);
+      // The incoming side alone, as the B3 endpoint gave it (removed in B5, S22).
+      const onlyIn = (await get(`/cheques/register?search=${tag}&direction=in`).expect(200)).body as { total: number };
+      expect(onlyIn.total).toBe(1);
+      await get(`/cheques?search=${tag}`).expect(404);
     });
 
     it('without expenses.read the register shows no outgoing cheque', async () => {

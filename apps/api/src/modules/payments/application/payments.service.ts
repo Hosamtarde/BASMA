@@ -25,7 +25,6 @@ import {
   requestHash,
 } from '../domain/payment-rules';
 import {
-  ChequeFilter,
   ChequeRow,
   PaymentFilter,
   PaymentRow,
@@ -369,23 +368,5 @@ export class PaymentsService {
     };
   }
 
-  // ---- cheque register reads ----
 
-  async listCheques(f: ChequeFilter & { status?: ChequeStatus }, page: number, pageSize: number) {
-    const today = await this.calendar.today();
-    const r = await this.repo.listCheques(
-      this.db,
-      f,
-      today,
-      addDays(today, CHEQUE_DUE_SOON_DAYS),
-      page,
-      pageSize,
-    );
-    return { items: r.items.map((row) => this.toView(row, today)), page, pageSize, total: r.total };
-  }
-
-  async chequeSummary(f: ChequeFilter) {
-    const today = await this.calendar.today();
-    return this.repo.chequeSummary(this.db, f, today, addDays(today, CHEQUE_DUE_SOON_DAYS));
-  }
 }
