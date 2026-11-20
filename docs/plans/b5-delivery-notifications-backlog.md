@@ -1,6 +1,6 @@
 # B5 — Delivery flow, cheque rules check, notifications feed, and the backlog (plan)
 
-Status: **approved 2026-11-20 (defaults N1–N10, with three conditions); B5 (items 1–13) built on this branch — see §13 build notes and §14 decisions taken while unattended.** B5b (items 14–18) is a separate branch after B5 is merged.
+Status: **approved 2026-11-20 (defaults N1–N10, with three conditions); B5 (items 1–13) built on this branch — see §13 build notes and §14 decisions taken while unattended.** B5b (items 14, 15, 18 and the reading-order fix) is built on `feat/b5b-responsive-polish` — see §15; items 16 and 17 wait for the owner's go-ahead on two read endpoints (§15.3).
 Branch: `feat/b5-delivery-notifications-backlog` (from `main` at `4b59eee`, after PR #13, B4b).
 Sources read (2026-11-20): SPEC §3, §4, §5.1/5.5/5.6/5.7/5.13/5.16, §6.1, §7, §8, §9, §10, §11, §12; CLAUDE.md; ENGINEERING_STANDARDS; `docs/production-readiness.md`; `docs/plans/b3-payments.md`, `b4-debts-reports-search.md`, `b4b-outgoing-expenses.md`; skills feature-workflow, money-ledger, db-migrations, security-review, `smile-artec-web-*`. Code read: `case-rules.ts`, `CasesService.changeStatus/cancel`, `cases.ts` schema (indexes, `cases_delivered_date_ck`), `payment-rules.ts` (`isCounted`, cheque `TRANSITIONS`, `dueState`), `ChequesService.changeStatus/changeOutgoingStatus`, `payments.controller.ts` (`@Controller('cheques')`), `outgoing.controller.ts` (`cheques/register`), `CaseDialogs.tsx` (status dialog), `ActionCards.tsx`, `UserMenu.tsx`, `router.tsx`, `vite.config.ts`, `e2e/first-run.spec.ts`, `e2e/first-run-outgoing.spec.ts`, `e2e/cases.spec.ts`, `e2e/support.ts`, `playwright.config.ts`.
 
@@ -327,3 +327,42 @@ Safest default from this plan each time; each is easy to change.
 14. **Demo seed.** Delivered cases go through the delivery endpoint in turn: full (one by a cheque still pending), part with a collect date already reached or later, nothing with a collect date today or past; the payment is dated on the delivery date (before: "today"), so the demo's "received this month" differs from B4b. `home-demo.spec.ts` compares with the API; the tie-out test asserts the three kinds exist.
 15. **The B3 migration test** now ignores the 0008 `collect_on` column as it ignored the 0006 search column, and asserts it is empty on every old case.
 16. **First-run currency test.** The price lock is no longer shown in the browser; it stays covered by `settings.e2e.spec.ts` (each source of an amount) — N10.
+
+
+## 15. B5b build notes (2026-11-20, branch `feat/b5b-responsive-polish`, web only)
+
+### 15.1 What was done
+| Item | Result |
+|---|---|
+| 14 Narrow screens | The cause was not the table width: the visually hidden parts of a table (`caption`, `sr-only` spans) are absolutely positioned, and a scroll container that is not `position: relative` does not clip them, so they widened the whole document (cases 662 px, payments 493, outgoing 513, cheques 542 at a 390 px viewport). `DataTable` is now `relative overflow-x-auto`, a focusable `group` named by the table's caption (axe `scrollable-region-focusable`; keyboard scroll). Every list uses `DataTable`, so one change covers cases, doctors, payments, debts, outgoing and the cheque register. |
+| 15 Code splitting | Every screen is a React Router `lazy` route (`page()` in `app/router.tsx`), `HydrateFallback` shows the status spinner while the first chunk loads. Sizes below. |
+| 18 Sweep | `e2e/responsive.spec.ts`: every route (18) at 390 px in both languages — no sideways page scroll, axe WCAG 2.1 A/AA, and the bell panel open on the phone (inside the screen, Esc returns to the bell); desktop views of the lists check that a table fits its card. |
+| Reading order | A value marked `{{x, ltr}}` in a catalog is wrapped in an LRI…PDI isolate in Arabic (formatter `ltr` in `i18n.ts`), left as is in English. Applied to every date, amount, voucher, balance and cheque number placed inside a sentence (`caseDetails.historyDelivered` was the reported one: «تاريخ التسليم: 20-11-2026»). A test fails if a catalog uses `{{date}}`, `{{amount}}`, `{{voucher}}` or `{{balance}}` without it. Tables already used `Money` / `num`. |
+| First-run language race | Already done in B5 (`switchLanguage`: waits for `PATCH /settings/language`); the two other clicks in `first-run.spec.ts` are on the signed-out setup page, which saves nothing. The last sleep in the suite (`shot()`) now waits for fonts and two painted frames. |
+
+### 15.2 Bundle (`npm run build`, `apps/web/dist`)
+| | Before | After |
+|---|---|---|
+| Main chunk | 1,182.34 kB (344.78 kB gzip), one chunk | 269.13 kB (85.12 kB gzip) |
+| Largest chunk | the same one | 252.28 kB (79.49 kB gzip), shared UI/Radix |
+| First load (entry + its preloads) | 1,182.34 kB / 344.78 kB gzip | 620.7 kB / 196.7 kB gzip |
+| Vite "chunks larger than 500 kB" warning | yes | no |
+| All JavaScript | 1,182 kB | 1,182 kB in 50+ chunks; a screen is fetched when first opened |
+
+### 15.3 Not built, and why (items 16 and 17)
+Both need data the API does not expose today: there is **no read endpoint for `audit_log`**, and **no shade usage count**. The task for this branch said web only, no backend change unless a failing test proves a bug, so nothing was added and no test was left failing. The plan (§2) had allowed one small read endpoint each, with no migration. Proposed, if the owner agrees:
+- `GET /api/v1/audit/recent?limit=20` (1–50): newest first, `{ id, at, action, text }`, text rendered from the existing `audit.*` catalog keys in the caller's language; only entries whose entity the caller may read (`case.*` → cases.read, `payment.*` → payments.read, `cheque.*` → cheques.read, `outgoing.*` → expenses.read, `doctor.*` → doctors.read, catalogs → catalog.read, settings/setup/auth/export → settings.read); the codes for method and status labelled; no amounts in the texts. Route needs only `account.self` (a new permission would need a migration).
+- `GET /api/v1/cases/shade-usage?limit=8` (1–24): `{ items: [{ shade, count }] }`, lines of cases that are not cancelled, most used first; `cases.read`.
+The web parts (Home panel, the «الأكثر استخدامًا» row of the shade modal) are small once these exist.
+
+### 15.4 S24
+Not built: the «show hidden notifications again» screen. It needs a design decision (where hidden items live in the bell) and the API already supports it (`dismissed: false`); recorded as a follow-up under S24 in `docs/production-readiness.md`.
+
+## 16. Decisions taken while unattended (B5b)
+1. **Items 16 and 17 not built** (§15.3): the explicit "web only, no backend" rule won over the plan's allowance for two read endpoints; an API test I had written first was reverted so the branch has no failing test.
+2. **Where the fix for sideways scroll lives:** the shared `DataTable`, not each page, so a future list cannot regress; the check is a Playwright spec over every route.
+3. **Scroll container semantics:** `role="group"` (not `region`) with the table's caption as its name: a `region` per table would add a landmark for each list and duplicated the names of the page's own sections.
+4. **Phone layout of the shell** (the sidebar stacks above the content on a phone) was left as it is: the item was about lists scrolling the page, and the product runs on a desktop (SPEC §2.1).
+5. **Isolates only in Arabic, only where a catalog asks for them (`, ltr`)**, not by guessing from the value, so accessible names and English text stay unchanged. Existing component tests that matched an Arabic amount or voucher in a sentence now expect the isolate.
+6. **Chunking:** React Router `lazy` only, no manual vendor chunks: the entry is 269 kB and no chunk is over 500 kB.
+7. **`HydrateFallback`** on the root route so a lazy first screen shows the existing spinner instead of a blank page.
