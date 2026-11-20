@@ -310,7 +310,11 @@ for (const viewport of [
 ]) {
   test(`the chart stays fully visible at ${viewport.width}x${viewport.height} (both models, after scrolling)`, async ({
     page,
+    request,
   }) => {
+    // Its own work type: without one the page opens the work-types manager instead of the form, so
+    // this test must not rely on another test having made one.
+    await seed(request);
     await page.setViewportSize(viewport);
     await signedIn(page);
     await setLanguage(page, 'ar');
@@ -320,7 +324,14 @@ for (const viewport of [
       await page.getByRole('button', { name: model }).click();
       for (const scroll of [0, 10_000]) {
         await page.evaluate((y) => window.scrollTo(0, y), scroll);
-        await page.waitForTimeout(150);
+        // The sticky panel settles after the scroll event: wait (no fixed sleep) until the chart sits
+        // inside the window, then check every edge with its own message.
+        await expect
+          .poll(async () => {
+            const b = await chartBox(panel);
+            return b.top >= 65 && b.bottom <= viewport.height && b.left >= 0 && b.right <= viewport.width;
+          }, { message: `${model} chart inside the window after scroll ${scroll}` })
+          .toBe(true);
         const box = await chartBox(panel);
         expect(box.count).toBe(32);
         expect(box.top, `${model} top after scroll ${scroll}`).toBeGreaterThanOrEqual(65);
