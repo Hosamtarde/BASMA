@@ -200,7 +200,7 @@ describe('ChequesPage', () => {
     expect(action).toHaveAccessibleDescription('لا توجد تغييرات أخرى لحالة هذا الشيك.');
 
     await userEvent.click(within(overdueRow).getByRole('button', { name: /^تغيير الحالة/ }));
-    const dialog = await screen.findByRole('dialog', { name: 'تغيير حالة الشيك 10456' });
+    const dialog = await screen.findByRole('dialog', { name: 'تغيير حالة الشيك ⁦10456⁩' });
     expect(within(dialog).getAllByRole('option').map((o) => o.textContent)).toEqual(['تم الصرف', 'مرتجع']);
     await userEvent.keyboard('{Escape}');
 

@@ -534,7 +534,7 @@
     "advanceMethod": "Payment method",
     "advanceTooBig": "The advance cannot be larger than the case total.",
     "advanceNeedsTotal": "Add at least one work line before taking an advance.",
-    "savedAdvance": "Advance {{voucher}} recorded."
+    "savedAdvance": "Advance {{voucher, ltr}} recorded."
   },
   "cases": {
     "title": "Cases",
@@ -586,7 +586,7 @@
     "history": "Status history",
     "historyCreated": "Case created as “{{status}}”",
     "historyChanged": "From “{{from}}” to “{{to}}”",
-    "historyDelivered": "Delivery date: {{date}}",
+    "historyDelivered": "Delivery date: {{date, ltr}}",
     "changeStatus": "Change status",
     "edit": "Edit details",
     "addLines": "Add lines",
@@ -647,7 +647,7 @@
     "collectDialog": {
       "title": "Date to collect the rest",
       "field": "Date",
-      "hint": "Not before the delivery date ({{date}}).",
+      "hint": "Not before the delivery date ({{date, ltr}}).",
       "remove": "Remove the date",
       "saved": "The collect date was saved.",
       "removed": "The collect date was removed."
@@ -672,10 +672,10 @@
     "paidAt": "Payment date",
     "caseLabel": "Linked case",
     "noCase": "Not linked to a case",
-    "caseOption": "Case {{no}} · {{patient}} · {{total}}",
+    "caseOption": "Case {{no}} · {{patient}} · {{total, ltr}}",
     "notes": "Notes",
     "submit": "Record payment",
-    "saved": "Payment {{voucher}} recorded. New balance: {{balance}}.",
+    "saved": "Payment {{voucher, ltr}} recorded. New balance: {{balance, ltr}}.",
     "savedChequeNote": "The cheque counts only once it is cleared.",
     "reportTitle": "Receipts",
     "search": "Search voucher, doctor or cheque number",
@@ -696,18 +696,18 @@
     "statusVoid": "Cancelled",
     "countedYes": "Counted",
     "countedNo": "Not counted yet",
-    "chequeInfo": "Cheque {{no}} · {{bank}}",
+    "chequeInfo": "Cheque {{no, ltr}} · {{bank}}",
     "empty": "No payments recorded yet.",
     "totalCounted": "Counted receipts",
     "totalPending": "Cheques pending collection",
     "void": "Cancel payment",
     "voidWhy": "This payment is already cancelled.",
-    "voidTitle": "Cancel payment {{voucher}}?",
+    "voidTitle": "Cancel payment {{voucher, ltr}}?",
     "voidBody": "The payment stays in the records, marked as cancelled with your reason, and the doctor’s balance is restored. This cannot be undone.",
     "voidReason": "Reason for cancelling",
     "voidConfirm": "Cancel payment",
     "voidKeep": "Keep the payment",
-    "voidDone": "Payment {{voucher}} has been cancelled.",
+    "voidDone": "Payment {{voucher, ltr}} has been cancelled.",
     "voidedReason": "Cancelled: {{reason}}",
     "errors": {
       "amountPositive": "Enter an amount greater than zero.",
@@ -750,13 +750,13 @@
     "changeStatus": "Change status",
     "noChange": "This cheque has no further status changes.",
     "voidNoChange": "The payment of this cheque is cancelled.",
-    "statusDialogTitle": "Change the status of cheque {{no}}",
+    "statusDialogTitle": "Change the status of cheque {{no, ltr}}",
     "newStatus": "New status",
     "statusDate": "Status date",
     "note": "Note",
     "confirm": "Save status",
-    "done": "Cheque {{no}} is now “{{status}}”.",
-    "summary": "Pending: {{amount}}",
+    "done": "Cheque {{no, ltr}} is now “{{status}}”.",
+    "summary": "Pending: {{amount, ltr}}",
     "returnedWarning": "A returned cheque cannot be changed again. The amount returns to the doctor’s debt.",
     "directionGroup": "Cheque direction",
     "directionAll": "All",
@@ -766,8 +766,8 @@
       "out": "Outgoing"
     },
     "party": "Party",
-    "summaryIn": "Incoming pending: {{amount}}",
-    "summaryOut": "Outgoing pending: {{amount}}",
+    "summaryIn": "Incoming pending: {{amount, ltr}}",
+    "summaryOut": "Outgoing pending: {{amount, ltr}}",
     "returnedWarningOut": "A returned cheque cannot be changed again. The amount goes back to how it was before it cleared."
   },
   "debts": {
@@ -798,9 +798,9 @@
     "toLab": "Owed to the lab",
     "byLab": "Owed by the lab",
     "settled": "Settled",
-    "pendingCheques": "Pending cheques (not counted): {{amount}}",
-    "paidOut": "Refunded to the doctor: {{amount}}",
-    "pendingRefundCheques": "Refund cheques pending: {{amount}}"
+    "pendingCheques": "Pending cheques (not counted): {{amount, ltr}}",
+    "paidOut": "Refunded to the doctor: {{amount, ltr}}",
+    "pendingRefundCheques": "Refund cheques pending: {{amount, ltr}}"
   },
   "statement": {
     "tab": "Statement",
@@ -943,14 +943,14 @@
     "payeeHint": "Type the name as it should appear, such as the landlord, a supplier or an employee.",
     "doctor": "Doctor",
     "refundable": "Refundable credit",
-    "reserved": "(reserved for refund cheques not cleared yet: {{amount}})",
+    "reserved": "(reserved for refund cheques not cleared yet: {{amount, ltr}})",
     "pickDoctorFirst": "Choose the doctor first",
     "paidAt": "Payment date",
     "labBank": "Lab bank",
     "dueHint": "The date may be later (a post-dated cheque).",
     "submit": "Save expense",
-    "saved": "✅ Expense {{voucher}} saved.",
-    "savedRefund": "✅ Expense {{voucher}} saved (refund). New balance: {{balance}}.",
+    "saved": "✅ Expense {{voucher, ltr}} saved.",
+    "savedRefund": "✅ Expense {{voucher, ltr}} saved (refund). New balance: {{balance, ltr}}.",
     "reportTitle": "Expenses report",
     "search": "Search voucher, payee, doctor or cheque number",
     "categoryFilter": "Category",
@@ -978,7 +978,7 @@
     "errors": {
       "payeeRequired": "Enter who was paid.",
       "noCredit": "There is no credit to refund.",
-      "refundExceeds": "The amount is more than the refundable credit ({{max}})."
+      "refundExceeds": "The amount is more than the refundable credit ({{max, ltr}})."
     }
   },
   "expenses": {
@@ -1014,23 +1014,23 @@
     "description": "For «{{doctor}}». Record what you received at delivery.",
     "due": "Due at delivery:",
     "nothingDue": "The case is fully paid: nothing to ask for at delivery.",
-    "pendingCheques": "Cheques for this case not cleared yet ({{amount}}) are not asked for again.",
+    "pendingCheques": "Cheques for this case not cleared yet ({{amount, ltr}}) are not asked for again.",
     "deliveredDate": "Delivery date",
     "received": "Did you receive the money?",
-    "receivedFull": "Yes, in full ({{amount}})",
+    "receivedFull": "Yes, in full ({{amount, ltr}})",
     "receivedOptions": {
       "partial": "Part of it",
       "none": "No, nothing"
     },
     "noPaymentPermission": "Recording money needs the payments permission; you can deliver with a date to collect.",
     "amount": "Amount received",
-    "amountHint": "Less than {{max}}.",
+    "amountHint": "Less than {{max, ltr}}.",
     "collectOn": "Collect the rest on",
     "collectOnHint": "On that day the case appears in the notifications under «Collection due».",
     "note": "Note",
     "submit": "Deliver case",
     "done": "Case {{no}} delivered.",
-    "donePaid": "Case {{no}} delivered and payment {{voucher}} recorded. New balance: {{balance}}.",
+    "donePaid": "Case {{no}} delivered and payment {{voucher, ltr}} recorded. New balance: {{balance, ltr}}.",
     "errors": {
       "deliveredDate": "The delivery date is between the received date and today.",
       "receivedRequired": "Choose what you received.",

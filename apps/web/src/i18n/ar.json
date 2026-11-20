@@ -553,7 +553,7 @@
     "advanceMethod": "طريقة الدفع",
     "advanceTooBig": "الدفعة المقدمة لا يمكن أن تتجاوز إجمالي الحالة.",
     "advanceNeedsTotal": "أضف سطر عمل واحدًا على الأقل قبل أخذ دفعة مقدمة.",
-    "savedAdvance": "تم تسجيل الدفعة المقدمة {{voucher}}."
+    "savedAdvance": "تم تسجيل الدفعة المقدمة {{voucher, ltr}}."
   },
   "cases": {
     "title": "الحالات",
@@ -605,7 +605,7 @@
     "history": "سجل المراحل",
     "historyCreated": "إنشاء الحالة على مرحلة «{{status}}»",
     "historyChanged": "من «{{from}}» إلى «{{to}}»",
-    "historyDelivered": "تاريخ التسليم: {{date}}",
+    "historyDelivered": "تاريخ التسليم: {{date, ltr}}",
     "changeStatus": "تغيير المرحلة",
     "edit": "تعديل البيانات",
     "addLines": "إضافة سطور",
@@ -666,7 +666,7 @@
     "collectDialog": {
       "title": "موعد تحصيل الباقي",
       "field": "الموعد",
-      "hint": "لا يسبق تاريخ التسليم ({{date}}).",
+      "hint": "لا يسبق تاريخ التسليم ({{date, ltr}}).",
       "remove": "حذف الموعد",
       "saved": "تم حفظ موعد التحصيل.",
       "removed": "تم حذف موعد التحصيل."
@@ -691,10 +691,10 @@
     "paidAt": "تاريخ الدفعة",
     "caseLabel": "الحالة المرتبطة",
     "noCase": "غير مرتبطة بحالة",
-    "caseOption": "الحالة {{no}} · {{patient}} · {{total}}",
+    "caseOption": "الحالة {{no}} · {{patient}} · {{total, ltr}}",
     "notes": "ملاحظات",
     "submit": "تسجيل الدفعة",
-    "saved": "تم تسجيل الدفعة {{voucher}}. الرصيد الجديد: {{balance}}.",
+    "saved": "تم تسجيل الدفعة {{voucher, ltr}}. الرصيد الجديد: {{balance, ltr}}.",
     "savedChequeNote": "لا يُحتسب الشيك إلا بعد صرفه.",
     "reportTitle": "تقرير المقبوضات",
     "search": "ابحث برقم السند أو الطبيب أو رقم الشيك",
@@ -715,18 +715,18 @@
     "statusVoid": "ملغاة",
     "countedYes": "محتسبة",
     "countedNo": "غير محتسبة بعد",
-    "chequeInfo": "شيك {{no}} · {{bank}}",
+    "chequeInfo": "شيك {{no, ltr}} · {{bank}}",
     "empty": "لا توجد دفعات مسجلة بعد.",
     "totalCounted": "المقبوضات المحتسبة",
     "totalPending": "شيكات قيد التحصيل",
     "void": "إلغاء الدفعة",
     "voidWhy": "هذه الدفعة ملغاة بالفعل.",
-    "voidTitle": "إلغاء الدفعة {{voucher}}؟",
+    "voidTitle": "إلغاء الدفعة {{voucher, ltr}}؟",
     "voidBody": "تبقى الدفعة في السجل بعلامة «ملغاة» مع السبب الذي تكتبه، ويعود رصيد الطبيب كما كان. لا يمكن التراجع عن الإلغاء.",
     "voidReason": "سبب الإلغاء",
     "voidConfirm": "إلغاء الدفعة",
     "voidKeep": "إبقاء الدفعة",
-    "voidDone": "تم إلغاء الدفعة {{voucher}}.",
+    "voidDone": "تم إلغاء الدفعة {{voucher, ltr}}.",
     "voidedReason": "ملغاة: {{reason}}",
     "errors": {
       "amountPositive": "أدخل مبلغًا أكبر من صفر.",
@@ -769,13 +769,13 @@
     "changeStatus": "تغيير الحالة",
     "noChange": "لا توجد تغييرات أخرى لحالة هذا الشيك.",
     "voidNoChange": "دفعة هذا الشيك ملغاة.",
-    "statusDialogTitle": "تغيير حالة الشيك {{no}}",
+    "statusDialogTitle": "تغيير حالة الشيك {{no, ltr}}",
     "newStatus": "الحالة الجديدة",
     "statusDate": "تاريخ الحالة",
     "note": "ملاحظة",
     "confirm": "حفظ الحالة",
-    "done": "أصبح الشيك {{no}} «{{status}}».",
-    "summary": "قيد التحصيل: {{amount}}",
+    "done": "أصبح الشيك {{no, ltr}} «{{status}}».",
+    "summary": "قيد التحصيل: {{amount, ltr}}",
     "returnedWarning": "لا يمكن تغيير الشيك المرتجع مرة أخرى، ويعود مبلغه إلى دين الطبيب.",
     "directionGroup": "اتجاه الشيك",
     "directionAll": "الكل",
@@ -785,8 +785,8 @@
       "out": "صادرة"
     },
     "party": "الجهة",
-    "summaryIn": "واردة قيد التحصيل: {{amount}}",
-    "summaryOut": "صادرة قيد الصرف: {{amount}}",
+    "summaryIn": "واردة قيد التحصيل: {{amount, ltr}}",
+    "summaryOut": "صادرة قيد الصرف: {{amount, ltr}}",
     "returnedWarningOut": "لا يمكن تغيير الشيك المرتجع مرة أخرى، ويعود المبلغ كما كان قبل صرفه."
   },
   "debts": {
@@ -817,9 +817,9 @@
     "toLab": "مستحق للمختبر",
     "byLab": "مستحق على المختبر",
     "settled": "مسدَّد",
-    "pendingCheques": "شيكات قيد التحصيل (غير محتسبة): {{amount}}",
-    "paidOut": "استرداد مدفوع للطبيب: {{amount}}",
-    "pendingRefundCheques": "شيكات استرداد قيد الصرف: {{amount}}"
+    "pendingCheques": "شيكات قيد التحصيل (غير محتسبة): {{amount, ltr}}",
+    "paidOut": "استرداد مدفوع للطبيب: {{amount, ltr}}",
+    "pendingRefundCheques": "شيكات استرداد قيد الصرف: {{amount, ltr}}"
   },
   "statement": {
     "tab": "كشف الحساب",
@@ -974,14 +974,14 @@
     "payeeHint": "اكتب الاسم كما تريد أن يظهر، مثل المؤجِّر أو المورّد أو اسم الموظف.",
     "doctor": "الطبيب",
     "refundable": "الرصيد القابل للاسترداد",
-    "reserved": "(محجوز لشيكات استرداد قيد الصرف: {{amount}})",
+    "reserved": "(محجوز لشيكات استرداد قيد الصرف: {{amount, ltr}})",
     "pickDoctorFirst": "اختر الطبيب أولًا",
     "paidAt": "تاريخ الدفعة",
     "labBank": "بنك المختبر",
     "dueHint": "يجوز أن يكون التاريخ لاحقًا (شيك مؤجَّل).",
     "submit": "حفظ المصروف",
-    "saved": "✅ تم حفظ المصروف {{voucher}}.",
-    "savedRefund": "✅ تم حفظ المصروف {{voucher}} (استرداد). الرصيد الجديد: {{balance}}.",
+    "saved": "✅ تم حفظ المصروف {{voucher, ltr}}.",
+    "savedRefund": "✅ تم حفظ المصروف {{voucher, ltr}} (استرداد). الرصيد الجديد: {{balance, ltr}}.",
     "reportTitle": "تقرير المصاريف",
     "search": "ابحث برقم السند أو المدفوع له أو الطبيب أو رقم الشيك",
     "categoryFilter": "الفئة",
@@ -1009,7 +1009,7 @@
     "errors": {
       "payeeRequired": "اكتب اسم المدفوع له.",
       "noCredit": "لا يوجد رصيد دائن للاسترداد.",
-      "refundExceeds": "المبلغ أكبر من الرصيد القابل للاسترداد ({{max}})."
+      "refundExceeds": "المبلغ أكبر من الرصيد القابل للاسترداد ({{max, ltr}})."
     }
   },
   "expenses": {
@@ -1049,23 +1049,23 @@
     "description": "للطبيب «{{doctor}}». سجّل ما استلمته عند التسليم.",
     "due": "المستحق عند التسليم:",
     "nothingDue": "الحالة مدفوعة بالكامل: لا يُطلب مبلغ عند التسليم.",
-    "pendingCheques": "شيكات هذه الحالة التي لم تُصرف بعد ({{amount}}) لا تُطلب مرة أخرى.",
+    "pendingCheques": "شيكات هذه الحالة التي لم تُصرف بعد ({{amount, ltr}}) لا تُطلب مرة أخرى.",
     "deliveredDate": "تاريخ التسليم",
     "received": "هل استلمت المبلغ؟",
-    "receivedFull": "نعم، المبلغ كاملًا ({{amount}})",
+    "receivedFull": "نعم، المبلغ كاملًا ({{amount, ltr}})",
     "receivedOptions": {
       "partial": "جزءًا من المبلغ",
       "none": "لا، لم أستلم شيئًا"
     },
     "noPaymentPermission": "تسجيل المبالغ يحتاج صلاحية الدفعات؛ يمكنك التسليم مع موعد لتحصيل المبلغ.",
     "amount": "المبلغ المستلَم",
-    "amountHint": "أقل من {{max}}.",
+    "amountHint": "أقل من {{max, ltr}}.",
     "collectOn": "موعد تحصيل الباقي",
     "collectOnHint": "في هذا اليوم تظهر الحالة في الإشعارات تحت «تحصيل مستحق».",
     "note": "ملاحظة",
     "submit": "تسليم الحالة",
     "done": "تم تسليم الحالة رقم {{no}}.",
-    "donePaid": "تم تسليم الحالة رقم {{no}} وتسجيل الدفعة {{voucher}}. الرصيد الجديد: {{balance}}.",
+    "donePaid": "تم تسليم الحالة رقم {{no}} وتسجيل الدفعة {{voucher, ltr}}. الرصيد الجديد: {{balance, ltr}}.",
     "errors": {
       "deliveredDate": "تاريخ التسليم يكون بين تاريخ الاستلام واليوم.",
       "receivedRequired": "اختر ماذا استلمت.",

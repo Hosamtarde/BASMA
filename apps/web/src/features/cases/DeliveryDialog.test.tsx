@@ -157,7 +157,7 @@ describe('DeliveryDialog (B5)', () => {
       },
     });
     const dialog = await openDelivery();
-    await userEvent.click(within(dialog).getByRole('radio', { name: 'نعم، المبلغ كاملًا (470.00 ₪)' }));
+    await userEvent.click(within(dialog).getByRole('radio', { name: 'نعم، المبلغ كاملًا (⁦470.00 ₪⁩)' }));
     await userEvent.click(within(dialog).getByRole('radio', { name: 'شيك' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'تسليم الحالة' }));
     const chequeNo = within(dialog).getByRole('textbox', { name: 'رقم الشيك' });
@@ -169,7 +169,7 @@ describe('DeliveryDialog (B5)', () => {
     // The first attempt failed on the server; the retry of the same request reuses its key.
     await waitFor(() => expect(keys).toHaveLength(1));
     await userEvent.click(within(dialog).getByRole('button', { name: 'تسليم الحالة' }));
-    await toasted(/^تم تسليم الحالة رقم 1288 وتسجيل الدفعة IN-000031. الرصيد الجديد: 470.00 ₪./);
+    await toasted(/^تم تسليم الحالة رقم 1288 وتسجيل الدفعة ⁦IN-000031⁩. الرصيد الجديد: ⁦470.00 ₪⁩./);
     expect(keys).toHaveLength(2);
     expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
     expect(keys[1]).toBe(keys[0]);
@@ -204,7 +204,7 @@ describe('DeliveryDialog (B5)', () => {
     });
     const dialog = await openDelivery();
     expect(within(dialog).getByTestId('delivery-due')).toHaveTextContent('الحالة مدفوعة بالكامل');
-    expect(within(dialog).getByTestId('delivery-due')).toHaveTextContent('(470.00 ₪) لا تُطلب مرة أخرى');
+    expect(within(dialog).getByTestId('delivery-due')).toHaveTextContent('(⁦470.00 ₪⁩) لا تُطلب مرة أخرى');
     expect(within(dialog).queryByRole('radio')).not.toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: 'تسليم الحالة' }));
     await toasted('تم تسليم الحالة رقم 1288.');

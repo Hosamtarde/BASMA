@@ -202,7 +202,7 @@ describe('OutgoingForm (SPEC §5.9)', () => {
     await waitFor(() => expect(screen.getByTestId('outgoing-refundable')).toHaveTextContent('50.00 ₪'));
     await userEvent.type(amountBox(), '60');
     await userEvent.click(submit());
-    expect(await screen.findByText('المبلغ أكبر من الرصيد القابل للاسترداد (50.00 ₪).')).toBeInTheDocument();
+    expect(await screen.findByText('المبلغ أكبر من الرصيد القابل للاسترداد (⁦50.00 ₪⁩).')).toBeInTheDocument();
     expect(calls.some((c) => c.key === 'POST /api/v1/outgoing-payments')).toBe(false);
     await userEvent.clear(amountBox());
     await userEvent.type(amountBox(), '30');
@@ -380,7 +380,7 @@ describe('OutgoingPage', () => {
     );
     mount();
     await userEvent.click(await screen.findByRole('button', { name: 'إلغاء الدفعة OUT-000001' }));
-    const dialog = await screen.findByRole('dialog', { name: 'إلغاء الدفعة OUT-000001؟' });
+    const dialog = await screen.findByRole('dialog', { name: 'إلغاء الدفعة ⁦OUT-000001⁩؟' });
     await userEvent.click(within(dialog).getByRole('button', { name: 'إلغاء الدفعة' }));
     expect(await within(dialog).findByText('هذا الحقل مطلوب.')).toBeInTheDocument();
     expect(bodies).toHaveLength(0);
@@ -398,7 +398,7 @@ describe('OutgoingPage', () => {
     );
     mount();
     await userEvent.click(await screen.findByRole('button', { name: /^تغيير الحالة 5001/ }));
-    const dialog = await screen.findByRole('dialog', { name: 'تغيير حالة الشيك 5001' });
+    const dialog = await screen.findByRole('dialog', { name: 'تغيير حالة الشيك ⁦5001⁩' });
     expect(within(dialog).getAllByRole('option').map((o) => o.textContent)).toEqual(['تم الصرف', 'مرتجع']);
     await userEvent.click(within(dialog).getByRole('button', { name: 'حفظ الحالة' }));
     await waitFor(() => expect(calls.some((c) => c.key === 'PATCH /api/v1/outgoing-cheques/9/status')).toBe(true));
