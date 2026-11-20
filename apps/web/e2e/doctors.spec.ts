@@ -68,6 +68,8 @@ test('a doctor with an opening balance is deactivated, not deleted; signed balan
   await expect(page.getByText('تمت إضافة الطبيب.')).toBeVisible();
 
   await page.getByRole('searchbox').fill(name);
+  // The search settles into the address after its pause; a click before that would be replaced by it.
+  await expect(page).toHaveURL(/[?&]q=/);
   await page.getByRole('link', { name }).click();
   await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible();
   await expect(page.getByText('-50.50 ₪')).toBeVisible();

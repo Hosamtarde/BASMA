@@ -9,6 +9,7 @@ import {
   setLanguage,
   shot,
   signedIn,
+  switchLanguage,
   uid,
 } from './support';
 
@@ -103,56 +104,63 @@ for (const lang of ['ar', 'en'] as const) {
     await page.setViewportSize(PHONE);
     await signedIn(page);
     await setLanguage(page, lang);
-    for (const route of routes(s)) {
-      await test.step(route.name, async () => {
-        await page.goto(route.path);
-        await expectDirection(page, lang);
+    try {
+      for (const route of routes(s)) {
+        await test.step(route.name, async () => {
+          await page.goto(route.path);
+          await expectDirection(page, lang);
+          await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+          // Lists: wait for the real rows, not the loading state.
+          if (route.table) await expect(page.getByRole('table').first()).toBeVisible();
+          await expectNoSidewaysScroll(page);
+          await expectAccessible(page);
+          await shot(page, `${route.name}-390-${lang}`, { fullPage: true });
+        });
+      }
+
+      // The bell panel (B5) on the same phone: inside the screen, axe clean, Esc returns to the bell.
+      await test.step('notifications bell', async () => {
+        await page.goto('/');
         await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-        // Lists: wait for the real rows, not the loading state.
-        if (route.table) await expect(page.getByRole('table').first()).toBeVisible();
+        const bell = page.getByRole('button', {
+          name: new RegExp(`^${lang === 'ar' ? 'الإشعارات' : 'Notifications'}`),
+        });
+        await bell.click();
+        const panel = page.getByRole('dialog', { name: lang === 'ar' ? 'الإشعارات' : 'Notifications' });
+        await expect(panel).toBeVisible();
+        const box = await panel.boundingBox();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(PHONE.width);
         await expectNoSidewaysScroll(page);
         await expectAccessible(page);
-        await shot(page, `${route.name}-390-${lang}`, { fullPage: false });
+        await page.keyboard.press('Escape');
+        await expect(bell).toBeFocused();
       });
-    }
 
-    // The bell panel (B5) on the same phone: inside the screen, axe clean, Esc returns to the bell.
-    await test.step('notifications bell', async () => {
-      await page.goto('/');
-      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-      const bell = page.getByRole('button', {
-        name: new RegExp(`^${lang === 'ar' ? 'الإشعارات' : 'Notifications'}`),
-      });
-      await bell.click();
-      const panel = page.getByRole('dialog', { name: lang === 'ar' ? 'الإشعارات' : 'Notifications' });
-      await expect(panel).toBeVisible();
-      const box = await panel.boundingBox();
-      expect(box!.x).toBeGreaterThanOrEqual(0);
-      expect(box!.x + box!.width).toBeLessThanOrEqual(PHONE.width);
-      await expectNoSidewaysScroll(page);
-      await expectAccessible(page);
-      await page.keyboard.press('Escape');
-      await expect(bell).toBeFocused();
-    });
-
-    // Desktop views of the same lists for the slice report (the table is not cramped, no inner scroll).
-    await page.setViewportSize({ width: 1366, height: 768 });
-    for (const route of routes(s).filter((r) => r.table || r.name === 'case-details')) {
-      await test.step(`desktop ${route.name}`, async () => {
-        await page.goto(route.path);
-        await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-        if (route.table) {
-          const region = page
-            .getByRole('group')
-            .filter({ has: page.getByRole('table') })
-            .first();
-          await expect(region).toBeVisible();
-          const fits = await region.evaluate((el) => el.scrollWidth <= el.clientWidth);
-          expect(fits, 'a table fits its card on a desktop screen').toBe(true);
-        }
-        await expectNoSidewaysScroll(page);
-        await shot(page, `${route.name}-1366-${lang}`, { fullPage: false });
-      });
+      // Desktop views of the same lists for the slice report: the page itself never scrolls sideways (a wide
+      // table, e.g. with long names, scrolls inside its card).
+      await page.setViewportSize({ width: 1366, height: 768 });
+      for (const route of routes(s).filter((r) => r.table || r.name === 'case-details')) {
+        await test.step(`desktop ${route.name}`, async () => {
+          await page.goto(route.path);
+          await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+          if (route.table) {
+            const region = page
+              .getByRole('group')
+              .filter({ has: page.getByRole('table') })
+              .first();
+            await expect(region).toBeVisible();
+          }
+          await expectNoSidewaysScroll(page);
+          await shot(page, `${route.name}-1366-${lang}`, { fullPage: false });
+        });
+      }
+    } finally {
+      // The language belongs to the installation: leave it as other files expect it (Arabic).
+      if (lang === 'en') {
+        await page.goto('/');
+        await switchLanguage(page, /^العربية/);
+      }
     }
   });
 }

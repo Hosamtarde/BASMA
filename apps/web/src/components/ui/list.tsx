@@ -93,7 +93,7 @@ export function SearchBox({
     return () => clearTimeout(handle);
   }, [text, value, onChange]);
   return (
-    <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-control)] border border-border bg-surface px-3 focus-within:outline-2 focus-within:outline-focus md:max-w-sm">
+    <label className="flex h-10 min-w-[min(100%,14rem)] flex-1 items-center gap-2 rounded-[var(--radius-control)] border border-border bg-surface px-3 focus-within:outline-2 focus-within:outline-focus md:max-w-sm">
       <Search aria-hidden="true" className="size-[18px] shrink-0 text-muted" />
       <span className="sr-only">{label}</span>
       <input

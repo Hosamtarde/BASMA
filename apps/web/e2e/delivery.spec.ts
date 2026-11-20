@@ -85,7 +85,7 @@ test('deliver with part of the money and a collect date: the case and the statem
   await page.setViewportSize(REPORT_SIZE);
 
   await dialog.getByRole('button', { name: 'تسليم الحالة' }).click();
-  await expect(page.getByText(new RegExp(`تم تسليم الحالة رقم ${c.caseNo} وتسجيل الدفعة IN-\\d{6}\\. الرصيد الجديد: 180\\.00 ₪\\.`))).toBeVisible();
+  await expect(page.getByText(new RegExp(`تم تسليم الحالة رقم ${c.caseNo} وتسجيل الدفعة \u2066IN-\\d{6}\u2069\\. الرصيد الجديد: \u2066180\\.00 ₪\u2069\\.`))).toBeVisible();
   await expect(dialog).toBeHidden();
   const header = page.getByRole('heading', { level: 1 }).locator('..');
   await expect(header).toContainText('تم التسليم');
@@ -144,13 +144,13 @@ test('deliver with a cheque: the register lists it pending and the bell counts i
   await signedIn(page);
   await setLanguage(page, 'ar');
   const dialog = await openDelivery(page, c);
-  await dialog.getByRole('radio', { name: 'نعم، المبلغ كاملًا (300.00 ₪)' }).check();
+  await dialog.getByRole('radio', { name: 'نعم، المبلغ كاملًا (\u2066300.00 ₪\u2069)' }).check();
   await dialog.getByRole('radio', { name: 'شيك' }).check();
   await dialog.getByRole('textbox', { name: 'رقم الشيك' }).fill(`DL-${s.suffix}`);
   await dialog.getByRole('textbox', { name: 'البنك' }).fill('بنك فلسطين');
   await dialog.getByRole('textbox', { name: 'تاريخ الاستحقاق' }).fill(plusDays(today, 3));
   await dialog.getByRole('button', { name: 'تسليم الحالة' }).click();
-  await expect(page.getByText(/وتسجيل الدفعة IN-\d{6}/)).toBeVisible();
+  await expect(page.getByText(/وتسجيل الدفعة \u2066IN-\d{6}\u2069/)).toBeVisible();
 
   await page.goto(`/cheques?q=DL-${s.suffix}`);
   const row = page.getByRole('row').filter({ hasText: `DL-${s.suffix}` });

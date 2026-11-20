@@ -131,7 +131,7 @@ test('record an expense: numbered voucher, the table and the report follow, the 
   await form.getByRole('textbox', { name: /^المبلغ/ }).fill('1500.50');
   await expectAccessible(page);
   await form.getByRole('button', { name: 'حفظ المصروف' }).click();
-  await expect(page.getByText(/تم حفظ المصروف OUT-\d{6}\./)).toBeVisible();
+  await expect(page.getByText(/تم حفظ المصروف \u2066OUT-\d{6}\u2069\./)).toBeVisible();
   // The form starts blank again.
   await expect(form.getByRole('textbox', { name: /^المبلغ/ })).toHaveValue('');
 
@@ -199,7 +199,7 @@ test('the form says what is missing in Arabic and sends nothing; a post-dated ch
   await form.getByRole('textbox', { name: /^بنك المختبر/ }).fill('بنك القدس');
   await form.getByRole('textbox', { name: /^تاريخ الاستحقاق/ }).fill('2099-12-01');
   await form.getByRole('button', { name: 'حفظ المصروف' }).click();
-  await expect(page.getByText(/تم حفظ المصروف OUT-\d{6}\./)).toBeVisible();
+  await expect(page.getByText(/تم حفظ المصروف \u2066OUT-\d{6}\u2069\./)).toBeVisible();
   const row = page.getByRole('table', { name: 'تقرير المصاريف' }).getByRole('row').filter({ hasText: `مورّد ${s.suffix}` });
   await expect(row).toContainText('قيد التحصيل');
   await expect(row).toContainText('غير محتسب بعد');
@@ -230,11 +230,11 @@ test('an outgoing cheque counts in the report only once it is cleared in the reg
   await expect(row).toContainText('صادرة');
   await expect(row).toContainText('يستحق قريبًا');
   await row.getByRole('button', { name: /^تغيير الحالة/ }).click();
-  const dialog = page.getByRole('dialog', { name: `تغيير حالة الشيك ${chequeNo}` });
+  const dialog = page.getByRole('dialog', { name: `تغيير حالة الشيك \u2066${chequeNo}\u2069` });
   await expect(dialog.getByRole('option')).toHaveCount(2);
   await dialog.getByLabel('الحالة الجديدة').selectOption('cleared');
   await dialog.getByRole('button', { name: 'حفظ الحالة' }).click();
-  await expect(page.getByText(`أصبح الشيك ${chequeNo} «تم الصرف».`)).toBeVisible();
+  await expect(page.getByText(`أصبح الشيك \u2066${chequeNo}\u2069 «تم الصرف».`)).toBeVisible();
   await expect(row).toContainText('تم الصرف');
 
   // Counted now, on the day it cleared.
@@ -253,13 +253,13 @@ test('void with a reason: the expense stays listed, struck out, and stops counti
   await expect(page.getByTestId('expenses-counted')).toHaveText('250.00 ₪');
   const row = page.getByRole('row').filter({ hasText: p.payment.voucherNo });
   await row.getByRole('button', { name: `إلغاء الدفعة ${p.payment.voucherNo}` }).click();
-  const dialog = page.getByRole('dialog', { name: `إلغاء الدفعة ${p.payment.voucherNo}؟` });
+  const dialog = page.getByRole('dialog', { name: `إلغاء الدفعة \u2066${p.payment.voucherNo}\u2069؟` });
   await dialog.getByRole('button', { name: 'إلغاء الدفعة', exact: true }).click();
   await expect(dialog.getByText('هذا الحقل مطلوب.')).toBeVisible();
   await dialog.getByRole('textbox', { name: /سبب الإلغاء/ }).fill('سُجّل مرتين');
   await expectAccessible(page);
   await dialog.getByRole('button', { name: 'إلغاء الدفعة', exact: true }).click();
-  await expect(page.getByText(`تم إلغاء الدفعة ${p.payment.voucherNo}.`)).toBeVisible();
+  await expect(page.getByText(`تم إلغاء الدفعة \u2066${p.payment.voucherNo}\u2069.`)).toBeVisible();
   await expect(row).toContainText('ملغاة: سُجّل مرتين');
   await expect(row.getByRole('button', { name: `إلغاء الدفعة ${p.payment.voucherNo}` })).toHaveAttribute('aria-disabled', 'true');
   // No longer counted: the summary shows 0.00 and keeps the payment as a cancelled one.
@@ -287,12 +287,12 @@ test('refund a doctor’s credit from his page: balance 0, a statement line, the
   // Over the credit: refused in the form, nothing is sent.
   await dialog.getByRole('textbox', { name: /^المبلغ/ }).fill('60');
   await dialog.getByRole('button', { name: 'حفظ المصروف' }).click();
-  await expect(dialog.getByText('المبلغ أكبر من الرصيد القابل للاسترداد (50.00 ₪).')).toBeVisible();
+  await expect(dialog.getByText('المبلغ أكبر من الرصيد القابل للاسترداد (\u206650.00 ₪\u2069).')).toBeVisible();
   await expectAccessible(page);
   await shot(page, 'refund-dialog-ar', { fullPage: false });
   await dialog.getByRole('textbox', { name: /^المبلغ/ }).fill('50');
   await dialog.getByRole('button', { name: 'حفظ المصروف' }).click();
-  await expect(page.getByText(/تم حفظ المصروف OUT-\d{6} \(استرداد\)\. الرصيد الجديد: 0\.00 ₪\./)).toBeVisible();
+  await expect(page.getByText(/تم حفظ المصروف \u2066OUT-\d{6}\u2069 \(استرداد\)\. الرصيد الجديد: \u20660\.00 ₪\u2069\./)).toBeVisible();
   await expect(dialog).toBeHidden();
   expect(await balanceOf(request, s, doctor)).toBe(0);
   await expect(card).toContainText('مسدَّد');

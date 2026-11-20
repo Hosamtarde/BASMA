@@ -150,7 +150,7 @@ test('currency: editable while no amount exists, locked with an explanation afte
   await page.getByRole('option', { name: doctorName }).click();
   await page.getByRole('textbox', { name: 'المبلغ' }).fill('100');
   await page.getByRole('button', { name: 'تسجيل الدفعة' }).click();
-  await expect(page.getByText(/تم تسجيل الدفعة IN-\d{6}\./)).toBeVisible();
+  await expect(page.getByText(/تم تسجيل الدفعة \u2066IN-\d{6}\u2069\./)).toBeVisible();
 
   await page.getByRole('link', { name: 'الإعدادات' }).click();
   await expect(code).toBeDisabled();
