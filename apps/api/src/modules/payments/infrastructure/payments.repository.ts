@@ -227,7 +227,7 @@ export class PaymentsRepository {
   }
 
   /** Active payments already bound to a case, except bounced cheques (the D5 limit). */
-  async boundTotal(tx: Tx, caseId: number): Promise<number> {
+  async boundTotal(tx: Executor, caseId: number): Promise<number> {
     const [row] = await tx
       .select({ sum: sql<string>`coalesce(sum(${payments.amount}), 0)` })
       .from(payments)
@@ -239,6 +239,16 @@ export class PaymentsRepository {
           or(ne(payments.method, 'cheque'), ne(cheques.status, 'returned')),
         ),
       );
+    return Number(row?.sum ?? 0);
+  }
+
+  /** B5: active payments bound to a case whose cheque has not cleared yet (subtracted from what is due at delivery). */
+  async pendingBoundCheques(db: Executor, caseId: number): Promise<number> {
+    const [row] = await db
+      .select({ sum: sql<string>`coalesce(sum(${payments.amount}), 0)` })
+      .from(payments)
+      .innerJoin(cheques, eq(cheques.paymentId, payments.id))
+      .where(and(eq(payments.caseId, caseId), eq(payments.status, 'active'), eq(cheques.status, 'pending')));
     return Number(row?.sum ?? 0);
   }
 

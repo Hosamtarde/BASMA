@@ -9,8 +9,14 @@ import { DomainError } from '../../../shared/errors/domain-error';
 import { isUniqueViolation } from '../../../shared/db/pg-errors';
 import { LabCalendar } from '../../settings/application/lab-calendar.service';
 import { LedgerService } from '../../payments/application/ledger.service';
-import { AdvancePayment, PaymentsService, PaymentView } from '../../payments/application/payments.service';
-import { requestHash } from '../../payments/domain/payment-rules';
+import {
+  AdvancePayment,
+  ChequeInput,
+  PaymentResult,
+  PaymentsService,
+  PaymentView,
+} from '../../payments/application/payments.service';
+import { boundRoom, PaymentMethod, requestHash } from '../../payments/domain/payment-rules';
 import { PaymentsRepository } from '../../payments/infrastructure/payments.repository';
 import {
   Area,
@@ -28,6 +34,7 @@ import {
   summarizeCounts,
   totalOf,
 } from '../domain/case-rules';
+import { collectOnValid, decideDelivery, deliveryDue, DeliveryReceived } from '../domain/delivery-rules';
 import {
   CaseChanges,
   CaseFilter,
@@ -70,9 +77,31 @@ export interface CaseDetail extends CaseRow {
   /** Bound payments that count + the FIFO share of unbound ones (SPEC §7.3); 0 when cancelled. */
   paid: number;
   remaining: number;
+  /** Payments bound to this case whose cheque has not cleared yet (B5). */
+  pendingCheques: number;
+  /** What the delivery dialog may still ask for (B5, N1); null when the case cannot be delivered now. */
+  deliveryDue: number | null;
   overdue: boolean;
   items: CaseItemRow[];
   history: HistoryRow[];
+}
+
+/** A delivery request (SPEC §5.7; B5 plan §4.2). The amount of a full payment comes from the server. */
+export interface DeliveryInput {
+  rowVersion: number;
+  deliveredDate?: string;
+  note?: string | null;
+  received?: DeliveryReceived;
+  amount?: number;
+  method?: PaymentMethod;
+  cheque?: ChequeInput;
+  collectOn?: string;
+}
+
+export interface DeliveryResult {
+  detail: CaseDetail;
+  payment: PaymentResult | null;
+  replayed: boolean;
 }
 
 /** Result of creating a case: the case, its advance payment (if any) and whether it was a replay. */
@@ -149,11 +178,21 @@ export class CasesService {
     ]);
     const figures =
       found.status === 'cancelled' ? undefined : await this.ledger.caseFigures(found.doctorId, id);
+    const pendingCheques = await this.paymentsRepo.pendingBoundCheques(this.db, id);
+    const deliverable = found.status !== 'cancelled' && found.status !== 'delivered';
     return {
       ...found,
       subtotal: subtotalOf(items),
       paid: figures?.paid ?? 0,
       remaining: figures?.remaining ?? 0,
+      pendingCheques,
+      deliveryDue: deliverable
+        ? deliveryDue(
+            figures?.remaining ?? 0,
+            pendingCheques,
+            boundRoom(found.total, await this.paymentsRepo.boundTotal(this.db, id)),
+          )
+        : null,
       overdue: isOverdue(found, today),
       items,
       history,
@@ -436,9 +475,9 @@ export class CasesService {
   }
 
   /**
-   * Status change (SPEC §9, owner-approved machine). delivered_date exists only while delivered
-   * (addition A): set on delivery (≥ received, ≤ today), cleared otherwise; every delivery date
-   * stays in the history.
+   * Status change (SPEC §9, owner-approved machine) for every move except delivery: a case is
+   * delivered only through `deliver` (B5, N3), which asks about the money. Leaving "delivered"
+   * (→ returned) clears delivered_date and the collect date; every delivery date stays in the history.
    */
   async changeStatus(
     id: number,
@@ -450,36 +489,165 @@ export class CasesService {
   ): Promise<CaseDetail> {
     await this.db.transaction(async (tx) => {
       const current = this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion));
+      if (to === 'delivered') {
+        if (current.status === 'delivered') throw err('error.case.already_delivered', HttpStatus.CONFLICT);
+        throw err('error.case.delivery_required', HttpStatus.CONFLICT);
+      }
       const check = checkTransition(current.status, to);
       if (check === 'same') throw err('error.case.same_status', HttpStatus.CONFLICT);
       if (check === 'invalid') {
         throw err('error.case.invalid_transition', HttpStatus.CONFLICT, { from: current.status, to });
       }
-      if (to !== 'delivered' && deliveredDate !== undefined) {
-        throw err('error.case.delivered_date_invalid', HttpStatus.BAD_REQUEST);
-      }
-      let newDeliveredDate: string | null = null;
-      if (to === 'delivered') {
-        const today = await this.calendar.today(tx);
-        newDeliveredDate = deliveredDate ?? today;
-        if (newDeliveredDate > today || newDeliveredDate < current.receivedDate) {
-          throw err('error.case.delivered_date_invalid', HttpStatus.BAD_REQUEST);
-        }
-      }
-      await this.repo.updateCase(tx, id, { status: to, deliveredDate: newDeliveredDate }, userId);
+      if (deliveredDate !== undefined) throw err('error.case.delivered_date_invalid', HttpStatus.BAD_REQUEST);
+      await this.repo.updateCase(tx, id, { status: to, deliveredDate: null, collectOn: null }, userId);
       await this.repo.insertHistory(tx, id, {
         fromStatus: current.status,
         toStatus: to,
         note,
-        deliveredDate: newDeliveredDate,
+        deliveredDate: null,
         userId,
       });
+      const params: AuditParams = { caseNo: current.caseNo, from: current.status, to };
+      // The collect date is not in the history: keep the one a return clears in the audit entry.
+      if (current.collectOn !== null) params.collectOn = current.collectOn;
+      await this.audit.write(tx, { userId, action: 'case.status_changed', entity: 'case', entityId: id, params });
+    });
+    return this.get(id);
+  }
+
+  /**
+   * Delivery (SPEC §5.7, §9; B5 plan §4): the only way to "delivered". In ONE transaction, under the
+   * ADR-0010 lock order (currency SHARE when money is taken → doctor → case → voucher counter): the
+   * amount due is computed under the locks, the case moves to delivered with its delivery and collect
+   * dates, and the payment taken at delivery is created by the same code as any payment (bound to the
+   * case, under the caller's Idempotency-Key). Any failure rolls back everything, numbers included.
+   */
+  async deliver(id: number, input: DeliveryInput, key: string | undefined, userId: number): Promise<DeliveryResult> {
+    const hash = key ? requestHash({ caseId: id, ...input }) : '';
+    if (key) {
+      const replay = await this.deliveryReplay(id, key, hash);
+      if (replay) return replay;
+    }
+    const found = await this.repo.find(this.db, id);
+    if (!found) throw notFound();
+    let paymentId: number | null;
+    try {
+      paymentId = await this.db.transaction(async (tx) => {
+        const paying = input.received === 'full' || input.received === 'partial';
+        if (paying) await lockCurrencyForMoneyWrite(tx);
+        const doctor = await this.paymentsRepo.lockDoctor(tx, found.doctorId);
+        if (!doctor) throw notFound();
+        if (key) {
+          // The same key may have committed while we waited for the doctor lock.
+          const earlier = await this.paymentsRepo.byIdempotencyKey(tx, key);
+          if (earlier) return -earlier.id;
+        }
+        const current = this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), input.rowVersion));
+        if (current.status === 'delivered') throw err('error.case.already_delivered', HttpStatus.CONFLICT);
+        if (checkTransition(current.status, 'delivered') !== 'ok') {
+          throw err('error.case.invalid_transition', HttpStatus.CONFLICT, { from: current.status, to: 'delivered' });
+        }
+        const today = await this.calendar.today(tx);
+        const deliveredDate = input.deliveredDate ?? today;
+        if (deliveredDate > today || deliveredDate < current.receivedDate) {
+          throw err('error.case.delivered_date_invalid', HttpStatus.BAD_REQUEST);
+        }
+        const figures = await this.ledger.caseFigures(current.doctorId, id, tx);
+        const due = deliveryDue(
+          figures?.remaining ?? 0,
+          await this.paymentsRepo.pendingBoundCheques(tx, id),
+          boundRoom(current.total, await this.paymentsRepo.boundTotal(tx, id)),
+        );
+        const verdict = decideDelivery(input, due, deliveredDate);
+        if (!verdict.ok) throw err(verdict.code, verdict.status, verdict.params ?? {});
+
+        await this.repo.updateCase(tx, id, { status: 'delivered', deliveredDate, collectOn: verdict.collectOn }, userId);
+        await this.repo.insertHistory(tx, id, {
+          fromStatus: current.status,
+          toStatus: 'delivered',
+          note: input.note ?? null,
+          deliveredDate,
+          userId,
+        });
+        const params: AuditParams = {
+          caseNo: current.caseNo,
+          from: current.status,
+          deliveredDate,
+          received: due === 0 ? 'nothing_due' : (input.received ?? null),
+        };
+        if (verdict.collectOn !== null) params.collectOn = verdict.collectOn;
+        await this.audit.write(tx, { userId, action: 'case.delivered', entity: 'case', entityId: id, params });
+        if (verdict.paymentAmount === 0) return null;
+        return this.payments.insert(
+          tx,
+          {
+            doctorId: current.doctorId,
+            caseId: id,
+            method: input.method as PaymentMethod,
+            amount: verdict.paymentAmount,
+            // Money handed over at delivery is received on the delivery date.
+            paidAt: deliveredDate,
+            ...(input.cheque ? { cheque: input.cheque } : {}),
+          },
+          doctor.name,
+          userId,
+          key ? { key, hash } : null,
+          undefined,
+          'delivery',
+        );
+      });
+    } catch (error) {
+      if (key && isUniqueViolation(error, 'payments_idempotency_key_uq')) {
+        const raced = await this.deliveryReplay(id, key, hash);
+        if (raced) return raced;
+      }
+      throw error;
+    }
+    if (paymentId !== null && paymentId < 0) {
+      const raced = key ? await this.deliveryReplay(id, key, hash) : undefined;
+      if (raced) return raced;
+      throw err('error.idempotency.mismatch', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+    return {
+      detail: await this.get(id),
+      payment: paymentId === null ? null : await this.payments.result(paymentId, false),
+      replayed: false,
+    };
+  }
+
+  /** Same key + same delivery → the original answer; the key used for anything else → 422. */
+  private async deliveryReplay(id: number, key: string, hash: string): Promise<DeliveryResult | undefined> {
+    const existing = await this.paymentsRepo.byIdempotencyKey(this.db, key);
+    if (!existing) {
+      if (await this.paymentsRepo.keyUsedByOutgoing(this.db, key)) {
+        throw err('error.idempotency.mismatch', HttpStatus.UNPROCESSABLE_ENTITY);
+      }
+      return undefined;
+    }
+    if (existing.requestHash !== hash || existing.caseId !== id) {
+      throw err('error.idempotency.mismatch', HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+    return { detail: await this.get(id), payment: await this.payments.result(existing.id, true), replayed: true };
+  }
+
+  /** Changes or removes the collect date of a delivered case (B5, N2). */
+  async setCollectOn(id: number, rowVersion: number, collectOn: string | null, userId: number): Promise<CaseDetail> {
+    await this.db.transaction(async (tx) => {
+      const current = this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion));
+      if (current.status !== 'delivered' || current.deliveredDate === null) {
+        throw err('error.case.not_delivered', HttpStatus.CONFLICT);
+      }
+      if (collectOn !== null && !collectOnValid(collectOn, current.deliveredDate)) {
+        throw err('error.delivery.collect_on_invalid', HttpStatus.BAD_REQUEST);
+      }
+      if (collectOn === current.collectOn) return;
+      await this.repo.updateCase(tx, id, { collectOn }, userId);
       await this.audit.write(tx, {
         userId,
-        action: 'case.status_changed',
+        action: 'case.collect_on_changed',
         entity: 'case',
         entityId: id,
-        params: { caseNo: current.caseNo, from: current.status, to },
+        params: { caseNo: current.caseNo, old: current.collectOn, new: collectOn },
       });
     });
     return this.get(id);

@@ -32,6 +32,7 @@ const summary = (over: Partial<CaseSummary> = {}): CaseSummary => ({
   receivedDate: '2026-11-01',
   expectedDate: '2026-11-05',
   deliveredDate: null,
+  collectOn: null,
   status: 'design',
   total: 47000,
   paid: 0,

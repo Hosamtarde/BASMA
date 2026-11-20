@@ -43,6 +43,8 @@ export interface CaseRow {
   receivedDate: string;
   expectedDate: string;
   deliveredDate: string | null;
+  /** B5: agreed date to collect the rest, only while delivered (SPEC §5.7). */
+  collectOn: string | null;
   status: CaseStatus;
   discount: number;
   total: number;
@@ -96,6 +98,7 @@ export type CaseChanges = Partial<
     | 'receivedDate'
     | 'expectedDate'
     | 'deliveredDate'
+    | 'collectOn'
     | 'status'
     | 'discount'
     | 'total'
@@ -114,6 +117,7 @@ const caseCols = {
   receivedDate: cases.receivedDate,
   expectedDate: cases.expectedDate,
   deliveredDate: cases.deliveredDate,
+  collectOn: cases.collectOn,
   status: cases.status,
   discount: cases.discount,
   total: cases.total,
@@ -208,7 +212,7 @@ export class CasesRepository {
 
   async insertCase(
     tx: Tx,
-    values: Omit<CaseRow, 'id' | 'doctorName' | 'technicianName' | 'rowVersion' | 'deliveredDate'>,
+    values: Omit<CaseRow, 'id' | 'doctorName' | 'technicianName' | 'rowVersion' | 'deliveredDate' | 'collectOn'>,
     userId: number,
   ): Promise<number> {
     const [row] = await tx

@@ -120,6 +120,10 @@ describe('B4 tie-out over the demo data (e2e)', () => {
     expect(report.outgoing.refunds).toBeGreaterThanOrEqual(4);
     expect(withPaidOut).toBeGreaterThanOrEqual(3);
     expect(withOpenRefund).toBeGreaterThanOrEqual(1);
+    // B5: the demo delivers cases with full, part and no payment (one by a cheque still pending).
+    expect(report.deliveries.full).toBeGreaterThanOrEqual(3);
+    expect(report.deliveries.partial).toBeGreaterThanOrEqual(3);
+    expect(report.deliveries.none).toBeGreaterThanOrEqual(3);
   });
 
   it('R3 in the demo: a refund followed by the doctor’s own cheque bouncing — 300.00 = case 200.00 + refund 100.00', async () => {

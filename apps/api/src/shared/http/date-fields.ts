@@ -11,3 +11,12 @@ export const IsDateOnly = () =>
       validator: { validate: (value: unknown) => typeof value === 'string' && isCalendarDate(value) },
     }),
   );
+
+/** Required, but may be null (a value that can be removed): a calendar date or null, never missing. */
+export const IsDateOnlyOrNull = () =>
+  ValidateBy({
+    name: 'isDateOnlyOrNull',
+    validator: {
+      validate: (value: unknown) => value === null || (typeof value === 'string' && isCalendarDate(value)),
+    },
+  });

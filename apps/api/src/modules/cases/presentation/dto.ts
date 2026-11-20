@@ -17,12 +17,17 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { IsOptionalNonNull, PageMeta, VersionedPatch } from '../../../shared/http/common.dto';
-import { IsDateOnly } from '../../../shared/http/date-fields';
+import { IsDateOnly, IsDateOnlyOrNull } from '../../../shared/http/date-fields';
 import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../../../shared/http/pagination';
 import { OptionalText } from '../../../shared/http/text-fields';
 import { IsAmount } from '../../../shared/money/amount.validators';
+import { MAX_AMOUNT_MINOR } from '../../../shared/money/limits';
 import { IsName } from '../../../shared/text/names';
-import { AdvancePaymentInput, PaymentResponse } from '../../payments/presentation/dto';
+import { AdvancePaymentInput, ChequeInput, PaymentResponse } from '../../payments/presentation/dto';
+import { PAYMENT_METHODS } from '../../payments/domain/payment-rules';
+import type { PaymentMethod } from '../../payments/domain/payment-rules';
+import { DELIVERY_RECEIVED } from '../domain/delivery-rules';
+import type { DeliveryReceived } from '../domain/delivery-rules';
 import type { Area, CaseStatus, PriceSource } from '../domain/case-rules';
 import { AREAS, CASE_STATUSES, isFdiTooth, MAX_LINES_PER_CASE, PRE_DELIVERY } from '../domain/case-rules';
 
@@ -141,15 +146,66 @@ export class UpdateCaseLineRequest extends VersionedPatch {
 }
 
 export class ChangeCaseStatusRequest extends VersionedPatch {
-  @ApiProperty({ enum: STATUS_TARGETS, description: 'Cancel uses POST /cases/{id}/cancel' })
+  @ApiProperty({
+    enum: STATUS_TARGETS,
+    description:
+      'Cancel uses POST /cases/{id}/cancel. B5: to=delivered is refused (409 error.case.delivery_required); deliver with POST /cases/{id}/delivery',
+  })
   @IsIn(STATUS_TARGETS)
   to!: CaseStatus;
   @ApiPropertyOptional({ type: String, maxLength: 500, nullable: true }) @OptionalText(500) note?:
     string | null;
-  @ApiPropertyOptional({ description: 'Only with to=delivered; default today; ≥ received, ≤ today' })
+  @ApiPropertyOptional({ description: 'Refused (400 error.case.delivered_date_invalid): a date belongs to a delivery' })
   @IsOptionalNonNull()
   @IsDateOnly()
   deliveredDate?: string;
+}
+
+/**
+ * B5 (SPEC §5.7): hand a case over and say what was received. A full payment is for the amount the
+ * server computes (deliveryDue of GET /cases/{id}); the client never sends it.
+ */
+export class DeliverCaseRequest extends VersionedPatch {
+  @ApiPropertyOptional({ description: 'Default today (lab time zone); ≥ received date, ≤ today' })
+  @IsOptionalNonNull()
+  @IsDateOnly()
+  deliveredDate?: string;
+  @ApiPropertyOptional({ type: String, maxLength: 500, nullable: true, description: 'Into the status history' })
+  @OptionalText(500)
+  note?: string | null;
+  @ApiPropertyOptional({
+    enum: DELIVERY_RECEIVED,
+    description: 'Required when something is due (deliveryDue > 0); omit (or full) when nothing is due',
+  })
+  @IsOptionalNonNull()
+  @IsIn(DELIVERY_RECEIVED)
+  received?: DeliveryReceived;
+  @ApiPropertyOptional({ description: 'Only with received=partial: integer minor units, below deliveryDue', minimum: 1 })
+  @IsOptionalNonNull()
+  @IsInt()
+  @Min(1)
+  @Max(MAX_AMOUNT_MINOR)
+  amount?: number;
+  @ApiPropertyOptional({ enum: PAYMENT_METHODS, description: 'With received=full or partial' })
+  @IsOptionalNonNull()
+  @IsIn(PAYMENT_METHODS)
+  method?: PaymentMethod;
+  @ApiPropertyOptional({ type: ChequeInput, description: 'Required for method=cheque, forbidden otherwise' })
+  @IsOptionalNonNull()
+  @ValidateNested()
+  @Type(() => ChequeInput)
+  cheque?: ChequeInput;
+  @ApiPropertyOptional({ description: 'Required with partial / none; ≥ the delivery date; refused otherwise' })
+  @IsOptionalNonNull()
+  @IsDateOnly()
+  collectOn?: string;
+}
+
+/** B5: change (or remove with null) the collect date of a delivered case. */
+export class SetCollectOnRequest extends VersionedPatch {
+  @ApiProperty({ type: String, nullable: true, description: '≥ the delivery date; null removes it' })
+  @IsDateOnlyOrNull()
+  collectOn!: string | null;
 }
 
 export class CancelCaseRequest extends VersionedPatch {
@@ -218,6 +274,12 @@ export class CaseSummaryResponse {
   @ApiProperty() receivedDate!: string;
   @ApiProperty() expectedDate!: string;
   @ApiProperty({ type: String, nullable: true }) deliveredDate!: string | null;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'B5: agreed date to collect what is still owed; only while delivered',
+  })
+  collectOn!: string | null;
   @ApiProperty({ enum: CASE_STATUSES }) status!: CaseStatus;
   @ApiProperty(amountDoc) total!: number;
   @ApiProperty({ description: 'Computed with the lab’s today (time zone setting)' }) overdue!: boolean;
@@ -267,6 +329,15 @@ export class CaseDetailResponse extends CaseSummaryResponse {
   })
   paid!: number;
   @ApiProperty({ ...amountDoc, description: 'total - paid; 0 for a cancelled case' }) remaining!: number;
+  @ApiProperty({ ...amountDoc, description: 'B5: payments bound to this case whose cheque has not cleared yet' })
+  pendingCheques!: number;
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description:
+      'B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled',
+  })
+  deliveryDue!: number | null;
   @ApiProperty(amountDoc) discount!: number;
   @ApiProperty({ type: String, nullable: true }) notes!: string | null;
   @ApiProperty({ type: [CaseLineResponse] }) lines!: CaseLineResponse[];
@@ -274,11 +345,20 @@ export class CaseDetailResponse extends CaseSummaryResponse {
   @ApiProperty({
     enum: CASE_STATUSES,
     isArray: true,
-    description: 'Statuses this case may move to now (POST /cases/{id}/status); empty when none',
+    description:
+      'Statuses this case may move to now; empty when none. "delivered" goes through POST /cases/{id}/delivery (B5), every other one through POST /cases/{id}/status',
   })
   allowedStatuses!: CaseStatus[];
   @ApiProperty({ description: 'true when POST /cases/{id}/cancel is allowed now' }) canCancel!: boolean;
   @ApiProperty({ description: 'true when header and lines may be edited (not cancelled)' }) canEdit!: boolean;
+}
+
+export class DeliverCaseResponse {
+  @ApiProperty({ type: CaseDetailResponse }) case!: CaseDetailResponse;
+  @ApiProperty({ type: PaymentResponse, nullable: true, description: 'The payment taken at delivery, if any' })
+  payment!: PaymentResponse | null;
+  @ApiProperty({ type: Number, nullable: true, description: 'Doctor balance after the payment; null without one' })
+  doctorBalance!: number | null;
 }
 
 export class CreateCaseResponse extends CaseDetailResponse {

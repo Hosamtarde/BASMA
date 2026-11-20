@@ -736,8 +736,10 @@ describe('Payments, cheques and balances (e2e)', () => {
       const c = await newCase(d, 20_000);
       await paid({ doctorId: d, caseId: c.id, method: 'cash', amount: 5_000 });
       let cur = (
-        await post(`/cases/${c.id}/status`, { rowVersion: c.rowVersion, to: 'delivered' }).expect(200)
-      ).body as CaseBody;
+        await post(`/cases/${c.id}/delivery`, { rowVersion: c.rowVersion, received: 'none', collectOn: TODAY }).expect(
+          200,
+        )
+      ).body.case as CaseBody;
       cur = (await post(`/cases/${c.id}/status`, { rowVersion: cur.rowVersion, to: 'returned' }).expect(200))
         .body as CaseBody;
       const done = await post(`/cases/${c.id}/cancel`, {

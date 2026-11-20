@@ -466,6 +466,16 @@ describe('Cases (e2e)', () => {
       const c = await detail(id);
       return post(`/cases/${id}/status`, { rowVersion: c.rowVersion, to, ...extra }).expect(status);
     };
+    // B5 (N3): delivery goes through its own endpoint; nothing received, collect on the given day.
+    const deliver = async (extra: object = {}, status = 200) => {
+      const c = await detail(id);
+      return post(`/cases/${id}/delivery`, {
+        rowVersion: c.rowVersion,
+        received: 'none',
+        collectOn: '2026-11-20',
+        ...extra,
+      }).expect(status);
+    };
 
     beforeAll(async () => {
       id = (await post('/cases', baseCase({ receivedDate: '2026-11-05' })).expect(201)).body.id as number;
@@ -477,17 +487,29 @@ describe('Cases (e2e)', () => {
       expect((await move('ready', {}, 409)).body.error.code).toBe('error.case.same_status');
     });
 
-    it('validates the delivery date: not before received, not after today, only with delivered', async () => {
-      expect((await move('delivered', { deliveredDate: '2026-11-11' }, 400)).body.error.code).toBe(
+    it('validates the delivery date: not before received, not after today, only on delivery', async () => {
+      expect((await deliver({ deliveredDate: '2026-11-11' }, 400)).body.error.code).toBe(
         'error.case.delivered_date_invalid',
       );
-      await move('delivered', { deliveredDate: '2026-11-04' }, 400);
+      await deliver({ deliveredDate: '2026-11-04' }, 400);
       await move('in_progress', { deliveredDate: TODAY }, 400);
     });
 
+    it('B5 (N3): the status endpoint refuses "delivered" and points to the delivery dialog', async () => {
+      const res = await move('delivered', {}, 409);
+      expect(res.body.error.code).toBe('error.case.delivery_required');
+      expect((await detail(id)).status).toBe('ready');
+      // The API still offers "delivered" as a next status: the UI opens the delivery dialog for it.
+      expect((await detail(id) as unknown as { allowedStatuses: string[] }).allowedStatuses).toContain('delivered');
+    });
+
     it('delivers with today by default; after delivery only "returned" is allowed', async () => {
-      const res = await move('delivered', {}, 200);
-      expect(res.body).toMatchObject({ status: 'delivered', deliveredDate: TODAY });
+      const res = await deliver({}, 200);
+      expect(res.body.case).toMatchObject({ status: 'delivered', deliveredDate: TODAY, collectOn: '2026-11-20' });
+      expect(res.body).toMatchObject({ payment: null, doctorBalance: null });
+      const again = await deliver({}, 409);
+      expect(again.body.error.code).toBe('error.case.already_delivered');
+      expect((await move('delivered', {}, 409)).body.error.code).toBe('error.case.already_delivered');
       const bad = await move('in_progress', {}, 409);
       expect(bad.body.error).toMatchObject({
         code: 'error.case.invalid_transition',
@@ -495,16 +517,22 @@ describe('Cases (e2e)', () => {
       });
     });
 
-    it('returned clears delivered_date; re-delivery keeps both dates in the history', async () => {
+    it('returned clears delivered_date and the collect date; re-delivery keeps both dates in the history', async () => {
       const returned = await move('returned', { note: 'margin open' }, 200);
-      expect(returned.body.deliveredDate).toBeNull();
+      expect(returned.body).toMatchObject({ deliveredDate: null, collectOn: null });
+      // The cleared collect date stays in the audit entry of the return.
+      const audit = await t.pool.query<{ params: Record<string, unknown> }>(
+        `SELECT params FROM audit_log WHERE action = 'case.status_changed' AND entity_id = $1 ORDER BY id DESC LIMIT 1`,
+        [String(id)],
+      );
+      expect(audit.rows[0]?.params).toMatchObject({ to: 'returned', collectOn: '2026-11-20' });
       // From returned: only in_progress | ready | delivered.
       await move('waiting', {}, 409);
       await move('design', {}, 409);
 
-      const redelivered = await move('delivered', { deliveredDate: '2026-11-09' }, 200);
-      expect(redelivered.body.deliveredDate).toBe('2026-11-09');
-      const deliveries = (redelivered.body as Detail).history
+      const redelivered = await deliver({ deliveredDate: '2026-11-09', collectOn: '2026-11-09' }, 200);
+      expect(redelivered.body.case).toMatchObject({ deliveredDate: '2026-11-09', collectOn: '2026-11-09' });
+      const deliveries = (redelivered.body.case as Detail).history
         .filter((h) => h.toStatus === 'delivered')
         .map((h) => h.deliveredDate);
       expect(deliveries).toEqual([TODAY, '2026-11-09']);
@@ -538,8 +566,13 @@ describe('Cases (e2e)', () => {
 
     it('cannot cancel after delivery; from returned only with a reason (D2, B3)', async () => {
       let c = (await post('/cases', baseCase()).expect(201)).body as Detail;
-      c = (await post(`/cases/${c.id}/status`, { rowVersion: c.rowVersion, to: 'delivered' }).expect(200))
-        .body as Detail;
+      c = (
+        await post(`/cases/${c.id}/delivery`, {
+          rowVersion: c.rowVersion,
+          received: 'none',
+          collectOn: TODAY,
+        }).expect(200)
+      ).body.case as Detail;
       expect(c).toMatchObject({ allowedStatuses: ['returned'], canCancel: false, canEdit: true });
       const fromDelivered = await post(`/cases/${c.id}/cancel`, { rowVersion: c.rowVersion }).expect(409);
       expect(fromDelivered.body.error).toMatchObject({
@@ -650,9 +683,10 @@ describe('Cases (e2e)', () => {
       await make('design', TODAY);
       await make('ready', TODAY);
       const toDeliver = await make('in_progress', TODAY);
-      await post(`/cases/${toDeliver.id}/status`, {
+      await post(`/cases/${toDeliver.id}/delivery`, {
         rowVersion: toDeliver.rowVersion,
-        to: 'delivered',
+        received: 'none',
+        collectOn: TODAY,
       }).expect(200);
       const toCancel = await make('waiting', TODAY);
       await post(`/cases/${toCancel.id}/cancel`, { rowVersion: toCancel.rowVersion }).expect(200);

@@ -522,12 +522,46 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Change status (machine of SPEC §9 as approved for B2) */
+        /** Change status (machine of SPEC §9 as approved for B2), except delivery: POST /cases/{id}/delivery */
         post: operations["CasesController_changeStatus"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cases/{id}/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Deliver a case (B5, SPEC §5.7): received full / partial / none, the collect date, and the payment taken at delivery in one transaction */
+        post: operations["CasesController_deliver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/cases/{id}/collect-on": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Change or remove the collect date of a delivered case (B5) */
+        patch: operations["CasesController_setCollectOn"];
         trace?: never;
     };
     "/api/v1/cases/{id}/cancel": {
@@ -1410,6 +1444,8 @@ export interface components {
             receivedDate: string;
             expectedDate: string;
             deliveredDate: string | null;
+            /** @description B5: agreed date to collect what is still owed; only while delivered */
+            collectOn: string | null;
             /** @enum {string} */
             status: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled";
             /** @description Integer minor units */
@@ -1585,6 +1621,8 @@ export interface components {
             receivedDate: string;
             expectedDate: string;
             deliveredDate: string | null;
+            /** @description B5: agreed date to collect what is still owed; only while delivered */
+            collectOn: string | null;
             /** @enum {string} */
             status: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled";
             /** @description Integer minor units */
@@ -1598,12 +1636,16 @@ export interface components {
             paid: number;
             /** @description total - paid; 0 for a cancelled case */
             remaining: number;
+            /** @description B5: payments bound to this case whose cheque has not cleared yet */
+            pendingCheques: number;
+            /** @description B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled */
+            deliveryDue: number | null;
             /** @description Integer minor units */
             discount: number;
             notes: string | null;
             lines: components["schemas"]["CaseLineResponse"][];
             history: components["schemas"]["CaseHistoryResponse"][];
-            /** @description Statuses this case may move to now (POST /cases/{id}/status); empty when none */
+            /** @description Statuses this case may move to now; empty when none. "delivered" goes through POST /cases/{id}/delivery (B5), every other one through POST /cases/{id}/status */
             allowedStatuses: ("waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled")[];
             /** @description true when POST /cases/{id}/cancel is allowed now */
             canCancel: boolean;
@@ -1621,6 +1663,8 @@ export interface components {
             receivedDate: string;
             expectedDate: string;
             deliveredDate: string | null;
+            /** @description B5: agreed date to collect what is still owed; only while delivered */
+            collectOn: string | null;
             /** @enum {string} */
             status: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled";
             /** @description Integer minor units */
@@ -1634,12 +1678,16 @@ export interface components {
             paid: number;
             /** @description total - paid; 0 for a cancelled case */
             remaining: number;
+            /** @description B5: payments bound to this case whose cheque has not cleared yet */
+            pendingCheques: number;
+            /** @description B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled */
+            deliveryDue: number | null;
             /** @description Integer minor units */
             discount: number;
             notes: string | null;
             lines: components["schemas"]["CaseLineResponse"][];
             history: components["schemas"]["CaseHistoryResponse"][];
-            /** @description Statuses this case may move to now (POST /cases/{id}/status); empty when none */
+            /** @description Statuses this case may move to now; empty when none. "delivered" goes through POST /cases/{id}/delivery (B5), every other one through POST /cases/{id}/status */
             allowedStatuses: ("waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled")[];
             /** @description true when POST /cases/{id}/cancel is allowed now */
             canCancel: boolean;
@@ -1674,13 +1722,50 @@ export interface components {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
             rowVersion: number;
             /**
-             * @description Cancel uses POST /cases/{id}/cancel
+             * @description Cancel uses POST /cases/{id}/cancel. B5: to=delivered is refused (409 error.case.delivery_required); deliver with POST /cases/{id}/delivery
              * @enum {string}
              */
             to: "waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned";
             note?: string | null;
-            /** @description Only with to=delivered; default today; ≥ received, ≤ today */
+            /** @description Refused (400 error.case.delivered_date_invalid): a date belongs to a delivery */
             deliveredDate?: string;
+        };
+        DeliverCaseRequest: {
+            /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
+            rowVersion: number;
+            /** @description Default today (lab time zone); ≥ received date, ≤ today */
+            deliveredDate?: string;
+            /** @description Into the status history */
+            note?: string | null;
+            /**
+             * @description Required when something is due (deliveryDue > 0); omit (or full) when nothing is due
+             * @enum {string}
+             */
+            received?: "full" | "partial" | "none";
+            /** @description Only with received=partial: integer minor units, below deliveryDue */
+            amount?: number;
+            /**
+             * @description With received=full or partial
+             * @enum {string}
+             */
+            method?: "cash" | "cheque" | "transfer";
+            /** @description Required for method=cheque, forbidden otherwise */
+            cheque?: components["schemas"]["ChequeInput"];
+            /** @description Required with partial / none; ≥ the delivery date; refused otherwise */
+            collectOn?: string;
+        };
+        DeliverCaseResponse: {
+            case: components["schemas"]["CaseDetailResponse"];
+            /** @description The payment taken at delivery, if any */
+            payment: components["schemas"]["PaymentResponse"] | null;
+            /** @description Doctor balance after the payment; null without one */
+            doctorBalance: number | null;
+        };
+        SetCollectOnRequest: {
+            /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
+            rowVersion: number;
+            /** @description ≥ the delivery date; null removes it */
+            collectOn: string | null;
         };
         CancelCaseRequest: {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
@@ -3958,7 +4043,105 @@ export interface operations {
                     "application/json": components["schemas"]["CaseDetailResponse"];
                 };
             };
-            /** @description error.case.invalid_transition | error.case.same_status */
+            /** @description error.case.invalid_transition | error.case.same_status | error.case.delivery_required | error.case.already_delivered */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    CasesController_deliver: {
+        parameters: {
+            query?: never;
+            header?: {
+                /** @description Required with received=full or partial (a UUID per attempt); a replay returns the original answer */
+                "Idempotency-Key"?: string;
+            };
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeliverCaseRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeliverCaseResponse"];
+                };
+            };
+            /** @description error.validation.failed | error.delivery.* (received, amount, method, collect date) | error.case.delivered_date_invalid | error.payment.cheque_required | error.payment.cheque_not_allowed | error.idempotency.required */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.case.already_delivered | error.case.cancelled | error.case.invalid_transition | error.delivery.exceeds_remaining {max} | error.delivery.nothing_due | error.cheque.duplicate | error.concurrency.stale */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    CasesController_setCollectOn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetCollectOnRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaseDetailResponse"];
+                };
+            };
+            /** @description error.validation.failed | error.delivery.collect_on_invalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.case.not_delivered | error.case.cancelled | error.concurrency.stale */
             409: {
                 headers: {
                     [name: string]: unknown;

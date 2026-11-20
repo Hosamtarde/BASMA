@@ -2400,7 +2400,7 @@
             }
           },
           "409": {
-            "description": "error.case.invalid_transition | error.case.same_status",
+            "description": "error.case.invalid_transition | error.case.same_status | error.case.delivery_required | error.case.already_delivered",
             "content": {
               "application/json": {
                 "schema": {
@@ -2415,7 +2415,158 @@
             "bearer": []
           }
         ],
-        "summary": "Change status (machine of SPEC §9 as approved for B2)",
+        "summary": "Change status (machine of SPEC §9 as approved for B2), except delivery: POST /cases/{id}/delivery",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/v1/cases/{id}/delivery": {
+      "post": {
+        "operationId": "CasesController_deliver",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required with received=full or partial (a UUID per attempt); a replay returns the original answer",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliverCaseRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliverCaseResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed | error.delivery.* (received, amount, method, collect date) | error.case.delivered_date_invalid | error.payment.cheque_required | error.payment.cheque_not_allowed | error.idempotency.required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.case.already_delivered | error.case.cancelled | error.case.invalid_transition | error.delivery.exceeds_remaining {max} | error.delivery.nothing_due | error.cheque.duplicate | error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deliver a case (B5, SPEC §5.7): received full / partial / none, the collect date, and the payment taken at delivery in one transaction",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/api/v1/cases/{id}/collect-on": {
+      "patch": {
+        "operationId": "CasesController_setCollectOn",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCollectOnRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed | error.delivery.collect_on_invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.case.not_delivered | error.case.cancelled | error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change or remove the collect date of a delivered case (B5)",
         "tags": [
           "cases"
         ]
@@ -6174,6 +6325,11 @@
             "type": "string",
             "nullable": true
           },
+          "collectOn": {
+            "type": "string",
+            "nullable": true,
+            "description": "B5: agreed date to collect what is still owed; only while delivered"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -6218,6 +6374,7 @@
           "receivedDate",
           "expectedDate",
           "deliveredDate",
+          "collectOn",
           "status",
           "total",
           "overdue",
@@ -6803,6 +6960,11 @@
             "type": "string",
             "nullable": true
           },
+          "collectOn": {
+            "type": "string",
+            "nullable": true,
+            "description": "B5: agreed date to collect what is still owed; only while delivered"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -6842,6 +7004,16 @@
             "description": "total - paid; 0 for a cancelled case",
             "minimum": 0
           },
+          "pendingCheques": {
+            "type": "number",
+            "description": "B5: payments bound to this case whose cheque has not cleared yet",
+            "minimum": 0
+          },
+          "deliveryDue": {
+            "type": "number",
+            "nullable": true,
+            "description": "B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled"
+          },
           "discount": {
             "type": "number",
             "description": "Integer minor units",
@@ -6865,7 +7037,7 @@
           },
           "allowedStatuses": {
             "type": "array",
-            "description": "Statuses this case may move to now (POST /cases/{id}/status); empty when none",
+            "description": "Statuses this case may move to now; empty when none. \"delivered\" goes through POST /cases/{id}/delivery (B5), every other one through POST /cases/{id}/status",
             "items": {
               "type": "string",
               "enum": [
@@ -6907,6 +7079,7 @@
           "receivedDate",
           "expectedDate",
           "deliveredDate",
+          "collectOn",
           "status",
           "total",
           "overdue",
@@ -6914,6 +7087,8 @@
           "subtotal",
           "paid",
           "remaining",
+          "pendingCheques",
+          "deliveryDue",
           "discount",
           "notes",
           "lines",
@@ -6958,6 +7133,11 @@
             "type": "string",
             "nullable": true
           },
+          "collectOn": {
+            "type": "string",
+            "nullable": true,
+            "description": "B5: agreed date to collect what is still owed; only while delivered"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -6997,6 +7177,16 @@
             "description": "total - paid; 0 for a cancelled case",
             "minimum": 0
           },
+          "pendingCheques": {
+            "type": "number",
+            "description": "B5: payments bound to this case whose cheque has not cleared yet",
+            "minimum": 0
+          },
+          "deliveryDue": {
+            "type": "number",
+            "nullable": true,
+            "description": "B5: what a delivery may still ask for = remaining − pending bound cheques, ≥ 0; null when delivered or cancelled"
+          },
           "discount": {
             "type": "number",
             "description": "Integer minor units",
@@ -7020,7 +7210,7 @@
           },
           "allowedStatuses": {
             "type": "array",
-            "description": "Statuses this case may move to now (POST /cases/{id}/status); empty when none",
+            "description": "Statuses this case may move to now; empty when none. \"delivered\" goes through POST /cases/{id}/delivery (B5), every other one through POST /cases/{id}/status",
             "items": {
               "type": "string",
               "enum": [
@@ -7052,6 +7242,7 @@
           "receivedDate",
           "expectedDate",
           "deliveredDate",
+          "collectOn",
           "status",
           "total",
           "overdue",
@@ -7059,6 +7250,8 @@
           "subtotal",
           "paid",
           "remaining",
+          "pendingCheques",
+          "deliveryDue",
           "discount",
           "notes",
           "lines",
@@ -7168,7 +7361,7 @@
               "delivered",
               "returned"
             ],
-            "description": "Cancel uses POST /cases/{id}/cancel"
+            "description": "Cancel uses POST /cases/{id}/cancel. B5: to=delivered is refused (409 error.case.delivery_required); deliver with POST /cases/{id}/delivery"
           },
           "note": {
             "type": "string",
@@ -7177,12 +7370,115 @@
           },
           "deliveredDate": {
             "type": "string",
-            "description": "Only with to=delivered; default today; ≥ received, ≤ today"
+            "description": "Refused (400 error.case.delivered_date_invalid): a date belongs to a delivery"
           }
         },
         "required": [
           "rowVersion",
           "to"
+        ]
+      },
+      "DeliverCaseRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "deliveredDate": {
+            "type": "string",
+            "description": "Default today (lab time zone); ≥ received date, ≤ today"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true,
+            "description": "Into the status history"
+          },
+          "received": {
+            "type": "string",
+            "enum": [
+              "full",
+              "partial",
+              "none"
+            ],
+            "description": "Required when something is due (deliveryDue > 0); omit (or full) when nothing is due"
+          },
+          "amount": {
+            "type": "number",
+            "description": "Only with received=partial: integer minor units, below deliveryDue",
+            "minimum": 1
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "cheque",
+              "transfer"
+            ],
+            "description": "With received=full or partial"
+          },
+          "cheque": {
+            "description": "Required for method=cheque, forbidden otherwise",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChequeInput"
+              }
+            ]
+          },
+          "collectOn": {
+            "type": "string",
+            "description": "Required with partial / none; ≥ the delivery date; refused otherwise"
+          }
+        },
+        "required": [
+          "rowVersion"
+        ]
+      },
+      "DeliverCaseResponse": {
+        "type": "object",
+        "properties": {
+          "case": {
+            "$ref": "#/components/schemas/CaseDetailResponse"
+          },
+          "payment": {
+            "nullable": true,
+            "description": "The payment taken at delivery, if any",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PaymentResponse"
+              }
+            ]
+          },
+          "doctorBalance": {
+            "type": "number",
+            "nullable": true,
+            "description": "Doctor balance after the payment; null without one"
+          }
+        },
+        "required": [
+          "case",
+          "payment",
+          "doctorBalance"
+        ]
+      },
+      "SetCollectOnRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "collectOn": {
+            "type": "string",
+            "nullable": true,
+            "description": "≥ the delivery date; null removes it"
+          }
+        },
+        "required": [
+          "rowVersion",
+          "collectOn"
         ]
       },
       "CancelCaseRequest": {

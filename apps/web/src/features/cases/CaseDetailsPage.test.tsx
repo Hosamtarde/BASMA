@@ -17,6 +17,7 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   receivedDate: '2026-11-01',
   expectedDate: '2026-11-05',
   deliveredDate: null,
+  collectOn: null,
   status: 'design',
   total: 47000,
   overdue: true,
@@ -24,6 +25,8 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   subtotal: 50000,
   paid: 0,
   remaining: 50000,
+  pendingCheques: 0,
+  deliveryDue: 50000,
   discount: 3000,
   notes: 'لون فاتح',
   lines: [

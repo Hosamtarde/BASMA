@@ -45,6 +45,9 @@ import {
   ChangeCaseStatusRequest,
   CreateCaseRequest,
   CreateCaseResponse,
+  DeliverCaseRequest,
+  DeliverCaseResponse,
+  SetCollectOnRequest,
   UpdateCaseLineRequest,
   UpdateCaseRequest,
 } from './dto';
@@ -58,6 +61,7 @@ const toSummary = (c: CaseSummary): CaseSummaryResponse => ({
   receivedDate: c.receivedDate,
   expectedDate: c.expectedDate,
   deliveredDate: c.deliveredDate,
+  collectOn: c.collectOn,
   status: c.status,
   total: c.total,
   overdue: c.overdue,
@@ -69,6 +73,8 @@ const toDetail = (c: CaseDetail): CaseDetailResponse => ({
   subtotal: c.subtotal,
   paid: c.paid,
   remaining: c.remaining,
+  pendingCheques: c.pendingCheques,
+  deliveryDue: c.deliveryDue,
   discount: c.discount,
   notes: c.notes,
   lines: c.items.map((i) => ({
@@ -263,9 +269,14 @@ export class CasesController {
   @Post(':id/status')
   @HttpCode(HttpStatus.OK)
   @RequirePermission(Permission.CasesWrite)
-  @ApiOperation({ summary: 'Change status (machine of SPEC §9 as approved for B2)' })
+  @ApiOperation({
+    summary: 'Change status (machine of SPEC §9 as approved for B2), except delivery: POST /cases/{id}/delivery',
+  })
   @ApiOkResponse({ type: CaseDetailResponse })
-  @ApiConflictResponse({ description: 'error.case.invalid_transition | error.case.same_status' })
+  @ApiConflictResponse({
+    description:
+      'error.case.invalid_transition | error.case.same_status | error.case.delivery_required | error.case.already_delivered',
+  })
   async changeStatus(
     @Param('id', ParseIdPipe) id: number,
     @Body() body: ChangeCaseStatusRequest,
@@ -281,6 +292,80 @@ export class CasesController {
         user.id,
       ),
     );
+  }
+
+  @Post(':id/delivery')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission(Permission.CasesWrite)
+  @ApiOperation({
+    summary:
+      'Deliver a case (B5, SPEC §5.7): received full / partial / none, the collect date, and the payment taken at delivery in one transaction',
+  })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: false,
+    description: 'Required with received=full or partial (a UUID per attempt); a replay returns the original answer',
+  })
+  @ApiOkResponse({ type: DeliverCaseResponse })
+  @ApiBadRequestResponse({
+    description:
+      'error.validation.failed | error.delivery.* (received, amount, method, collect date) | error.case.delivered_date_invalid | error.payment.cheque_required | error.payment.cheque_not_allowed | error.idempotency.required',
+  })
+  @ApiNotFoundResponse({ description: 'error.not_found' })
+  @ApiConflictResponse({
+    description:
+      'error.case.already_delivered | error.case.cancelled | error.case.invalid_transition | error.delivery.exceeds_remaining {max} | error.delivery.nothing_due | error.cheque.duplicate | error.concurrency.stale',
+  })
+  async deliver(
+    @Param('id', ParseIdPipe) id: number,
+    @Body() body: DeliverCaseRequest,
+    @Headers('idempotency-key') keyHeader: string | undefined,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<DeliverCaseResponse> {
+    let key: string | undefined;
+    if (body.received === 'full' || body.received === 'partial') {
+      // Money is taken: it needs the payments permission and a key (duplicates hurt, ADR-0010).
+      if (!user.permissions.includes(Permission.PaymentsWrite)) {
+        throw new DomainError('error.auth.forbidden', HttpStatus.FORBIDDEN);
+      }
+      key = requireIdempotencyKey(keyHeader);
+    }
+    const result = await this.service.deliver(
+      id,
+      definedOnly({
+        rowVersion: body.rowVersion,
+        deliveredDate: body.deliveredDate,
+        note: body.note,
+        received: body.received,
+        amount: body.amount,
+        method: body.method,
+        cheque: body.cheque ? { ...body.cheque } : undefined,
+        collectOn: body.collectOn,
+      }),
+      key,
+      user.id,
+    );
+    markReplay(res, result.replayed);
+    return {
+      case: toDetail(result.detail),
+      payment: result.payment ? toPaymentResponse(result.payment.payment) : null,
+      doctorBalance: result.payment ? result.payment.doctorBalance : null,
+    };
+  }
+
+  @Patch(':id/collect-on')
+  @RequirePermission(Permission.CasesWrite)
+  @ApiOperation({ summary: 'Change or remove the collect date of a delivered case (B5)' })
+  @ApiOkResponse({ type: CaseDetailResponse })
+  @ApiBadRequestResponse({ description: 'error.validation.failed | error.delivery.collect_on_invalid' })
+  @ApiConflictResponse({ description: 'error.case.not_delivered | error.case.cancelled | error.concurrency.stale' })
+  async setCollectOn(
+    @Param('id', ParseIdPipe) id: number,
+    @Body() body: SetCollectOnRequest,
+    @CurrentUser() user: AuthUser,
+  ): Promise<CaseDetailResponse> {
+    return toDetail(await this.service.setCollectOn(id, body.rowVersion, body.collectOn ?? null, user.id));
   }
 
   @Post(':id/cancel')
