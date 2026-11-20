@@ -153,7 +153,7 @@ describe('Invoice snapshots are immutable (e2e)', () => {
     await post(`/cases/${caseId}/delivery`, { rowVersion: c.rowVersion, received: 'none', collectOn: '2026-11-29' }).expect(200);
     // Money moves: a new payment, a void, a bounced cheque.
     await post('/payments', { doctorId, caseId, method: 'cash', amount: 7_000 }, randomUUID()).expect(201);
-    const p = (await get(`/payments/${payId}`).expect(200)).body.payment;
+    const p = (await get(`/payments/${payId}`).expect(200)).body as { rowVersion: number };
     await post(`/payments/${payId}/void`, { rowVersion: p.rowVersion, reason: 'entered twice' }).expect(200);
     const ch = (await get(`/payments`).query({ doctorId, method: 'cheque' }).expect(200)).body.items[0].cheque;
     await patch(`/cheques/${chequeId}/status`, { status: 'returned', rowVersion: ch.rowVersion }).expect(200);
