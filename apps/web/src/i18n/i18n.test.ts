@@ -75,7 +75,7 @@ describe('reading order of dates and amounts inside Arabic sentences (B5b)', () 
     await changeLanguage('ar');
   });
 
-  it('isolates a `ltr` value in Arabic so it is not reordered by the right-to-left sentence', () => {
+  it('isolates a `ltr` value in Arabic so the sentence cannot reorder it', () => {
     const text = i18next.t('caseDetails.historyDelivered', { date: '2026-11-20' });
     expect(text).toBe('تاريخ التسليم: ⁦2026-11-20⁩');
     expect(i18next.t('payments.saved', { voucher: 'IN-000031', balance: '470.00 ₪' })).toContain(

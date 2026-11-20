@@ -53,12 +53,12 @@ export async function changeLanguage(lang: Language): Promise<void> {
   applyToDocument(lang);
 }
 
-/** Left-to-right isolate (LRI … PDI): keeps a date, an amount or a number in reading order inside Arabic text. */
+/** Isolated LTR run (LRI … PDI): keeps a date, an amount or a number in reading order inside Arabic text. */
 export const isolateLtr = (value: string): string => `⁦${value}⁩`;
 
 /**
  * `{{date, ltr}}` in a catalog: in Arabic the value is isolated so "2026-11-20" and "250.00 ₪" are
- * not reordered by the surrounding right-to-left sentence; in English it is left as it is.
+ * not reordered by the Arabic sentence around it; in English it is left as it is.
  */
 function registerFormatters(): void {
   i18next.services.formatter?.add('ltr', (value: unknown, lng: string | undefined) =>
