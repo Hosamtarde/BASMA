@@ -126,6 +126,53 @@
       "title": "No cases yet",
       "body": "Start by recording your first case: choose the doctor, mark the teeth on the chart, then pick the work type.",
       "cta": "Add the first case"
+    },
+    "activity": {
+      "title": "Latest operations",
+      "empty": "The latest operations in the system will appear here.",
+      "loadError": "The latest operations could not be loaded.",
+      "by": "by",
+      "system": "System",
+      "unknown": "Operation",
+      "action": {
+        "auth_account_locked": "Account locked for a while after failed sign-ins",
+        "auth_password_changed": "Password changed",
+        "auth_refresh_token_reuse": "Sessions cancelled after an old session was reused",
+        "case_cancelled": "Case cancelled",
+        "case_collect_on_changed": "Collect date changed on case",
+        "case_created": "Case created",
+        "case_delivered": "Case delivered",
+        "case_line_added": "Line added to case",
+        "case_line_removed": "Line removed from case",
+        "case_line_updated": "Line changed on case",
+        "case_status_changed": "Case stage changed",
+        "case_updated": "Case details changed",
+        "cheque_status_changed": "Cheque status changed",
+        "doctor_created": "Doctor added",
+        "doctor_deactivated": "Doctor deactivated",
+        "doctor_deleted": "Doctor deleted",
+        "doctor_price_removed": "Special price removed for doctor",
+        "doctor_price_set": "Special price set for doctor",
+        "doctor_updated": "Doctor details changed",
+        "expense_category_created": "Expense category added",
+        "expense_category_updated": "Expense category changed",
+        "export_created": "CSV file exported",
+        "outgoing_created": "Outgoing payment recorded",
+        "outgoing_voided": "Outgoing payment cancelled",
+        "payment_created": "Incoming payment recorded",
+        "payment_voided": "Incoming payment cancelled",
+        "settings_currency_updated": "Currency settings changed",
+        "settings_lab_profile_updated": "Lab details changed",
+        "settings_language_updated": "Language changed",
+        "settings_logo_removed": "Lab logo removed",
+        "settings_logo_updated": "Lab logo changed",
+        "settings_numbering_updated": "Starting number changed",
+        "setup_completed": "First-time setup completed",
+        "technician_created": "Technician added",
+        "technician_updated": "Technician changed",
+        "work_type_created": "Work type added",
+        "work_type_updated": "Work type changed"
+      }
     }
   },
   "auth": {
@@ -476,7 +523,11 @@
       "bleach": "Bleach shades"
     },
     "level": "Level {{n}}",
-    "disclaimer": "Screen colours are a guide only, not a replacement for a shade guide or a measuring device."
+    "disclaimer": "Screen colours are a guide only, not a replacement for a shade guide or a measuring device.",
+    "frequent": "Most used",
+    "frequentEmpty": "The shades you use most will appear here.",
+    "frequentError": "The most used shades could not be loaded.",
+    "frequentCount": "Uses: {{n}}"
   },
   "newCase": {
     "title": "New case",

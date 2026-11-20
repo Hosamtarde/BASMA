@@ -126,6 +126,53 @@
       "title": "لا توجد حالات بعد",
       "body": "ابدأ بتسجيل أول حالة: اختر الطبيب، حدّد الأسنان على المخطط، ثم اختر نوع العمل.",
       "cta": "أضف أول حالة"
+    },
+    "activity": {
+      "title": "آخر العمليات",
+      "empty": "ستظهر هنا آخر العمليات التي تُجرى في النظام.",
+      "loadError": "تعذّر تحميل آخر العمليات.",
+      "by": "بواسطة",
+      "system": "النظام",
+      "unknown": "عملية",
+      "action": {
+        "auth_account_locked": "قفل حساب مؤقتًا بعد محاولات دخول فاشلة",
+        "auth_password_changed": "تغيير كلمة المرور",
+        "auth_refresh_token_reuse": "إلغاء الجلسات بعد استخدام جلسة قديمة",
+        "case_cancelled": "إلغاء حالة",
+        "case_collect_on_changed": "تغيير موعد تحصيل حالة",
+        "case_created": "إنشاء حالة",
+        "case_delivered": "تسليم حالة",
+        "case_line_added": "إضافة سطر إلى حالة",
+        "case_line_removed": "حذف سطر من حالة",
+        "case_line_updated": "تعديل سطر في حالة",
+        "case_status_changed": "تغيير مرحلة حالة",
+        "case_updated": "تعديل بيانات حالة",
+        "cheque_status_changed": "تغيير حالة شيك",
+        "doctor_created": "إضافة طبيب",
+        "doctor_deactivated": "إيقاف طبيب",
+        "doctor_deleted": "حذف طبيب",
+        "doctor_price_removed": "إلغاء سعر خاص لطبيب",
+        "doctor_price_set": "تحديد سعر خاص لطبيب",
+        "doctor_updated": "تعديل بيانات طبيب",
+        "expense_category_created": "إضافة فئة مصاريف",
+        "expense_category_updated": "تعديل فئة مصاريف",
+        "export_created": "تصدير ملف CSV",
+        "outgoing_created": "تسجيل دفعة صادرة",
+        "outgoing_voided": "إلغاء دفعة صادرة",
+        "payment_created": "تسجيل دفعة واردة",
+        "payment_voided": "إلغاء دفعة واردة",
+        "settings_currency_updated": "تعديل إعدادات العملة",
+        "settings_lab_profile_updated": "تعديل بيانات المختبر",
+        "settings_language_updated": "تعديل اللغة",
+        "settings_logo_removed": "إزالة شعار المختبر",
+        "settings_logo_updated": "تغيير شعار المختبر",
+        "settings_numbering_updated": "تغيير رقم البداية",
+        "setup_completed": "إعداد النظام لأول مرة",
+        "technician_created": "إضافة فني",
+        "technician_updated": "تعديل فني",
+        "work_type_created": "إضافة نوع عمل",
+        "work_type_updated": "تعديل نوع عمل"
+      }
     }
   },
   "auth": {
@@ -491,7 +538,11 @@
       "bleach": "ألوان التبييض"
     },
     "level": "المستوى {{n}}",
-    "disclaimer": "ألوان الشاشة للإرشاد فقط وليست بديلًا عن دليل الألوان أو جهاز القياس."
+    "disclaimer": "ألوان الشاشة للإرشاد فقط وليست بديلًا عن دليل الألوان أو جهاز القياس.",
+    "frequent": "الأكثر استخدامًا",
+    "frequentEmpty": "ستظهر هنا الألوان التي تستخدمها أكثر.",
+    "frequentError": "تعذّر تحميل الألوان الأكثر استخدامًا.",
+    "frequentCount": "عدد الاستخدامات: {{n}}"
   },
   "newCase": {
     "title": "إضافة حالة جديدة",
