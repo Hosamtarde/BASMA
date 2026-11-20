@@ -442,6 +442,13 @@ describe('Payments, cheques and balances (e2e)', () => {
       ]);
       expect(st.body.closing).toBe(2000);
       expect((await balance(d)).balance).toBe(2000);
+      // Every change writes its history row in the same transaction (both directions, SPEC §7.4).
+      const h = await t.pool.query<{ s: string }>(
+        `SELECT from_status || '>' || to_status || ' ' || status_date::text AS s FROM cheque_status_history
+         WHERE cheque_id = $1 AND from_status IS NOT NULL ORDER BY id`,
+        [ch.id],
+      );
+      expect(h.rows.map((r) => r.s)).toEqual(['pending>cleared 2026-11-08', 'cleared>returned 2026-11-08']);
     });
 
     it('rejects a duplicate cheque (same bank and number) until the first one is returned', async () => {

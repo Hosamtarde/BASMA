@@ -555,6 +555,13 @@ describe('Outgoing payments and refunds (e2e)', () => {
       const { st } = await tieOut(d);
       expect(st.lines.map((l) => l.kind)).toEqual(['payment', 'refund', 'refund_cheque_return']);
       expect(st.closing).toBe(-15000);
+      // Every change writes its history row in the same transaction (both directions, SPEC §7.4).
+      const h = await t.pool.query<{ s: string }>(
+        `SELECT from_status || '>' || to_status || ' ' || status_date::text AS s FROM cheque_status_history
+         WHERE cheque_id = $1 AND from_status IS NOT NULL ORDER BY id`,
+        [c.id],
+      );
+      expect(h.rows.map((r) => r.s)).toEqual(['pending>cleared 2026-11-08', 'cleared>returned 2026-11-08']);
       // An expense cheque follows the same rule.
       const e = await outOk(expense({ method: 'cheque', cheque: cheque(), amount: 700, paidAt: '2026-11-02' }));
       const ec = (await setOutCheque(e.payment.cheque!.id, e.payment.cheque!.rowVersion, 'cleared', { statusDate: '2026-11-09' }).expect(200))
