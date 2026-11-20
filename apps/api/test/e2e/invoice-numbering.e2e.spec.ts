@@ -33,6 +33,14 @@ describe('Invoice numbering (e2e)', () => {
     await request(t.http).patch(api('/settings/numbering')).set('Authorization', t.auth).send({ invoiceNoStart: 5000 }).expect(200);
     const first = await issue(free('first')).expect(201);
     expect(first.body.no).toBe(5000);
+    // production-readiness #14: this free invoice is the installation's first amount — it locks the currency.
+    const cur = (await get('/settings').expect(200)).body as { currency: { rowVersion: number; locked?: unknown } };
+    const locked = await request(t.http)
+      .patch(api('/settings/currency'))
+      .set('Authorization', t.auth)
+      .send({ rowVersion: cur.currency.rowVersion, decimals: 3 })
+      .expect(409);
+    expect(locked.body.error.code).toBe('error.settings.currency_locked');
     const after = (await get('/settings').expect(200)).body;
     expect(after.numbering.invoiceNo).toMatchObject({ startValue: 5000, locked: true });
     const refused = await request(t.http)
