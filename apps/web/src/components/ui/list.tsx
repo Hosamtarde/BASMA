@@ -93,7 +93,7 @@ export function SearchBox({
     return () => clearTimeout(handle);
   }, [text, value, onChange]);
   return (
-    <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-[var(--radius-control)] border border-border bg-surface px-3 focus-within:outline-2 focus-within:outline-focus md:max-w-sm">
+    <label className="flex h-10 min-w-[min(100%,14rem)] flex-1 items-center gap-2 rounded-[var(--radius-control)] border border-border bg-surface px-3 focus-within:outline-2 focus-within:outline-focus md:max-w-sm">
       <Search aria-hidden="true" className="size-[18px] shrink-0 text-muted" />
       <span className="sr-only">{label}</span>
       <input
@@ -219,7 +219,16 @@ export function DataTable({
   emptyText: string;
 }) {
   return (
-    <div className="overflow-x-auto">
+    // The card scrolls the table, never the page (S14, WCAG 1.4.10). "relative" makes it the
+    // containing block of the table's visually-hidden parts (caption, sr-only spans): otherwise they
+    // escape the clip and widen the whole document. Focusable so the keyboard can scroll it.
+    <div
+      role="group"
+      aria-label={caption}
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scrollable region must be focusable (axe: scrollable-region-focusable)
+      tabIndex={0}
+      className="relative overflow-x-auto outline-none focus-visible:outline-2 focus-visible:outline-focus"
+    >
       <table className="w-full border-collapse text-[14.5px]">
         <caption className="sr-only">{caption}</caption>
         <thead>

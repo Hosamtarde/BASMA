@@ -102,6 +102,14 @@ export const caseCountsQuery = (f: CaseCountFilter = { search: '' }) =>
     placeholderData: keepPreviousData,
   });
 
+/** Shades by use on case lines, for the picker's «الأكثر استخدامًا» row (counts only). */
+export const shadeUsageQuery = queryOptions({
+  queryKey: [...caseKeys.all, 'shade-usage'] as const,
+  queryFn: () => unwrap(api.GET('/api/v1/cases/shade-usage', { params: { query: { limit: 8 } } })),
+  // Usage changes slowly; a case saved meanwhile invalidates `caseKeys.all` anyway.
+  staleTime: 60_000,
+});
+
 /** The newest cases for Home (same order as the list). */
 export const latestCasesQuery = (count: number) =>
   queryOptions({

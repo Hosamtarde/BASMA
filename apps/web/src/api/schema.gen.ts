@@ -464,6 +464,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/cases/shade-usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Shades by use on case lines (not cancelled), most used first: the shade picker’s top row */
+        get: operations["CasesController_shadeUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/cases/{id}": {
         parameters: {
             query?: never;
@@ -1079,6 +1096,23 @@ export interface paths {
         patch: operations["NotificationsController_state"];
         trace?: never;
     };
+    "/api/v1/audit/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The latest 20 audit entries for «آخر العمليات»: action code, entity type and label, user name and time. Never payloads, reasons, amounts or addresses */
+        get: operations["AuditFeedController_recent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1496,6 +1530,16 @@ export interface components {
             total: number;
             /** @description Matching cases that are overdue (lab’s today, same rule as the list) */
             overdue: number;
+        };
+        ShadeUsageItem: {
+            /** @description The shade as written on the lines (free text, up to 20 characters) */
+            shade: string;
+            /** @description Lines of cases that are not cancelled */
+            count: number;
+        };
+        ShadeUsageResponse: {
+            /** @description Most used first, then by shade */
+            items: components["schemas"]["ShadeUsageItem"][];
         };
         CaseLineInput: {
             /**
@@ -2525,6 +2569,22 @@ export interface components {
             seen?: true;
             /** @description true hides the items until they change; false shows them again */
             dismissed?: boolean;
+        };
+        AuditFeedItemResponse: {
+            /** Format: date-time */
+            at: string;
+            /** @description Stable action code, e.g. case.created; the screen labels it per language */
+            action: string;
+            /** @description case, payment, outgoing_payment, cheque, doctor, … (empty when none) */
+            entityType: string;
+            /** @description Case, voucher or cheque number, or a name; from a whitelist of parameters, null when none */
+            entityLabel: string | null;
+            /** @description User name of who did it; null for the system */
+            actor: string | null;
+        };
+        AuditRecentResponse: {
+            /** @description The latest 20, newest first */
+            items: components["schemas"]["AuditFeedItemResponse"][];
         };
         FieldError: {
             /**
@@ -3929,6 +3989,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CaseCountsResponse"];
+                };
+            };
+        };
+    };
+    CasesController_shadeUsage: {
+        parameters: {
+            query?: {
+                /** @description How many shades to return */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShadeUsageResponse"];
                 };
             };
         };
@@ -5420,6 +5502,34 @@ export interface operations {
                 content?: never;
             };
             /** @description error.validation.failed */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    AuditFeedController_recent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditRecentResponse"];
+                };
+            };
+            /** @description error.validation.failed (the route takes no parameters) */
             400: {
                 headers: {
                     [name: string]: unknown;

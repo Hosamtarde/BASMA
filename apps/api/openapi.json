@@ -2099,6 +2099,46 @@
         ]
       }
     },
+    "/api/v1/cases/shade-usage": {
+      "get": {
+        "operationId": "CasesController_shadeUsage",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "How many shades to return",
+            "schema": {
+              "minimum": 1,
+              "maximum": 24,
+              "default": 8,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShadeUsageResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Shades by use on case lines (not cancelled), most used first: the shade picker’s top row",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
     "/api/v1/cases/{id}": {
       "get": {
         "operationId": "CasesController_get",
@@ -5021,6 +5061,43 @@
           "notifications"
         ]
       }
+    },
+    "/api/v1/audit/recent": {
+      "get": {
+        "operationId": "AuditFeedController_recent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditRecentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed (the route takes no parameters)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The latest 20 audit entries for «آخر العمليات»: action code, entity type and label, user name and time. Never payloads, reasons, amounts or addresses",
+        "tags": [
+          "audit"
+        ]
+      }
     }
   },
   "info": {
@@ -6382,6 +6459,38 @@
           "byStatus",
           "total",
           "overdue"
+        ]
+      },
+      "ShadeUsageItem": {
+        "type": "object",
+        "properties": {
+          "shade": {
+            "type": "string",
+            "description": "The shade as written on the lines (free text, up to 20 characters)"
+          },
+          "count": {
+            "type": "number",
+            "description": "Lines of cases that are not cancelled"
+          }
+        },
+        "required": [
+          "shade",
+          "count"
+        ]
+      },
+      "ShadeUsageResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "Most used first, then by shade",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ShadeUsageItem"
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       },
       "CaseLineInput": {
@@ -9951,6 +10060,55 @@
             "description": "true hides the items until they change; false shows them again"
           }
         }
+      },
+      "AuditFeedItemResponse": {
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "action": {
+            "type": "string",
+            "description": "Stable action code, e.g. case.created; the screen labels it per language"
+          },
+          "entityType": {
+            "type": "string",
+            "description": "case, payment, outgoing_payment, cheque, doctor, … (empty when none)"
+          },
+          "entityLabel": {
+            "type": "string",
+            "nullable": true,
+            "description": "Case, voucher or cheque number, or a name; from a whitelist of parameters, null when none"
+          },
+          "actor": {
+            "type": "string",
+            "nullable": true,
+            "description": "User name of who did it; null for the system"
+          }
+        },
+        "required": [
+          "at",
+          "action",
+          "entityType",
+          "entityLabel",
+          "actor"
+        ]
+      },
+      "AuditRecentResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "description": "The latest 20, newest first",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditFeedItemResponse"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
       },
       "FieldError": {
         "type": "object",

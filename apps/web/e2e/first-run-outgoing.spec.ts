@@ -76,7 +76,7 @@ test('currency: editable until the first outgoing payment, then locked with the 
   await form.getByRole('textbox', { name: /^المدفوع له/ }).fill('مؤجّر');
   await form.getByRole('textbox', { name: /^المبلغ/ }).fill('500');
   await form.getByRole('button', { name: 'حفظ المصروف' }).click();
-  await expect(page.getByText(/تم حفظ المصروف OUT-000001\./)).toBeVisible();
+  await expect(page.getByText(/تم حفظ المصروف \u2066OUT-000001\u2069\./)).toBeVisible();
 
   await page.getByRole('link', { name: 'الإعدادات' }).click();
   await page.getByRole('link', { name: 'عام' }).click();

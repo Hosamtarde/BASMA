@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/field';
 import { caseCountsQuery, latestCasesQuery } from '@/features/cases/api';
 import { doctorsQuery } from '@/features/doctors/api';
+import { useCan } from '@/features/auth/permissions';
 import { ledgerSummaryQuery } from '@/features/payments/api';
 import { useCurrency } from '@/features/shell/currency';
 import { labNameFor, settingsQuery, useLogoUrl } from '@/features/shell/settings';
@@ -18,6 +19,7 @@ import { bannerSubtitle } from './banner';
 import { KeyNumbers } from './KeyNumbers';
 import { LatestCases } from './LatestCases';
 import { Pipeline } from './Pipeline';
+import { RecentActivity } from './RecentActivity';
 import { StatusDonut } from './StatusDonut';
 
 const LATEST = 5;
@@ -37,6 +39,7 @@ export function HomePage() {
   const { data: latest } = useQuery(latestCasesQuery(LATEST));
   const { data: doctors } = useQuery(doctorsQuery({ search: '', active: true, page: 1 }));
   const { data: ledger } = useQuery(ledgerSummaryQuery);
+  const can = useCan();
   const currency = useCurrency();
   const money = (minor: number | undefined) =>
     minor === undefined ? undefined : `${currency.format(minor)} ${currency.symbol}`;
@@ -170,6 +173,14 @@ export function HomePage() {
               <LatestCases items={latest.items} />
             )}
           </section>
+          {can('settings.read') && (
+            <section aria-labelledby="activity-title" className={cn(panel, 'md:col-span-2 xl:col-span-3')}>
+              <h2 id="activity-title" className={panelTitle}>
+                {t('home.activity.title')}
+              </h2>
+              <RecentActivity timeZone={settings.labProfile?.timeZone ?? 'UTC'} />
+            </section>
+          )}
         </div>
       )}
     </>

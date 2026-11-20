@@ -68,3 +68,40 @@ describe('formats', () => {
     expect(todayIn('UTC', lateEvening)).toBe('2026-11-06');
   });
 });
+
+describe('reading order of dates and amounts inside Arabic sentences (B5b)', () => {
+  beforeEach(async () => {
+    await initI18n('ar');
+    await changeLanguage('ar');
+  });
+
+  it('isolates a `ltr` value in Arabic so the sentence cannot reorder it', () => {
+    const text = i18next.t('caseDetails.historyDelivered', { date: '2026-11-20' });
+    expect(text).toBe('تاريخ التسليم: ⁦2026-11-20⁩');
+    expect(i18next.t('payments.saved', { voucher: 'IN-000031', balance: '470.00 ₪' })).toContain(
+      '⁦470.00 ₪⁩',
+    );
+  });
+
+  it('leaves the value as it is in English', async () => {
+    await changeLanguage('en');
+    expect(i18next.t('caseDetails.historyDelivered', { date: '2026-11-20' })).toBe('Delivery date: 2026-11-20');
+    await changeLanguage('ar');
+  });
+
+  it('every placeholder that carries a date or an amount is isolated, in both catalogs', () => {
+    const risky = /\{\{\s*(date|amount|voucher|balance)\s*\}\}/;
+    for (const [name, catalog] of Object.entries({ ar, en })) {
+      const bad: string[] = [];
+      const walk = (node: unknown, path: string) => {
+        if (typeof node === 'string') {
+          if (risky.test(node)) bad.push(path);
+        } else if (node && typeof node === 'object') {
+          for (const [k, v] of Object.entries(node)) walk(v, path ? `${path}.${k}` : k);
+        }
+      };
+      walk(catalog, '');
+      expect(bad, `${name}: placeholders without ", ltr"`).toEqual([]);
+    }
+  });
+});

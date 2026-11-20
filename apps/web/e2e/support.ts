@@ -33,7 +33,11 @@ export async function expectDirection(page: Page, lang: 'ar' | 'en'): Promise<vo
 export async function shot(page: Page, name: string, opts: { fullPage?: boolean } = {}): Promise<void> {
   const dir = process.env.E2E_SHOTS_DIR;
   if (!dir) return;
-  await page.waitForTimeout(250);
+  // Settled, not slept: fonts loaded and two frames painted (animations and the focus ring done).
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+  });
   await page.screenshot({ path: `${dir}/${name}.png`, fullPage: opts.fullPage ?? true });
 }
 

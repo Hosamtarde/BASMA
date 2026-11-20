@@ -101,7 +101,7 @@ test('add a case with teeth and a shade, then open it (Arabic, keyboard on the c
   await shadeDialog.getByRole('tab', { name: '3D-Master' }).click();
   await shot(page, 'shade-3d-ar', VIEWPORT);
   await shadeDialog.getByRole('tab', { name: 'الدليل الكلاسيكي' }).click();
-  await shadeDialog.getByRole('button', { name: 'A2', exact: true }).click();
+  await shadeDialog.getByRole('tabpanel').getByRole('button', { name: 'A2', exact: true }).click();
   await expect(shadeDialog).toBeHidden();
 
   await page.getByRole('button', { name: 'إضافة العمل للأسنان المحددة (2)' }).click();

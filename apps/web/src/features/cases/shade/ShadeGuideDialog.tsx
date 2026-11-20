@@ -1,10 +1,11 @@
 import { Ban, TriangleAlert } from 'lucide-react';
 import { Tabs } from 'radix-ui';
 import { useTranslation } from 'react-i18next';
+import { Spinner } from '@/components/ui/field';
+import { Button } from '@/components/ui/button';
 import { FormDialog } from '@/components/ui/dialog';
 import { cn } from '@/lib/cn';
-import { CLASSIC_SHADES, isThreeD, THREE_D_SHADES } from './shades';
-import type { Shade } from './shades';
+import { CLASSIC_SHADES, isThreeD, shadeColor, THREE_D_SHADES } from './shades';
 
 /** A small crown silhouette filled with the (approximate) shade colour; decorative. */
 export function ShadeSwatch({ color, className }: { color: string | null; className?: string }) {
@@ -22,11 +23,72 @@ export function ShadeSwatch({ color, className }: { color: string | null; classN
   );
 }
 
-function ShadeButton({ shade, current, onPick }: { shade: Shade; current: string | null; onPick: (c: string) => void }) {
+/** The row «الأكثر استخدامًا»: what the parent knows about shade usage (loading, failed, or the list). */
+export type FrequentShades =
+  | { state: 'loading' }
+  | { state: 'error'; onRetry: () => void }
+  | { state: 'ready'; items: { shade: string; count: number }[] };
+
+function FrequentRow({
+  frequent,
+  value,
+  onPick,
+}: {
+  frequent: FrequentShades;
+  value: string | null;
+  onPick: (c: string) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <section aria-labelledby="shade-frequent-title" className="mb-3 rounded-lg bg-surface px-3 py-2.5">
+      <h3 id="shade-frequent-title" className="mb-1.5 text-[13.5px] font-extrabold">
+        {t('shade.frequent')}
+      </h3>
+      {frequent.state === 'loading' ? (
+        <Spinner label={t('common.loading')} />
+      ) : frequent.state === 'error' ? (
+        <div role="alert" className="flex flex-wrap items-center gap-3 text-[13.5px]">
+          <span className="font-semibold text-danger">{t('shade.frequentError')}</span>
+          <Button variant="secondary" size="sm" onClick={frequent.onRetry}>
+            {t('common.retry')}
+          </Button>
+        </div>
+      ) : frequent.items.length === 0 ? (
+        <p className="text-[13.5px] text-muted">{t('shade.frequentEmpty')}</p>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {frequent.items.map((i) => (
+            <ShadeButton
+              key={i.shade}
+              shade={{ code: i.shade, color: shadeColor(i.shade) }}
+              current={value}
+              onPick={onPick}
+              hint={t('shade.frequentCount', { n: i.count })}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ShadeButton({
+  shade,
+  current,
+  onPick,
+  hint,
+}: {
+  shade: { code: string; color: string | null };
+  current: string | null;
+  onPick: (c: string) => void;
+  /** Extra accessible description (the use count of the «most used» row). */
+  hint?: string;
+}) {
   return (
     <button
       type="button"
       aria-pressed={current === shade.code}
+      title={hint}
       onClick={() => onPick(shade.code)}
       className={cn(
         'flex w-[62px] flex-col items-center gap-1 rounded-lg border px-1 py-1.5 hover:bg-hover',
@@ -51,11 +113,14 @@ export function ShadeGuideDialog({
   onOpenChange,
   value,
   onChange,
+  frequent,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   value: string | null;
   onChange: (code: string | null) => void;
+  /** Shade usage for the top row; without it the row is not shown. */
+  frequent?: FrequentShades;
 }) {
   const { t } = useTranslation();
   const pick = (code: string | null) => {
@@ -64,6 +129,7 @@ export function ShadeGuideDialog({
   };
   return (
     <FormDialog open={open} onOpenChange={onOpenChange} title={t('shade.title')} wide>
+      {frequent && <FrequentRow frequent={frequent} value={value} onPick={pick} />}
       <Tabs.Root defaultValue={isThreeD(value) ? '3d' : 'classic'}>
         <Tabs.List aria-label={t('shade.title')} className="flex border-b border-border">
           <Tabs.Trigger value="classic" className={tabClass}>
@@ -75,7 +141,12 @@ export function ShadeGuideDialog({
         </Tabs.List>
         <Tabs.Content value="classic" className="flex flex-col gap-2 pt-3 outline-none">
           {CLASSIC_SHADES.map((g) => (
-            <div key={g.group} role="group" aria-label={t(`shade.group.${g.group}`)} className="flex items-center gap-3">
+            <div
+              key={g.group}
+              role="group"
+              aria-label={t(`shade.group.${g.group}`)}
+              className="flex items-center gap-3"
+            >
               <span className="w-36 shrink-0 text-[13.5px] font-bold">{t(`shade.group.${g.group}`)}</span>
               <div className="flex flex-wrap gap-1">
                 {g.shades.map((s) => (
@@ -93,7 +164,9 @@ export function ShadeGuideDialog({
               aria-label={t('shade.level', { n: g.level })}
               className="flex items-center gap-3"
             >
-              <span className="w-24 shrink-0 text-[13.5px] font-bold">{t('shade.level', { n: g.level })}</span>
+              <span className="w-24 shrink-0 text-[13.5px] font-bold">
+                {t('shade.level', { n: g.level })}
+              </span>
               <div className="flex flex-wrap gap-1">
                 {g.shades.map((s) => (
                   <ShadeButton key={s.code} shade={s} current={value} onPick={pick} />

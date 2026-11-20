@@ -53,6 +53,19 @@ export async function changeLanguage(lang: Language): Promise<void> {
   applyToDocument(lang);
 }
 
+/** Isolated LTR run (LRI … PDI): keeps a date, an amount or a number in reading order inside Arabic text. */
+export const isolateLtr = (value: string): string => `⁦${value}⁩`;
+
+/**
+ * `{{date, ltr}}` in a catalog: in Arabic the value is isolated so "2026-11-20" and "250.00 ₪" are
+ * not reordered by the Arabic sentence around it; in English it is left as it is.
+ */
+function registerFormatters(): void {
+  i18next.services.formatter?.add('ltr', (value: unknown, lng: string | undefined) =>
+    lng === 'ar' ? isolateLtr(String(value)) : String(value),
+  );
+}
+
 export async function initI18n(lang: Language = storedLanguage()): Promise<typeof i18next> {
   if (!i18next.isInitialized) {
     await i18next.use(initReactI18next).init({
@@ -64,6 +77,7 @@ export async function initI18n(lang: Language = storedLanguage()): Promise<typeo
       interpolation: { escapeValue: false },
       returnNull: false,
     });
+    registerFormatters();
   } else {
     await i18next.changeLanguage(lang);
   }

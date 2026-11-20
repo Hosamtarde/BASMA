@@ -88,7 +88,7 @@ test('record a cash payment: the balance moves, the voucher is numbered, the pag
   await expectAccessible(page);
   await shot(page, 'payments-ar');
   await page.getByRole('button', { name: 'تسجيل الدفعة' }).click();
-  await expect(page.getByText(/تم تسجيل الدفعة IN-\d{6}\. الرصيد الجديد: 249\.50 ₪\./)).toBeVisible();
+  await expect(page.getByText(/تم تسجيل الدفعة \u2066IN-\d{6}\u2069\. الرصيد الجديد: \u2066249\.50 ₪\u2069\./)).toBeVisible();
   await expect(page.getByTestId('payment-balance')).toContainText('249.50 ₪');
 
   // The report lists it, counted, and the totals follow.
@@ -150,11 +150,11 @@ test('a cheque counts only after it is cleared; a returned one restores the debt
   await shot(page, 'cheques-ar');
 
   await row.getByRole('button', { name: /^تغيير الحالة/ }).click();
-  const dialog = page.getByRole('dialog', { name: `تغيير حالة الشيك CH-${s.suffix}` });
+  const dialog = page.getByRole('dialog', { name: `تغيير حالة الشيك \u2066CH-${s.suffix}\u2069` });
   await expect(dialog.getByRole('option')).toHaveCount(2); // cleared, returned — what the API allows
   await dialog.getByLabel('الحالة الجديدة').selectOption('cleared');
   await dialog.getByRole('button', { name: 'حفظ الحالة' }).click();
-  await expect(page.getByText(`أصبح الشيك CH-${s.suffix} «تم الصرف».`)).toBeVisible();
+  await expect(page.getByText(`أصبح الشيك \u2066CH-${s.suffix}\u2069 «تم الصرف».`)).toBeVisible();
   await expect(row).toContainText('تم الصرف');
 
   await page.goto(`/doctors/${s.doctor.id}`);
@@ -163,10 +163,10 @@ test('a cheque counts only after it is cleared; a returned one restores the debt
   // Cleared → returned is allowed; returned is final.
   await page.goto(`/cheques?q=CH-${s.suffix}`);
   await page.getByRole('row').filter({ hasText: `CH-${s.suffix}` }).getByRole('button', { name: /^تغيير الحالة/ }).click();
-  const second = page.getByRole('dialog', { name: `تغيير حالة الشيك CH-${s.suffix}` });
+  const second = page.getByRole('dialog', { name: `تغيير حالة الشيك \u2066CH-${s.suffix}\u2069` });
   await expect(second.getByRole('option')).toHaveCount(1);
   await second.getByRole('button', { name: 'حفظ الحالة' }).click();
-  await expect(page.getByText(`أصبح الشيك CH-${s.suffix} «مرتجع».`)).toBeVisible();
+  await expect(page.getByText(`أصبح الشيك \u2066CH-${s.suffix}\u2069 «مرتجع».`)).toBeVisible();
   const done = page.getByRole('row').filter({ hasText: `CH-${s.suffix}` }).getByRole('button', { name: /^تغيير الحالة/ });
   await expect(done).toHaveAttribute('aria-disabled', 'true');
   await page.goto(`/doctors/${s.doctor.id}`);
@@ -185,13 +185,13 @@ test('cancel a payment with a reason: it stays listed, struck out, and the balan
   await page.goto(`/payments?q=${p.payment.voucherNo}`);
   const row = page.getByRole('row').filter({ hasText: p.payment.voucherNo });
   await row.getByRole('button', { name: `إلغاء الدفعة ${p.payment.voucherNo}` }).click();
-  const dialog = page.getByRole('dialog', { name: `إلغاء الدفعة ${p.payment.voucherNo}؟` });
+  const dialog = page.getByRole('dialog', { name: `إلغاء الدفعة \u2066${p.payment.voucherNo}\u2069؟` });
   await dialog.getByRole('button', { name: 'إلغاء الدفعة', exact: true }).click();
   await expect(dialog.getByText('هذا الحقل مطلوب.')).toBeVisible();
   await dialog.getByRole('textbox', { name: /سبب الإلغاء/ }).fill('سُجّلت مرتين');
   await expectAccessible(page);
   await dialog.getByRole('button', { name: 'إلغاء الدفعة', exact: true }).click();
-  await expect(page.getByText(`تم إلغاء الدفعة ${p.payment.voucherNo}.`)).toBeVisible();
+  await expect(page.getByText(`تم إلغاء الدفعة \u2066${p.payment.voucherNo}\u2069.`)).toBeVisible();
   await expect(row).toContainText('ملغاة: سُجّلت مرتين');
   await expect(row.getByRole('button', { name: `إلغاء الدفعة ${p.payment.voucherNo}` })).toHaveAttribute(
     'aria-disabled',
@@ -318,7 +318,7 @@ test('add a case with an advance payment in one step (ar)', async ({ page, reque
   await expectAccessible(page);
   await shot(page, 'new-case-advance-ar', { fullPage: false });
   await page.getByRole('button', { name: 'حفظ الحالة' }).click();
-  await expect(page.getByText(/تم تسجيل الدفعة المقدمة IN-\d{6}\./).first()).toBeVisible();
+  await expect(page.getByText(/تم تسجيل الدفعة المقدمة \u2066IN-\d{6}\u2069\./).first()).toBeVisible();
   await page.getByRole('link', { name: 'فتح الحالة' }).click();
   await expect(page.getByTestId('case-paid')).toContainText('150.00 ₪');
   await expect(page.getByTestId('case-remaining')).toContainText('250.00 ₪');

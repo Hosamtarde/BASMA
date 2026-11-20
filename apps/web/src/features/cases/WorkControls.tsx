@@ -1,18 +1,34 @@
+import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { shadeUsageQuery } from './api';
 import { WorkTypePicker, WorkTypesManagerDialog } from './pickers';
 import type { WorkTypeOption } from './pickers';
 import { ShadeGuideDialog, ShadeSwatch } from './shade/ShadeGuideDialog';
+import type { FrequentShades } from './shade/ShadeGuideDialog';
 import { shadeColor } from './shade/shades';
 
 /** «اللون»: the chosen code with its swatch, and a button that opens the shade guide. */
-export function ShadeField({ value, onChange }: { value: string | null; onChange: (c: string | null) => void }) {
+export function ShadeField({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (c: string | null) => void;
+}) {
   const { t } = useTranslation();
   const labelId = useId();
   const buttonId = useId();
   const [open, setOpen] = useState(false);
+  // Fetched when the guide opens (the dialog is the only place that shows it).
+  const usage = useQuery({ ...shadeUsageQuery, enabled: open, throwOnError: false });
+  const frequent: FrequentShades = usage.isError
+    ? { state: 'error', onRetry: () => void usage.refetch() }
+    : usage.data
+      ? { state: 'ready', items: usage.data.items }
+      : { state: 'loading' };
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
       <span id={labelId} className="text-[14px] font-bold">
@@ -30,7 +46,13 @@ export function ShadeField({ value, onChange }: { value: string | null; onChange
         <span className="num flex-1 font-extrabold">{value ?? t('shade.none')}</span>
         <span className="text-[13px] text-muted">{t('shade.change')}</span>
       </button>
-      <ShadeGuideDialog open={open} onOpenChange={setOpen} value={value} onChange={onChange} />
+      <ShadeGuideDialog
+        open={open}
+        onOpenChange={setOpen}
+        value={value}
+        onChange={onChange}
+        frequent={frequent}
+      />
     </div>
   );
 }

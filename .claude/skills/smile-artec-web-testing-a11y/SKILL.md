@@ -44,3 +44,11 @@ description: Use when writing or reviewing tests or accessibility for the Smile 
 - Component tests have no Toaster: spy on `toast.success` (`vi.spyOn(toast, 'success')`) and assert the text it was called with.
 - Timeouts: Vitest `testTimeout` 15 s and Testing Library `asyncUtilTimeout` 4 s (heavy screens under a parallel run); a hung test still fails.
 - The bell lists the whole installation's feed (20 items per type): a Playwright test looks for its own case's item (`تحصيل مستحق` has few), or compares `GET /notifications/count` before and after marking everything read.
+
+**B5b notes**
+- `e2e/responsive.spec.ts` visits every route at 390×844 in both languages: no sideways page scroll (`documentElement.scrollWidth <= clientWidth`), axe, the bell panel inside the screen; then the lists at 1366 px (a table fits its card). A new route is added to its `routes()` list.
+- Screens are code-split (React Router `lazy`): a test that renders `routes` must `await` the screen (`findBy…`), and a new page is exported by name and registered with `page(() => import(...), 'Name')`.
+- `shot()` has no sleep: it waits for fonts and two painted frames.
+- A row that repeats a control of the guide below it (the shade guide's «الأكثر استخدامًا» row) makes `getByRole('button', { name: 'A2' })` ambiguous: scope to `getByRole('tabpanel')` or to the row's `region`.
+- Audit entries are global to the installation (a language switch writes one): find your own entry by its label, never by position.
+- Queries that feed a side panel use `throwOnError: false` and render their own error and retry.
