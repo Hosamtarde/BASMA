@@ -7,6 +7,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { DomainError } from '../../../shared/errors/domain-error';
 import { I18nService } from '../../../shared/i18n/i18n.service';
 import { Permission } from '../../identity/domain/permissions';
 import { CurrentUser, RequirePermission } from '../../identity/presentation/auth.decorators';
@@ -61,7 +62,15 @@ export class NotificationsController {
   @ApiNoContentResponse()
   @ApiBadRequestResponse({ description: 'error.validation.failed' })
   async state(@Body() body: NotificationStateRequest, @CurrentUser() user: AuthUser): Promise<void> {
-    await this.service.mark(user, body.keys, {
+    if (body.all) {
+      // "All" only marks read: hiding everything at once is not offered (N6).
+      if (body.keys !== undefined || body.dismissed !== undefined || body.seen !== true) {
+        throw new DomainError('error.validation.failed', HttpStatus.BAD_REQUEST);
+      }
+      await this.service.markAllSeen(user);
+      return;
+    }
+    await this.service.mark(user, body.keys ?? [], {
       ...(body.seen ? { seen: true as const } : {}),
       ...(body.dismissed === undefined ? {} : { dismissed: body.dismissed }),
     });

@@ -13,6 +13,7 @@ import {
   MaxLength,
   Min,
   MinLength,
+  ValidateIf,
 } from 'class-validator';
 import { MAX_ITEMS_PER_TYPE, NOTIFICATION_PHASES, NOTIFICATION_TYPES } from '../domain/notification-rules';
 import type { NotificationPhase, NotificationType } from '../domain/notification-rules';
@@ -28,14 +29,28 @@ export class NotificationsQuery {
 }
 
 export class NotificationStateRequest {
-  @ApiProperty({ type: [String], minItems: 1, maxItems: 200, description: 'Keys from GET /notifications' })
+  @ApiPropertyOptional({
+    type: [String],
+    minItems: 1,
+    maxItems: 200,
+    description: 'Keys from GET /notifications; required unless all=true',
+  })
+  @ValidateIf((o: NotificationStateRequest) => o.all === undefined)
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(200)
   @IsString({ each: true })
   @MinLength(1, { each: true })
   @MaxLength(100, { each: true })
-  keys!: string[];
+  keys?: string[];
+
+  @ApiPropertyOptional({
+    enum: [true],
+    description: 'With seen=true: every item of the caller’s feed now (opening the bell). Not with keys or dismissed',
+  })
+  @IsOptional()
+  @Equals(true)
+  all?: true;
 
   @ApiPropertyOptional({ enum: [true], description: 'Mark as read (opening the bell does this)' })
   @IsOptional()

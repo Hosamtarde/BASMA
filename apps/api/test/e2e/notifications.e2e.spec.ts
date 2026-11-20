@@ -305,9 +305,29 @@ describe('Notifications feed (e2e)', () => {
       ['a key too long', { keys: ['k'.repeat(101)], seen: true }],
       ['too many keys', { keys: Array.from({ length: 201 }, (_, i) => `k${i}`), seen: true }],
       ['an unknown field', { keys: ['a'], seen: true, everything: true }],
+      ['neither keys nor all', { seen: true }],
+      ['all with keys', { all: true, seen: true, keys: ['a'] }],
+      ['all with dismissed', { all: true, dismissed: true }],
+      ['all without seen', { all: true }],
     ])('400 for %s', async (_l, body) => {
       const res = await patch('/notifications/state', body).expect(400);
       expect(res.body.error.code).toBe('error.validation.failed');
+    });
+  });
+
+  describe('opening the bell (all: true)', () => {
+    it('marks every item of the feed read, also beyond the listed ones; new items are unread again', async () => {
+      const d = await doctor();
+      for (let i = 0; i < 3; i++) await newCase(d, TODAY);
+      await chequeIn(d, TODAY);
+      expect((await get('/notifications/count').expect(200)).body.unread).toBeGreaterThan(0);
+      await patch('/notifications/state', { all: true, seen: true }).expect(204);
+      const after = (await get('/notifications/count').expect(200)).body as { unread: number; total: number };
+      expect(after.unread).toBe(0);
+      expect(after.total).toBeGreaterThan(0);
+      const fresh = await newCase(d, TODAY);
+      expect((await get('/notifications/count').expect(200)).body.unread).toBe(1);
+      expect(find(await feed(), 'case_due', fresh.id)?.seen).toBe(false);
     });
   });
 

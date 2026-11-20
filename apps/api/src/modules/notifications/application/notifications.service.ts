@@ -150,6 +150,23 @@ export class NotificationsService {
     });
   }
 
+  /**
+   * Opening the bell (N6): everything the caller's feed holds now becomes read, also the items beyond
+   * the listed ones, so the badge counts only what is new since the bell was last opened.
+   */
+  async markAllSeen(caller: Caller): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      const today = await this.calendar.today(tx);
+      for (const type of visibleTypes(caller.permissions)) {
+        if (type === 'collect_due') {
+          await this.repo.mark(tx, caller.id, (await this.collectItems(tx, today)).map((i) => i.key), { seen: true });
+        } else {
+          await this.repo.markAllSeen(tx, type, caller.id, today, addDays(today, SOON_DAYS[type]));
+        }
+      }
+    });
+  }
+
   private snapshot<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
     return this.db.transaction(fn, { isolationLevel: 'repeatable read', accessMode: 'read only' });
   }

@@ -9926,11 +9926,18 @@
           "keys": {
             "minItems": 1,
             "maxItems": 200,
-            "description": "Keys from GET /notifications",
+            "description": "Keys from GET /notifications; required unless all=true",
             "type": "array",
             "items": {
               "type": "string"
             }
+          },
+          "all": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "With seen=true: every item of the caller’s feed now (opening the bell). Not with keys or dismissed"
           },
           "seen": {
             "type": "boolean",
@@ -9943,10 +9950,7 @@
             "type": "boolean",
             "description": "true hides the items until they change; false shows them again"
           }
-        },
-        "required": [
-          "keys"
-        ]
+        }
       },
       "FieldError": {
         "type": "object",

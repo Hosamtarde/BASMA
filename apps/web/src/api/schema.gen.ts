@@ -2511,8 +2511,13 @@ export interface components {
             total: number;
         };
         NotificationStateRequest: {
-            /** @description Keys from GET /notifications */
-            keys: string[];
+            /** @description Keys from GET /notifications; required unless all=true */
+            keys?: string[];
+            /**
+             * @description With seen=true: every item of the caller’s feed now (opening the bell). Not with keys or dismissed
+             * @enum {boolean}
+             */
+            all?: true;
             /**
              * @description Mark as read (opening the bell does this)
              * @enum {boolean}

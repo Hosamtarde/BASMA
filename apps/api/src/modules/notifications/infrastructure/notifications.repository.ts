@@ -154,6 +154,15 @@ export class NotificationsRepository {
     return res.rows.map((r) => r.key);
   }
 
+  /** Marks every item of a dated type seen for a user (opening the bell, N6); one statement. */
+  async markAllSeen(tx: Tx, type: DatedType, userId: number, today: string, until: string): Promise<void> {
+    await tx.execute(sql`
+      INSERT INTO notification_states (user_id, key, seen_at)
+      SELECT ${userId}, it.key, now() FROM (${source(type, today, until)}) it
+      ON CONFLICT (user_id, key) DO UPDATE SET seen_at = now()
+      WHERE notification_states.seen_at IS NULL`);
+  }
+
   /** Delivered cases whose collect date has come; the caller keeps those with something still owed. */
   async collectCases(db: Executor, today: string): Promise<CollectCaseRow[]> {
     const res = await db.execute<Record<string, string>>(sql`
