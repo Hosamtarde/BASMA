@@ -38,6 +38,11 @@ export const cases = pgTable(
     /** Set only while status = delivered; earlier delivery dates live in case_status_history. */
     deliveredDate: date('delivered_date', { mode: 'string' }),
     status: text('status').notNull(),
+    /**
+     * B5: the date the lab agreed to collect what is still owed, set when a case is delivered with part
+     * or no payment (SPEC §5.7). Exists only while delivered and never before the delivery date.
+     */
+    collectOn: date('collect_on', { mode: 'string' }),
     discount: amountColumn('discount').notNull().default(0),
     /** Cached Σ case_items.unit_price − discount, recomputed in every write transaction (SPEC §7.3). */
     total: amountColumn('total').notNull().default(0),
@@ -54,6 +59,10 @@ export const cases = pgTable(
     index('cases_doctor_received_ix').on(t.doctorId, t.receivedDate),
     // Status filter and overdue list (expected_date < today).
     index('cases_status_expected_ix').on(t.status, t.expectedDate),
+    // Notifications «تحصيل مستحق» (B5): delivered cases whose collect date has come.
+    index('cases_collect_on_ix')
+      .on(t.collectOn)
+      .where(sql`${t.collectOn} is not null`),
     check('cases_case_no_ck', sql`${t.caseNo} > 0`),
     check('cases_status_ck', sql`${t.status} in (${STATUSES})`),
     check('cases_patient_name_length_ck', sql`char_length(${t.patientName}) between 1 and 100`),
@@ -64,6 +73,11 @@ export const cases = pgTable(
       'cases_delivered_date_ck',
       sql`(${t.status} = 'delivered') = (${t.deliveredDate} is not null)
           and (${t.deliveredDate} is null or ${t.deliveredDate} >= ${t.receivedDate})`,
+    ),
+    // B5: a collect date only on a delivered case, on or after its delivery date.
+    check(
+      'cases_collect_on_ck',
+      sql`${t.collectOn} is null or (${t.status} = 'delivered' and ${t.collectOn} >= ${t.deliveredDate})`,
     ),
     check('cases_discount_ck', sql`${t.discount} between 0 and ${MAX}`),
     check('cases_total_ck', sql`${t.total} between 0 and ${MAX}`),
