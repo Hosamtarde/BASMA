@@ -165,5 +165,7 @@ export async function storeCase(queryClient: QueryClient, saved: CaseDetail): Pr
     queryClient.invalidateQueries({ queryKey: caseKeys.lists }),
     queryClient.invalidateQueries({ queryKey: caseKeys.summaries }),
     queryClient.invalidateQueries({ queryKey: ['settings'] }),
+    // Due dates and collect dates feed the bell (B5).
+    queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   ]);
 }

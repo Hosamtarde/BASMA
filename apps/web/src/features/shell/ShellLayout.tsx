@@ -17,6 +17,7 @@ import { meQuery } from '@/features/auth/api';
 import { useCan } from '@/features/auth/permissions';
 import { changeLanguage, currentLanguage, rememberLanguage } from '@/i18n/i18n';
 import { GlobalSearch } from '@/features/search/GlobalSearch';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 import { AppShell } from './AppShell';
 import type { NavItem } from './AppShell';
 import { LabBrand } from './LabBrand';
@@ -79,6 +80,7 @@ export function ShellLayout() {
       topBarStart={<GlobalSearch />}
       topBarEnd={
         <>
+          <NotificationBell />
           <LanguageSwitch />
           <UserMenu username={me.username} />
         </>
