@@ -421,6 +421,29 @@ describe('Payments, cheques and balances (e2e)', () => {
       expect(summary.body.byStatus).toEqual({ pending: 0, cleared: 0, returned: 1 });
     });
 
+    it('a status date may not be earlier than the current status date (B5 item 6); the statement keeps its order', async () => {
+      const d = await doctor();
+      await newCase(d, 2000, '2026-11-01');
+      const p = await paid({ doctorId: d, method: 'cheque', amount: 1500, paidAt: '2026-11-01', cheque: cheque() });
+      const ch = p.payment.cheque!;
+      const cleared = (await setCheque(ch.id, ch.rowVersion, 'cleared', { statusDate: '2026-11-08' }).expect(200))
+        .body as Result;
+      const cc = cleared.payment.cheque!;
+      // Returned "before" it cleared would put the bounce above the clearing in the statement.
+      const early = await setCheque(cc.id, cc.rowVersion, 'returned', { statusDate: '2026-11-05' }).expect(400);
+      expect(early.body.error.code).toBe('error.cheque.date_invalid');
+      // The same day is fine.
+      await setCheque(cc.id, cc.rowVersion, 'returned', { statusDate: '2026-11-08' }).expect(200);
+      const st = await get(`/doctors/${d}/statement`).expect(200);
+      expect(st.body.lines.map((l: { kind: string; date: string }) => `${l.date} ${l.kind}`)).toEqual([
+        '2026-11-01 case',
+        '2026-11-08 payment',
+        '2026-11-08 cheque_return',
+      ]);
+      expect(st.body.closing).toBe(2000);
+      expect((await balance(d)).balance).toBe(2000);
+    });
+
     it('rejects a duplicate cheque (same bank and number) until the first one is returned', async () => {
       const d = await doctor();
       const same = cheque({ chequeNo: 'DUP-1', bank: 'Arab Bank' });
