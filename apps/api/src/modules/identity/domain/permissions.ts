@@ -30,6 +30,10 @@ export const Permission = {
   ExpensesVoid: 'expenses.void',
   /** The notifications feed (B5); each type also needs the read permission of what it is about. */
   NotificationsRead: 'notifications.read',
+  /** Invoices, statements and free invoices (B6): read and print, issue, void. */
+  InvoicesRead: 'invoices.read',
+  InvoicesWrite: 'invoices.write',
+  InvoicesVoid: 'invoices.void',
 } as const;
 
 export type PermissionCode = (typeof Permission)[keyof typeof Permission];
