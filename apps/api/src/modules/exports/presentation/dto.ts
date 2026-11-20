@@ -1,3 +1,5 @@
+import { INVOICE_STATUSES, INVOICE_TYPES } from '@app/shared';
+import type { InvoiceStatus, InvoiceType } from '@app/shared';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsBoolean, IsIn, IsInt, IsOptional, IsString, MaxLength, Min } from 'class-validator';
@@ -46,6 +48,20 @@ export class PaymentsExportQuery extends ExportLangQuery {
   @ApiPropertyOptional({ description: 'Payment date from (inclusive)' }) @IsOptional() @IsDateOnly() from?: string;
   @ApiPropertyOptional({ description: 'Payment date to (inclusive)' }) @IsOptional() @IsDateOnly() to?: string;
   @ApiPropertyOptional({ description: 'Voucher number, doctor name or cheque number', maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+}
+
+/** B6: the invoice list filters (no paging) for its CSV. */
+export class InvoicesExportQuery extends ExportLangQuery {
+  @ApiPropertyOptional({ enum: INVOICE_TYPES }) @IsOptional() @IsIn(INVOICE_TYPES) type?: InvoiceType;
+  @ApiPropertyOptional({ enum: INVOICE_STATUSES }) @IsOptional() @IsIn(INVOICE_STATUSES) status?: InvoiceStatus;
+  @ApiPropertyOptional() @IsOptional() @Type(() => Number) @IsInt() @Min(1) doctorId?: number;
+  @ApiPropertyOptional({ description: 'Issue date from (inclusive)' }) @IsOptional() @IsDateOnly() from?: string;
+  @ApiPropertyOptional({ description: 'Issue date to (inclusive)' }) @IsOptional() @IsDateOnly() to?: string;
+  @ApiPropertyOptional({ description: 'Invoice number or party name', maxLength: 100 })
   @IsOptional()
   @IsString()
   @MaxLength(100)

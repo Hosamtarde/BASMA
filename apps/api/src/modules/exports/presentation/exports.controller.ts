@@ -22,6 +22,7 @@ import {
   DebtsExportQuery,
   ExpensesByCategoryExportQuery,
   ExportLangQuery,
+  InvoicesExportQuery,
   OutgoingExportQuery,
   PaymentsExportQuery,
   StatementExportQuery,
@@ -160,6 +161,28 @@ export class ExportsController {
     delete (filter as { lang?: string }).lang;
     const trimmed = search?.trim();
     const file = await this.service.outgoingPayments(
+      user.id,
+      defined({ ...filter, ...(trimmed ? { search: trimmed } : {}) }),
+      this.lang(q, acceptLanguage),
+    );
+    return this.send(res, file);
+  }
+
+  @Get('invoices')
+  @RequirePermission(Permission.InvoicesRead)
+  @AlsoRequire(Permission.ExportsRun)
+  @ApiOperation({ summary: 'The invoice list as CSV with the filters of the list (B6)' })
+  @ApiOkResponse(CSV_OK)
+  async invoices(
+    @Query() q: InvoicesExportQuery,
+    @Headers('accept-language') acceptLanguage: string | undefined,
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const { search, ...filter } = q;
+    delete (filter as { lang?: string }).lang;
+    const trimmed = search?.trim();
+    const file = await this.service.invoices(
       user.id,
       defined({ ...filter, ...(trimmed ? { search: trimmed } : {}) }),
       this.lang(q, acceptLanguage),

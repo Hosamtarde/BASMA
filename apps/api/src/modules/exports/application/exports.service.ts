@@ -17,6 +17,7 @@ import { directionOf, formatVoucher, isCounted } from '../../payments/domain/pay
 import { LedgerRepository } from '../../payments/infrastructure/ledger.repository';
 import { OutgoingFilter, OutgoingRepository } from '../../payments/infrastructure/outgoing.repository';
 import { PaymentFilter, PaymentsRepository } from '../../payments/infrastructure/payments.repository';
+import { InvoiceFilter, InvoicesRepository } from '../../invoices/infrastructure/invoices.repository';
 
 /** One file holds at most this many data rows (SPEC §6: 20 000 cases / 50 000 payments). */
 export const EXPORT_ROW_LIMIT = 50_000;
@@ -59,9 +60,45 @@ export class ExportsService {
     private readonly ledgerRepo: LedgerRepository,
     private readonly paymentsRepo: PaymentsRepository,
     private readonly outgoingRepo: OutgoingRepository,
+    private readonly invoicesRepo: InvoicesRepository,
   ) {}
 
   // ---------------------------------------------------------------- public reports
+
+  /** The invoice list (B6, SPEC §10) with its filters. Statements have no amounts (their figures are in the document). */
+  async invoices(userId: number, f: InvoiceFilter, lang: Language): Promise<ExportFile> {
+    const { search, ...rest } = f;
+    return this.produce(userId, 'invoices', lang, 'invoices', { ...clean(rest), hasSearch: Boolean(search) }, async (tx, t, currency) => {
+      const rows = await this.invoicesRepo.listAll(tx, f, this.rowLimit + 1);
+      this.assertWithinLimit(rows.length);
+      const d = currency.decimals;
+      const table = new CsvTable([
+        t('csv.col.invoice_no'),
+        t('csv.col.invoice_type'),
+        t('csv.col.issue_date'),
+        t('csv.col.party'),
+        withCurrency(t, 'csv.col.subtotal', currency),
+        withCurrency(t, 'csv.col.discount', currency),
+        withCurrency(t, 'csv.col.total', currency),
+        t('csv.col.status'),
+        t('csv.col.void_reason'),
+      ]);
+      for (const r of rows) {
+        table.add([
+          int(r.no),
+          text(t(`invoice.type.${r.type}`)),
+          date(r.issueDate),
+          text(r.partyName),
+          r.subtotal === null ? empty : money(r.subtotal, d),
+          r.discount === null ? empty : money(r.discount, d),
+          r.total === null ? empty : money(r.total, d),
+          text(t(`invoice.status.${r.status}`)),
+          text(r.voidReason ?? ''),
+        ]);
+      }
+      return { table };
+    });
+  }
 
   async debts(
     userId: number,

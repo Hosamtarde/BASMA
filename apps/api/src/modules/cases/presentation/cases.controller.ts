@@ -67,6 +67,7 @@ const toSummary = (c: CaseSummary): CaseSummaryResponse => ({
   status: c.status,
   total: c.total,
   overdue: c.overdue,
+  invoice: c.invoice,
   rowVersion: c.rowVersion,
 });
 
@@ -98,7 +99,7 @@ const toDetail = (c: CaseDetail): CaseDetailResponse => ({
     note: h.note,
     deliveredDate: h.deliveredDate,
   })),
-  ...caseActions(c.status),
+  ...caseActions(c.status, c.invoice !== null),
 });
 
 const definedOnly = <T extends object>(o: T): T =>
@@ -118,7 +119,7 @@ export class CasesController {
   @ApiOkResponse({ type: CaseSummaryPage })
   async list(@Query() q: CaseListQueryDto, @CurrentUser() user: AuthUser): Promise<CaseSummaryPage> {
     const page = await this.service.list(definedOnly(q), user.permissions.includes(Permission.LedgerRead));
-    return { ...page, items: page.items.map((c) => ({ ...toSummary(c), paid: c.paid, remaining: c.remaining })) };
+    return { ...page, items: page.items.map((c) => ({ ...toSummary(c), paid: c.paid, remaining: c.remaining, closed: c.closed })) };
   }
 
   // Declared before ':id' so "summary" is never read as an id.
