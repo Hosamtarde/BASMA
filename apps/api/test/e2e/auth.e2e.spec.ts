@@ -207,6 +207,9 @@ describe('B0 API end to end', () => {
           'expenses.void',
           'expenses.write',
           'exports.run',
+          'invoices.read',
+          'invoices.void',
+          'invoices.write',
           'ledger.read',
           // B5 (0008): the notifications feed.
           'notifications.read',

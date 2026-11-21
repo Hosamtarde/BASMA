@@ -248,7 +248,21 @@ export function CasesPage() {
                 </span>
               </Td>
               <Td className="py-2!">
-                <StatusBadge status={c.status} />
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  <StatusBadge status={c.status} />
+                  {/* Derived facts, not statuses (SPEC §9): «مغلقة» = delivered + invoiced + paid; else «مفوترة». */}
+                  {c.closed ? (
+                    <span data-chip="closed" className="rounded-full bg-st-ready-bg px-2 py-0.5 text-[12px] font-bold text-st-ready-ink">
+                      {t('cases.closed')}
+                    </span>
+                  ) : (
+                    c.invoice && (
+                      <span data-chip="invoiced" className="rounded-full bg-hover px-2 py-0.5 text-[12px] font-bold text-ink">
+                        {t('cases.invoiced', { no: c.invoice.no })}
+                      </span>
+                    )
+                  )}
+                </span>
               </Td>
               <Td
                 kind="money"

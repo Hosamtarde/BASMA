@@ -4259,6 +4259,595 @@
         ]
       }
     },
+    "/api/v1/invoices/eligible-cases": {
+      "get": {
+        "operationId": "InvoicesController_eligible",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EligibleCasePage"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found (doctor)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "«حالات منجزة غير مفوترة» of a doctor: delivered or ready, not on an active invoice",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/v1/invoices/summary": {
+      "get": {
+        "operationId": "InvoicesController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceSummaryResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Active documents per type and voided count (Home «الفواتير»)",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/v1/invoices/preview": {
+      "post": {
+        "operationId": "InvoicesController_preview",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvoiceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoicePreviewResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed | error.invoice.*",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.invoice.case_*",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The snapshot an invoice would freeze, without a number and without writing anything",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/v1/invoices": {
+      "post": {
+        "operationId": "InvoicesController_create",
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "A UUID per attempt; a replay returns the original invoice (200) instead of a duplicate",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvoiceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Replay of an earlier request with the same key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed | error.idempotency.required | error.invoice.field_required | field_not_allowed | party_required | case_count | case_duplicate | range_invalid | statement_too_long",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found (doctor or case)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.invoice.case_already_invoiced | case_not_eligible | case_doctor_mismatch | total_changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "error.idempotency.mismatch",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Issue an invoice (cases), a statement or a free invoice; the snapshot is frozen",
+        "tags": [
+          "invoices"
+        ]
+      },
+      "get": {
+        "operationId": "InvoicesController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "type": "number"
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cases",
+                "statement",
+                "free"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "void"
+              ]
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Issue date from (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Issue date to (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Invoice number or party name",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoicePage"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invoices, newest first; filters: type, status, doctor, issue dates, number or party",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/v1/invoices/{id}": {
+      "get": {
+        "operationId": "InvoicesController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One invoice with its frozen snapshot (its SHA-256 is verified on every read)",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/v1/invoices/{id}/logo": {
+      "get": {
+        "operationId": "InvoicesController_logo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image bytes"
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The lab logo frozen into this invoice (404 = printed with the lab name only)",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/v1/invoices/{id}/void": {
+      "post": {
+        "operationId": "InvoicesController_void",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoidInvoiceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "error.not_found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.invoice.already_void | error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Void with a reason (never delete); its cases become un-invoiced; number and snapshot stay",
+        "tags": [
+          "invoices"
+        ]
+      }
+    },
+    "/api/v1/settings/invoice-template": {
+      "get": {
+        "operationId": "InvoiceTemplateController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceTemplateResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The invoice appearance (defaults with rowVersion 0 until first saved)",
+        "tags": [
+          "settings"
+        ]
+      },
+      "put": {
+        "operationId": "InvoiceTemplateController_save",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveInvoiceTemplateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceTemplateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "error.validation.failed (details.fields: template.<field>)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "error.concurrency.stale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save the whole appearance; validated strictly (no HTML, CSS or URLs anywhere)",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
     "/api/v1/exports/debts": {
       "get": {
         "operationId": "ExportsController_debts",
@@ -4809,6 +5398,129 @@
           }
         ],
         "summary": "Outgoing payments (expenses report table) as CSV with the filters of the list",
+        "tags": [
+          "exports"
+        ]
+      }
+    },
+    "/api/v1/exports/invoices": {
+      "get": {
+        "operationId": "ExportsController_invoices",
+        "parameters": [
+          {
+            "name": "lang",
+            "required": false,
+            "in": "query",
+            "description": "Language of the headers and labels; default: Accept-Language, then Arabic",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ar",
+                "en"
+              ]
+            }
+          },
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "cases",
+                "statement",
+                "free"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "void"
+              ]
+            }
+          },
+          {
+            "name": "doctorId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Issue date from (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Issue date to (inclusive)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Invoice number or party name",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "error.export.too_large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "error.rate_limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The invoice list as CSV with the filters of the list (B6)",
         "tags": [
           "exports"
         ]
@@ -6287,6 +6999,21 @@
           "name"
         ]
       },
+      "CaseInvoiceRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "no": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "no"
+        ]
+      },
       "CaseListItemResponse": {
         "type": "object",
         "properties": {
@@ -6347,6 +7074,16 @@
             "type": "boolean",
             "description": "Computed with the lab’s today (time zone setting)"
           },
+          "invoice": {
+            "nullable": true,
+            "description": "The active invoice the case is on (B6); null when none",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CaseInvoiceRef"
+              }
+            ]
+          },
           "rowVersion": {
             "type": "number"
           },
@@ -6359,6 +7096,11 @@
             "type": "number",
             "nullable": true,
             "description": "total - paid; 0 when cancelled; null without ledger.read"
+          },
+          "closed": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "«مغلقة» (SPEC §9): delivered + on an active invoice + nothing left to pay; null without ledger.read"
           }
         },
         "required": [
@@ -6374,9 +7116,11 @@
           "status",
           "total",
           "overdue",
+          "invoice",
           "rowVersion",
           "paid",
-          "remaining"
+          "remaining",
+          "closed"
         ]
       },
       "CaseSummaryPage": {
@@ -7014,6 +7758,16 @@
             "type": "boolean",
             "description": "Computed with the lab’s today (time zone setting)"
           },
+          "invoice": {
+            "nullable": true,
+            "description": "The active invoice the case is on (B6); null when none",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CaseInvoiceRef"
+              }
+            ]
+          },
           "rowVersion": {
             "type": "number"
           },
@@ -7089,7 +7843,16 @@
           },
           "canEdit": {
             "type": "boolean",
-            "description": "true when header and lines may be edited (not cancelled)"
+            "description": "true when header and lines may be edited (not cancelled, not on an active invoice)"
+          },
+          "editBlockedReason": {
+            "type": "string",
+            "enum": [
+              "cancelled",
+              "invoiced"
+            ],
+            "nullable": true,
+            "description": "Why header and lines cannot be edited now (B6: invoiced = void the invoice first); null when they can"
           },
           "advancePayment": {
             "nullable": true,
@@ -7115,6 +7878,7 @@
           "status",
           "total",
           "overdue",
+          "invoice",
           "rowVersion",
           "subtotal",
           "paid",
@@ -7129,6 +7893,7 @@
           "allowedStatuses",
           "canCancel",
           "canEdit",
+          "editBlockedReason",
           "advancePayment"
         ]
       },
@@ -7192,6 +7957,16 @@
             "type": "boolean",
             "description": "Computed with the lab’s today (time zone setting)"
           },
+          "invoice": {
+            "nullable": true,
+            "description": "The active invoice the case is on (B6); null when none",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CaseInvoiceRef"
+              }
+            ]
+          },
           "rowVersion": {
             "type": "number"
           },
@@ -7267,7 +8042,16 @@
           },
           "canEdit": {
             "type": "boolean",
-            "description": "true when header and lines may be edited (not cancelled)"
+            "description": "true when header and lines may be edited (not cancelled, not on an active invoice)"
+          },
+          "editBlockedReason": {
+            "type": "string",
+            "enum": [
+              "cancelled",
+              "invoiced"
+            ],
+            "nullable": true,
+            "description": "Why header and lines cannot be edited now (B6: invoiced = void the invoice first); null when they can"
           }
         },
         "required": [
@@ -7283,6 +8067,7 @@
           "status",
           "total",
           "overdue",
+          "invoice",
           "rowVersion",
           "subtotal",
           "paid",
@@ -7296,7 +8081,8 @@
           "history",
           "allowedStatuses",
           "canCancel",
-          "canEdit"
+          "canEdit",
+          "editBlockedReason"
         ]
       },
       "UpdateCaseRequest": {
@@ -9545,6 +10331,660 @@
           "outgoingTotal",
           "outgoingChequesDueSoon",
           "outgoingChequesOverdue"
+        ]
+      },
+      "EligibleCaseResponse": {
+        "type": "object",
+        "properties": {
+          "caseId": {
+            "type": "number"
+          },
+          "caseNo": {
+            "type": "number"
+          },
+          "patientName": {
+            "type": "string"
+          },
+          "receivedDate": {
+            "type": "string"
+          },
+          "deliveredDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "delivered",
+              "ready"
+            ]
+          },
+          "total": {
+            "type": "number",
+            "description": "Integer minor units",
+            "example": 25000
+          },
+          "paid": {
+            "type": "number",
+            "description": "Integer minor units",
+            "example": 25000
+          },
+          "remaining": {
+            "type": "number",
+            "description": "Integer minor units",
+            "example": 25000
+          }
+        },
+        "required": [
+          "caseId",
+          "caseNo",
+          "patientName",
+          "receivedDate",
+          "deliveredDate",
+          "status",
+          "total",
+          "paid",
+          "remaining"
+        ]
+      },
+      "EligibleCasePage": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "doctor": {
+            "$ref": "#/components/schemas/Ref"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EligibleCaseResponse"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "doctor",
+          "items"
+        ]
+      },
+      "InvoiceCountsByType": {
+        "type": "object",
+        "properties": {
+          "cases": {
+            "type": "number"
+          },
+          "statement": {
+            "type": "number"
+          },
+          "free": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "cases",
+          "statement",
+          "free"
+        ]
+      },
+      "InvoiceSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "active": {
+            "description": "Active documents per type",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceCountsByType"
+              }
+            ]
+          },
+          "void": {
+            "type": "number",
+            "description": "Voided documents"
+          }
+        },
+        "required": [
+          "active",
+          "void"
+        ]
+      },
+      "CreateInvoiceRequest": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "cases",
+              "statement",
+              "free"
+            ]
+          },
+          "doctorId": {
+            "type": "number",
+            "description": "cases, statement: required; free: the doctor, or give partyName instead"
+          },
+          "caseIds": {
+            "description": "cases only: 1–200 case ids of the doctor",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "expectedTotal": {
+            "type": "number",
+            "description": "cases only: the total the screen previewed; a different server total → 409 error.invoice.total_changed",
+            "example": 25000
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 1000,
+            "nullable": true
+          },
+          "from": {
+            "type": "string",
+            "description": "statement only: first date (inclusive)"
+          },
+          "to": {
+            "type": "string",
+            "description": "statement only: last date (inclusive)"
+          },
+          "partyName": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "free only, when the party is not a doctor"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "free only"
+          },
+          "amount": {
+            "type": "number",
+            "description": "free only: > 0",
+            "example": 25000
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ],
+            "description": "Default: the documents language of Settings"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "InvoicePreviewResponse": {
+        "type": "object",
+        "properties": {
+          "snapshot": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The snapshot that would be frozen; no = 0"
+          }
+        },
+        "required": [
+          "snapshot"
+        ]
+      },
+      "InvoiceResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "no": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "cases",
+              "statement",
+              "free"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "void"
+            ]
+          },
+          "issueDate": {
+            "type": "string",
+            "example": "2026-11-20"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "doctorId": {
+            "type": "number",
+            "nullable": true,
+            "description": "The doctor (null for a free invoice to a typed name)"
+          },
+          "partyName": {
+            "type": "string",
+            "description": "The party as printed (frozen at issue)"
+          },
+          "subtotal": {
+            "type": "number",
+            "nullable": true,
+            "description": "null for a statement",
+            "example": 25000
+          },
+          "discount": {
+            "type": "number",
+            "nullable": true,
+            "description": "null for a statement",
+            "example": 25000
+          },
+          "total": {
+            "type": "number",
+            "nullable": true,
+            "description": "null for a statement",
+            "example": 25000
+          },
+          "voidReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "voidedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "rowVersion": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "snapshotVersion": {
+            "type": "number",
+            "description": "Renderer contract version of the snapshot"
+          },
+          "snapshotSha256": {
+            "type": "string",
+            "description": "SHA-256 of the canonical snapshot JSON, verified on every read"
+          },
+          "snapshot": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Everything printed, frozen at issue (InvoiceSnapshot in @app/shared). Never changes."
+          }
+        },
+        "required": [
+          "id",
+          "no",
+          "type",
+          "status",
+          "issueDate",
+          "language",
+          "currencyCode",
+          "doctorId",
+          "partyName",
+          "subtotal",
+          "discount",
+          "total",
+          "voidReason",
+          "voidedAt",
+          "rowVersion",
+          "createdAt",
+          "snapshotVersion",
+          "snapshotSha256",
+          "snapshot"
+        ]
+      },
+      "InvoiceListItemResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number"
+          },
+          "no": {
+            "type": "number"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "cases",
+              "statement",
+              "free"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "void"
+            ]
+          },
+          "issueDate": {
+            "type": "string",
+            "example": "2026-11-20"
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "ar",
+              "en"
+            ]
+          },
+          "currencyCode": {
+            "type": "string"
+          },
+          "doctorId": {
+            "type": "number",
+            "nullable": true,
+            "description": "The doctor (null for a free invoice to a typed name)"
+          },
+          "partyName": {
+            "type": "string",
+            "description": "The party as printed (frozen at issue)"
+          },
+          "subtotal": {
+            "type": "number",
+            "nullable": true,
+            "description": "null for a statement",
+            "example": 25000
+          },
+          "discount": {
+            "type": "number",
+            "nullable": true,
+            "description": "null for a statement",
+            "example": 25000
+          },
+          "total": {
+            "type": "number",
+            "nullable": true,
+            "description": "null for a statement",
+            "example": 25000
+          },
+          "voidReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "voidedAt": {
+            "type": "string",
+            "nullable": true
+          },
+          "rowVersion": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "no",
+          "type",
+          "status",
+          "issueDate",
+          "language",
+          "currencyCode",
+          "doctorId",
+          "partyName",
+          "subtotal",
+          "discount",
+          "total",
+          "voidReason",
+          "voidedAt",
+          "rowVersion",
+          "createdAt"
+        ]
+      },
+      "InvoicePage": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "pageSize": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvoiceListItemResponse"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "pageSize",
+          "total",
+          "items"
+        ]
+      },
+      "VoidInvoiceRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "description": "rowVersion from the last read; outdated → 409 error.concurrency.stale"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 300
+          }
+        },
+        "required": [
+          "rowVersion",
+          "reason"
+        ]
+      },
+      "InvoiceMarginsDto": {
+        "type": "object",
+        "properties": {
+          "top": {
+            "type": "number",
+            "minimum": 5,
+            "maximum": 30
+          },
+          "end": {
+            "type": "number",
+            "minimum": 5,
+            "maximum": 30
+          },
+          "bottom": {
+            "type": "number",
+            "minimum": 5,
+            "maximum": 30
+          },
+          "start": {
+            "type": "number",
+            "minimum": 5,
+            "maximum": 30
+          }
+        },
+        "required": [
+          "top",
+          "end",
+          "bottom",
+          "start"
+        ]
+      },
+      "InvoiceWidthsDto": {
+        "type": "object",
+        "properties": {
+          "caseNo": {
+            "type": "number",
+            "minimum": 8,
+            "maximum": 80
+          },
+          "patient": {
+            "type": "number",
+            "minimum": 8,
+            "maximum": 80
+          },
+          "teeth": {
+            "type": "number",
+            "minimum": 8,
+            "maximum": 80
+          },
+          "workType": {
+            "type": "number",
+            "minimum": 8,
+            "maximum": 80
+          },
+          "shade": {
+            "type": "number",
+            "minimum": 8,
+            "maximum": 80
+          },
+          "qty": {
+            "type": "number",
+            "minimum": 8,
+            "maximum": 80
+          },
+          "unitPrice": {
+            "type": "number",
+            "minimum": 8,
+            "maximum": 80
+          },
+          "lineTotal": {
+            "type": "number",
+            "minimum": 8,
+            "maximum": 80
+          }
+        }
+      },
+      "InvoiceTemplateDto": {
+        "type": "object",
+        "properties": {
+          "primaryColor": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#006EBD"
+          },
+          "headerTextColor": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#FFFFFF"
+          },
+          "tableHeaderColor": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "example": "#01416C"
+          },
+          "fontSize": {
+            "type": "string",
+            "enum": [
+              "s",
+              "m",
+              "l"
+            ]
+          },
+          "margins": {
+            "description": "Millimetres",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceMarginsDto"
+              }
+            ]
+          },
+          "columns": {
+            "type": "array",
+            "description": "Visible columns in order; lineTotal is required",
+            "items": {
+              "type": "string",
+              "enum": [
+                "caseNo",
+                "patient",
+                "teeth",
+                "workType",
+                "shade",
+                "qty",
+                "unitPrice",
+                "lineTotal"
+              ]
+            }
+          },
+          "widths": {
+            "description": "Millimetres; a missing column is auto width",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceWidthsDto"
+              }
+            ]
+          },
+          "showLogo": {
+            "type": "boolean"
+          },
+          "showBalances": {
+            "type": "boolean"
+          },
+          "footerText": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Plain text, at most 3 lines; never HTML"
+          }
+        },
+        "required": [
+          "primaryColor",
+          "headerTextColor",
+          "tableHeaderColor",
+          "fontSize",
+          "margins",
+          "columns",
+          "widths",
+          "showLogo",
+          "showBalances",
+          "footerText"
+        ]
+      },
+      "InvoiceTemplateResponse": {
+        "type": "object",
+        "properties": {
+          "template": {
+            "$ref": "#/components/schemas/InvoiceTemplateDto"
+          },
+          "rowVersion": {
+            "type": "number",
+            "description": "0 = never saved (defaults); send it back on save"
+          }
+        },
+        "required": [
+          "template",
+          "rowVersion"
+        ]
+      },
+      "SaveInvoiceTemplateRequest": {
+        "type": "object",
+        "properties": {
+          "rowVersion": {
+            "type": "number",
+            "minimum": 0
+          },
+          "template": {
+            "$ref": "#/components/schemas/InvoiceTemplateDto"
+          }
+        },
+        "required": [
+          "rowVersion",
+          "template"
         ]
       },
       "DoctorHitResponse": {

@@ -60,7 +60,8 @@ export class SettingsRepository {
 
   /**
    * True once any money amount is stored (locks currency code/decimals).
-   * Any case counts (B2). Payments count too (B3, void rows included). B6 adds invoices.
+   * Any case counts (B2). Payments count too (B3, void rows included), outgoing payments (B4b) and invoices (B6,
+   * void ones included: a free invoice to a typed name can be the first amount of an installation).
    */
   async hasMoneyData(db: Executor): Promise<boolean> {
     const result = await db.execute<{ present: boolean }>(sql`
@@ -69,7 +70,8 @@ export class SettingsRepository {
           OR EXISTS (SELECT 1 FROM doctor_prices)
           OR EXISTS (SELECT 1 FROM cases)
           OR EXISTS (SELECT 1 FROM payments)
-          OR EXISTS (SELECT 1 FROM outgoing_payments) AS present`);
+          OR EXISTS (SELECT 1 FROM outgoing_payments)
+          OR EXISTS (SELECT 1 FROM invoices) AS present`);
     return result.rows[0]?.present === true;
   }
 }

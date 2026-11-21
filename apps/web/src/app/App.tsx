@@ -22,7 +22,8 @@ export function App({ queryClient, router }: { queryClient: QueryClient; router:
           // Own colours: Sonner's rich colours fail WCAG AA text contrast (axe).
           toastOptions={{
             classNames: {
-              toast: 'font-sans! border-border! text-ink!',
+              // B6: a toast is never printed on a document.
+              toast: 'font-sans! border-border! text-ink! print:hidden!',
               success: 'bg-success-bg! text-success-ink! border-success-ink/25!',
               error: 'bg-danger-bg! text-danger! border-danger/25!',
               info: 'bg-info-bg! text-ink!',

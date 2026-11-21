@@ -45,7 +45,7 @@ test.beforeEach(async ({ page }) => {
   await signedIn(page);
 });
 
-test('demo data without a logo: banner, key numbers, donut and «قريباً» cards in both languages', async ({
+test('demo data without a logo: banner, key numbers, donut and the action cards in both languages', async ({
   page,
 }) => {
   const c = await counts(page);
@@ -126,14 +126,24 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
     expect(Math.abs(b.height - boxes[0]!.height)).toBeLessThan(1);
   }
 
-  // «قريباً» card (the invoice, B6): brand knob and figure band like the live ones, never focusable.
+  // B6: the invoice card is live; its figure is the active cases and free invoices of the demo, compared
+  // with the OTHER endpoint (GET /invoices/summary), not the same number twice (I8: statements not counted).
   const cards = page.getByRole('region', { name: 'ماذا تريد أن تسجّل؟' });
-  const soon = cards.getByRole('link', { name: /^إنشاء فاتورة/ });
-  await expect(soon).toHaveAttribute('aria-disabled', 'true');
-  await expect(soon).toContainText('قريباً');
-  await expect(soon).toContainText('في تحديث قادم');
-  await expect(soon.locator('.knob-soon')).toBeVisible();
+  const invoiceCard = cards.getByRole('link', { name: /^إنشاء فاتورة/ });
+  await expect(invoiceCard).toHaveAttribute('href', '/invoices/new');
+  await expect(cards.locator('.knob-soon')).toHaveCount(0);
+  const invoices = (await (
+    await page.request.get('/api/v1/invoices/summary', { headers: { Authorization: `Bearer ${token}` } })
+  ).json()) as { active: { cases: number; statement: number; free: number }; void: number };
+  // The demo issues cases invoices (one voided and re-issued), two statements and two free invoices.
+  expect(invoices.active.cases).toBeGreaterThanOrEqual(4);
+  expect(invoices.active.statement).toBe(2);
+  expect(invoices.active.free).toBe(2);
+  expect(invoices.void).toBe(1);
+  await expect(invoiceCard).toContainText(`${invoices.active.cases + invoices.active.free} فواتير فعالة`);
   await cards.getByRole('link', { name: /^سجل الشيكات/ }).focus();
+  await page.keyboard.press('Tab');
+  await expect(invoiceCard).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(cards.getByRole('link', { name: /^الأطباء/ })).toBeFocused();
   // The built money cards carry real figures from the demo ledger.
@@ -161,7 +171,7 @@ test('demo data without a logo: banner, key numbers, donut and «قريباً» 
   await expect(keyNumbers(page).getByRole('link', { name: 'Active doctors 15', exact: true })).toBeVisible();
   await expect(keyNumbers(page).getByRole('link', { name: 'Cases 40', exact: true })).toBeVisible();
   const cardsEn = page.getByRole('region', { name: 'What do you want to record?' });
-  await expect(cardsEn.getByRole('link', { name: /^Create invoice/ })).toContainText('Soon');
+  await expect(cardsEn.getByRole('link', { name: /^Create invoice/ })).toContainText(`${invoices.active.cases + invoices.active.free} active invoices`);
   await expect(cardsEn.getByRole('link', { name: /^Outgoing payment/ })).toContainText('spent this month');
   await expectAccessible(page);
   await shot(page, 'home-demo-en', { fullPage: false });

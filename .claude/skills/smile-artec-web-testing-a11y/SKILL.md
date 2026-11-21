@@ -52,3 +52,8 @@ description: Use when writing or reviewing tests or accessibility for the Smile 
 - A row that repeats a control of the guide below it (the shade guide's «الأكثر استخدامًا» row) makes `getByRole('button', { name: 'A2' })` ambiguous: scope to `getByRole('tabpanel')` or to the row's `region`.
 - Audit entries are global to the installation (a language switch writes one): find your own entry by its label, never by position.
 - Queries that feed a side panel use `throwOnError: false` and render their own error and retry.
+
+**B6 notes**
+- `e2e/invoices.spec.ts` stubs `window.print` with `addInitScript` and counts calls (no dialog). Print view: `page.emulateMedia({ media: 'print' })` (shell hidden, `thead` is `table-header-group`); page count: `page.pdf()` and count `/Type /Page` objects.
+- Injection checks: put `<script>`, `onerror`, `url()` and `javascript:` in every text and template field, then assert no `script`, no `img[src="x"]`, no `on*` attribute, no `url(` in inline styles, and `window.__pwned` undefined — in the preview and the print view.
+- A test that changes the invoice appearance restores it in `finally` (shared installation state).

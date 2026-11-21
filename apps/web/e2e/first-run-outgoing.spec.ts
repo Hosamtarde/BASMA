@@ -41,6 +41,9 @@ test('setup creates the owner; the expenses page of a new installation is empty 
   await switchLanguage(page, /^English/);
   await expectDirection(page, 'en');
   await expect(page.getByText('No expenses recorded yet.')).toBeVisible();
+  // The language save leaves a toast; axe runs once it is gone (testing skill, F2b notes).
+  await page.mouse.move(0, 0);
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 });
   await expectAccessible(page);
   await shot(page, 'outgoing-empty-en');
   // Back to Arabic, and wait until the installation has saved it: the next test starts in Arabic.

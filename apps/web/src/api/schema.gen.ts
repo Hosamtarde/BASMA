@@ -926,6 +926,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/invoices/eligible-cases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** «حالات منجزة غير مفوترة» of a doctor: delivered or ready, not on an active invoice */
+        get: operations["InvoicesController_eligible"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active documents per type and voided count (Home «الفواتير») */
+        get: operations["InvoicesController_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The snapshot an invoice would freeze, without a number and without writing anything */
+        post: operations["InvoicesController_preview"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Invoices, newest first; filters: type, status, doctor, issue dates, number or party */
+        get: operations["InvoicesController_list"];
+        put?: never;
+        /** Issue an invoice (cases), a statement or a free invoice; the snapshot is frozen */
+        post: operations["InvoicesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One invoice with its frozen snapshot (its SHA-256 is verified on every read) */
+        get: operations["InvoicesController_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The lab logo frozen into this invoice (404 = printed with the lab name only) */
+        get: operations["InvoicesController_logo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/invoices/{id}/void": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Void with a reason (never delete); its cases become un-invoiced; number and snapshot stay */
+        post: operations["InvoicesController_void"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/settings/invoice-template": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The invoice appearance (defaults with rowVersion 0 until first saved) */
+        get: operations["InvoiceTemplateController_get"];
+        /** Save the whole appearance; validated strictly (no HTML, CSS or URLs anywhere) */
+        put: operations["InvoiceTemplateController_save"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/exports/debts": {
         parameters: {
             query?: never;
@@ -1003,6 +1141,23 @@ export interface paths {
         };
         /** Outgoing payments (expenses report table) as CSV with the filters of the list */
         get: operations["ExportsController_outgoingPayments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/exports/invoices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The invoice list as CSV with the filters of the list (B6) */
+        get: operations["ExportsController_invoices"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1486,6 +1641,10 @@ export interface components {
             id: number;
             name: string;
         };
+        CaseInvoiceRef: {
+            id: number;
+            no: number;
+        };
         CaseListItemResponse: {
             id: number;
             caseNo: number;
@@ -1503,11 +1662,15 @@ export interface components {
             total: number;
             /** @description Computed with the lab’s today (time zone setting) */
             overdue: boolean;
+            /** @description The active invoice the case is on (B6); null when none */
+            invoice: components["schemas"]["CaseInvoiceRef"] | null;
             rowVersion: number;
             /** @description Bound payments that count + the FIFO share of unbound ones; null without ledger.read */
             paid: number | null;
             /** @description total - paid; 0 when cancelled; null without ledger.read */
             remaining: number | null;
+            /** @description «مغلقة» (SPEC §9): delivered + on an active invoice + nothing left to pay; null without ledger.read */
+            closed: boolean | null;
         };
         CaseSummaryPage: {
             page: number;
@@ -1690,6 +1853,8 @@ export interface components {
             total: number;
             /** @description Computed with the lab’s today (time zone setting) */
             overdue: boolean;
+            /** @description The active invoice the case is on (B6); null when none */
+            invoice: components["schemas"]["CaseInvoiceRef"] | null;
             rowVersion: number;
             /** @description Integer minor units */
             subtotal: number;
@@ -1712,8 +1877,13 @@ export interface components {
             allowedStatuses: ("waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled")[];
             /** @description true when POST /cases/{id}/cancel is allowed now */
             canCancel: boolean;
-            /** @description true when header and lines may be edited (not cancelled) */
+            /** @description true when header and lines may be edited (not cancelled, not on an active invoice) */
             canEdit: boolean;
+            /**
+             * @description Why header and lines cannot be edited now (B6: invoiced = void the invoice first); null when they can
+             * @enum {string|null}
+             */
+            editBlockedReason: "cancelled" | "invoiced" | null;
             /** @description The advance payment, if one was sent */
             advancePayment: components["schemas"]["PaymentResponse"] | null;
         };
@@ -1734,6 +1904,8 @@ export interface components {
             total: number;
             /** @description Computed with the lab’s today (time zone setting) */
             overdue: boolean;
+            /** @description The active invoice the case is on (B6); null when none */
+            invoice: components["schemas"]["CaseInvoiceRef"] | null;
             rowVersion: number;
             /** @description Integer minor units */
             subtotal: number;
@@ -1756,8 +1928,13 @@ export interface components {
             allowedStatuses: ("waiting" | "design" | "in_progress" | "ready" | "delivered" | "returned" | "cancelled")[];
             /** @description true when POST /cases/{id}/cancel is allowed now */
             canCancel: boolean;
-            /** @description true when header and lines may be edited (not cancelled) */
+            /** @description true when header and lines may be edited (not cancelled, not on an active invoice) */
             canEdit: boolean;
+            /**
+             * @description Why header and lines cannot be edited now (B6: invoiced = void the invoice first); null when they can
+             * @enum {string|null}
+             */
+            editBlockedReason: "cancelled" | "invoiced" | null;
         };
         UpdateCaseRequest: {
             /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
@@ -2412,6 +2589,222 @@ export interface components {
             outgoingChequesDueSoon: number | null;
             /** @description Outgoing cheques pending and past due; null without expenses.read */
             outgoingChequesOverdue: number | null;
+        };
+        EligibleCaseResponse: {
+            caseId: number;
+            caseNo: number;
+            patientName: string;
+            receivedDate: string;
+            deliveredDate: string | null;
+            /** @enum {string} */
+            status: "delivered" | "ready";
+            /**
+             * @description Integer minor units
+             * @example 25000
+             */
+            total: number;
+            /**
+             * @description Integer minor units
+             * @example 25000
+             */
+            paid: number;
+            /**
+             * @description Integer minor units
+             * @example 25000
+             */
+            remaining: number;
+        };
+        EligibleCasePage: {
+            page: number;
+            pageSize: number;
+            total: number;
+            doctor: components["schemas"]["Ref"];
+            items: components["schemas"]["EligibleCaseResponse"][];
+        };
+        InvoiceCountsByType: {
+            cases: number;
+            statement: number;
+            free: number;
+        };
+        InvoiceSummaryResponse: {
+            /** @description Active documents per type */
+            active: components["schemas"]["InvoiceCountsByType"];
+            /** @description Voided documents */
+            void: number;
+        };
+        CreateInvoiceRequest: {
+            /** @enum {string} */
+            type: "cases" | "statement" | "free";
+            /** @description cases, statement: required; free: the doctor, or give partyName instead */
+            doctorId?: number;
+            /** @description cases only: 1–200 case ids of the doctor */
+            caseIds?: number[];
+            /**
+             * @description cases only: the total the screen previewed; a different server total → 409 error.invoice.total_changed
+             * @example 25000
+             */
+            expectedTotal?: number;
+            notes?: string | null;
+            /** @description statement only: first date (inclusive) */
+            from?: string;
+            /** @description statement only: last date (inclusive) */
+            to?: string;
+            /** @description free only, when the party is not a doctor */
+            partyName?: string;
+            /** @description free only */
+            reason?: string;
+            /**
+             * @description free only: > 0
+             * @example 25000
+             */
+            amount?: number;
+            /**
+             * @description Default: the documents language of Settings
+             * @enum {string}
+             */
+            language?: "ar" | "en";
+        };
+        InvoicePreviewResponse: {
+            /** @description The snapshot that would be frozen; no = 0 */
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        InvoiceResponse: {
+            id: number;
+            no: number;
+            /** @enum {string} */
+            type: "cases" | "statement" | "free";
+            /** @enum {string} */
+            status: "active" | "void";
+            /** @example 2026-11-20 */
+            issueDate: string;
+            /** @enum {string} */
+            language: "ar" | "en";
+            currencyCode: string;
+            /** @description The doctor (null for a free invoice to a typed name) */
+            doctorId: number | null;
+            /** @description The party as printed (frozen at issue) */
+            partyName: string;
+            /**
+             * @description null for a statement
+             * @example 25000
+             */
+            subtotal: number | null;
+            /**
+             * @description null for a statement
+             * @example 25000
+             */
+            discount: number | null;
+            /**
+             * @description null for a statement
+             * @example 25000
+             */
+            total: number | null;
+            voidReason: string | null;
+            voidedAt: string | null;
+            rowVersion: number;
+            createdAt: string;
+            /** @description Renderer contract version of the snapshot */
+            snapshotVersion: number;
+            /** @description SHA-256 of the canonical snapshot JSON, verified on every read */
+            snapshotSha256: string;
+            /** @description Everything printed, frozen at issue (InvoiceSnapshot in @app/shared). Never changes. */
+            snapshot: {
+                [key: string]: unknown;
+            };
+        };
+        InvoiceListItemResponse: {
+            id: number;
+            no: number;
+            /** @enum {string} */
+            type: "cases" | "statement" | "free";
+            /** @enum {string} */
+            status: "active" | "void";
+            /** @example 2026-11-20 */
+            issueDate: string;
+            /** @enum {string} */
+            language: "ar" | "en";
+            currencyCode: string;
+            /** @description The doctor (null for a free invoice to a typed name) */
+            doctorId: number | null;
+            /** @description The party as printed (frozen at issue) */
+            partyName: string;
+            /**
+             * @description null for a statement
+             * @example 25000
+             */
+            subtotal: number | null;
+            /**
+             * @description null for a statement
+             * @example 25000
+             */
+            discount: number | null;
+            /**
+             * @description null for a statement
+             * @example 25000
+             */
+            total: number | null;
+            voidReason: string | null;
+            voidedAt: string | null;
+            rowVersion: number;
+            createdAt: string;
+        };
+        InvoicePage: {
+            page: number;
+            pageSize: number;
+            total: number;
+            items: components["schemas"]["InvoiceListItemResponse"][];
+        };
+        VoidInvoiceRequest: {
+            /** @description rowVersion from the last read; outdated → 409 error.concurrency.stale */
+            rowVersion: number;
+            reason: string;
+        };
+        InvoiceMarginsDto: {
+            top: number;
+            end: number;
+            bottom: number;
+            start: number;
+        };
+        InvoiceWidthsDto: {
+            caseNo?: number;
+            patient?: number;
+            teeth?: number;
+            workType?: number;
+            shade?: number;
+            qty?: number;
+            unitPrice?: number;
+            lineTotal?: number;
+        };
+        InvoiceTemplateDto: {
+            /** @example #006EBD */
+            primaryColor: string;
+            /** @example #FFFFFF */
+            headerTextColor: string;
+            /** @example #01416C */
+            tableHeaderColor: string;
+            /** @enum {string} */
+            fontSize: "s" | "m" | "l";
+            /** @description Millimetres */
+            margins: components["schemas"]["InvoiceMarginsDto"];
+            /** @description Visible columns in order; lineTotal is required */
+            columns: ("caseNo" | "patient" | "teeth" | "workType" | "shade" | "qty" | "unitPrice" | "lineTotal")[];
+            /** @description Millimetres; a missing column is auto width */
+            widths: components["schemas"]["InvoiceWidthsDto"];
+            showLogo: boolean;
+            showBalances: boolean;
+            /** @description Plain text, at most 3 lines; never HTML */
+            footerText: string;
+        };
+        InvoiceTemplateResponse: {
+            template: components["schemas"]["InvoiceTemplateDto"];
+            /** @description 0 = never saved (defaults); send it back on save */
+            rowVersion: number;
+        };
+        SaveInvoiceTemplateRequest: {
+            rowVersion: number;
+            template: components["schemas"]["InvoiceTemplateDto"];
         };
         DoctorHitResponse: {
             id: number;
@@ -5105,6 +5498,362 @@ export interface operations {
             };
         };
     };
+    InvoicesController_eligible: {
+        parameters: {
+            query: {
+                page?: number;
+                pageSize?: number;
+                doctorId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EligibleCasePage"];
+                };
+            };
+            /** @description error.not_found (doctor) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    InvoicesController_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceSummaryResponse"];
+                };
+            };
+        };
+    };
+    InvoicesController_preview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvoiceRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoicePreviewResponse"];
+                };
+            };
+            /** @description error.validation.failed | error.invoice.* */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.invoice.case_* */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    InvoicesController_list: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+                type?: "cases" | "statement" | "free";
+                status?: "active" | "void";
+                doctorId?: number;
+                /** @description Issue date from (inclusive) */
+                from?: string;
+                /** @description Issue date to (inclusive) */
+                to?: string;
+                /** @description Invoice number or party name */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoicePage"];
+                };
+            };
+        };
+    };
+    InvoicesController_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A UUID per attempt; a replay returns the original invoice (200) instead of a duplicate */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInvoiceRequest"];
+            };
+        };
+        responses: {
+            /** @description Replay of an earlier request with the same key */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description error.validation.failed | error.idempotency.required | error.invoice.field_required | field_not_allowed | party_required | case_count | case_duplicate | range_invalid | statement_too_long */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.not_found (doctor or case) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.invoice.case_already_invoiced | case_not_eligible | case_doctor_mismatch | total_changed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.idempotency.mismatch */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    InvoicesController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    InvoicesController_logo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Image bytes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    InvoicesController_void: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoidInvoiceRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceResponse"];
+                };
+            };
+            /** @description error.not_found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.invoice.already_void | error.concurrency.stale */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    InvoiceTemplateController_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceTemplateResponse"];
+                };
+            };
+        };
+    };
+    InvoiceTemplateController_save: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveInvoiceTemplateRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceTemplateResponse"];
+                };
+            };
+            /** @description error.validation.failed (details.fields: template.<field>) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.concurrency.stale */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     ExportsController_debts: {
         parameters: {
             query?: {
@@ -5326,6 +6075,56 @@ export interface operations {
                 /** @description Payment date to (inclusive) */
                 to?: string;
                 /** @description Voucher, payee, doctor name or cheque number */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description UTF-8 CSV with a byte order mark (Excel opens Arabic correctly), CRLF line ends */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            /** @description error.export.too_large */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description error.rate_limited */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    ExportsController_invoices: {
+        parameters: {
+            query?: {
+                /** @description Language of the headers and labels; default: Accept-Language, then Arabic */
+                lang?: "ar" | "en";
+                type?: "cases" | "statement" | "free";
+                status?: "active" | "void";
+                doctorId?: number;
+                /** @description Issue date from (inclusive) */
+                from?: string;
+                /** @description Issue date to (inclusive) */
+                to?: string;
+                /** @description Invoice number or party name */
                 search?: string;
             };
             header?: never;

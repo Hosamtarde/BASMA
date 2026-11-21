@@ -265,6 +265,11 @@ class Ref {
   @ApiProperty() name!: string;
 }
 
+export class CaseInvoiceRef {
+  @ApiProperty() id!: number;
+  @ApiProperty() no!: number;
+}
+
 export class CaseSummaryResponse {
   @ApiProperty() id!: number;
   @ApiProperty() caseNo!: number;
@@ -283,6 +288,8 @@ export class CaseSummaryResponse {
   @ApiProperty({ enum: CASE_STATUSES }) status!: CaseStatus;
   @ApiProperty(amountDoc) total!: number;
   @ApiProperty({ description: 'Computed with the lab’s today (time zone setting)' }) overdue!: boolean;
+  @ApiProperty({ type: CaseInvoiceRef, nullable: true, description: 'The active invoice the case is on (B6); null when none' })
+  invoice!: CaseInvoiceRef | null;
   @ApiProperty() rowVersion!: number;
 }
 
@@ -295,6 +302,12 @@ export class CaseListItemResponse extends CaseSummaryResponse {
   paid!: number | null;
   @ApiProperty({ type: Number, nullable: true, description: 'total - paid; 0 when cancelled; null without ledger.read' })
   remaining!: number | null;
+  @ApiProperty({
+    type: Boolean,
+    nullable: true,
+    description: '«مغلقة» (SPEC §9): delivered + on an active invoice + nothing left to pay; null without ledger.read',
+  })
+  closed!: boolean | null;
 }
 
 export class CaseSummaryPage extends PageMeta {
@@ -354,7 +367,14 @@ export class CaseDetailResponse extends CaseSummaryResponse {
   })
   allowedStatuses!: CaseStatus[];
   @ApiProperty({ description: 'true when POST /cases/{id}/cancel is allowed now' }) canCancel!: boolean;
-  @ApiProperty({ description: 'true when header and lines may be edited (not cancelled)' }) canEdit!: boolean;
+  @ApiProperty({ description: 'true when header and lines may be edited (not cancelled, not on an active invoice)' })
+  canEdit!: boolean;
+  @ApiProperty({
+    enum: ['cancelled', 'invoiced'],
+    nullable: true,
+    description: 'Why header and lines cannot be edited now (B6: invoiced = void the invoice first); null when they can',
+  })
+  editBlockedReason!: 'cancelled' | 'invoiced' | null;
 }
 
 export class DeliverCaseResponse {

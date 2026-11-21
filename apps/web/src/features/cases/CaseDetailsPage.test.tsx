@@ -67,6 +67,8 @@ const detail = (over: Partial<CaseDetail> = {}): CaseDetail => ({
   allowedStatuses: ['waiting', 'in_progress', 'ready', 'delivered'],
   canCancel: true,
   canEdit: true,
+  editBlockedReason: null,
+  invoice: null,
   ...over,
 });
 

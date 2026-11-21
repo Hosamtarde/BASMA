@@ -1,6 +1,9 @@
 import {
   cancelNeedsReason,
   canCancel,
+  canCancelNow,
+  canEditContent,
+  editBlockedReason,
   caseActions,
   CASE_STATUSES,
   CaseStatus,
@@ -52,7 +55,24 @@ describe('status machine (full matrix)', () => {
       allowedStatuses: allowed[status],
       canCancel: canCancel(status),
       canEdit: status !== 'cancelled',
+      editBlockedReason: status === 'cancelled' ? 'cancelled' : null,
     });
+  });
+
+  // B6 (S13, SPEC §7.8): on an active invoice the content is locked and cancel is refused — also from
+  // "returned" — while the status machine itself is unchanged (SPEC §9, plan I6).
+  it.each(CASE_STATUSES)('on an active invoice, %s keeps its moves but can be neither edited nor cancelled', (status) => {
+    expect(caseActions(status, true)).toEqual({
+      allowedStatuses: allowed[status],
+      canCancel: false,
+      canEdit: false,
+      editBlockedReason: status === 'cancelled' ? 'cancelled' : 'invoiced',
+    });
+    expect(canCancelNow(status, true)).toBe(false);
+    expect(canEditContent(status, true)).toBe(false);
+    expect(canCancelNow(status, false)).toBe(canCancel(status));
+    expect(canEditContent(status, false)).toBe(status !== 'cancelled');
+    expect(editBlockedReason(status, false)).toBe(status === 'cancelled' ? 'cancelled' : null);
   });
 });
 

@@ -53,16 +53,16 @@ function NavEntry({ item }: { item: NavItem }) {
  */
 export function AppShell({ brand, nav, navBottom = [], topBarStart, topBarEnd, labels, children }: AppShellProps) {
   return (
-    <div className="grid min-h-dvh grid-cols-1 md:grid-cols-[252px_minmax(0,1fr)]">
+    <div className="grid min-h-dvh grid-cols-1 md:grid-cols-[252px_minmax(0,1fr)] print:block print:min-h-0">
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2"
+        className="sr-only print:hidden focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-card focus:px-4 focus:py-2"
       >
         {labels.skipToContent}
       </a>
       <aside
         aria-label={labels.sidebar}
-        className="bg-sidebar flex flex-col overflow-y-auto px-3.5 py-4 text-white md:sticky md:top-0 md:h-dvh"
+        className="bg-sidebar flex flex-col print:hidden overflow-y-auto px-3.5 py-4 text-white md:sticky md:top-0 md:h-dvh"
       >
         {brand}
         <nav aria-label={labels.mainNav} className="flex flex-1 flex-col gap-0.5">
@@ -79,11 +79,11 @@ export function AppShell({ brand, nav, navBottom = [], topBarStart, topBarEnd, l
         </nav>
       </aside>
       <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-10 flex h-[65px] items-center gap-2.5 border-b border-border bg-card px-7">
+        <header className="sticky top-0 z-10 flex h-[65px] print:hidden items-center gap-2.5 border-b border-border bg-card px-7">
           <div className="min-w-0 flex-1">{topBarStart}</div>
           {topBarEnd}
         </header>
-        <main id="main" tabIndex={-1} className="flex-1 px-4 pt-2 pb-24 outline-none md:px-7">
+        <main id="main" tabIndex={-1} className="flex-1 px-4 pt-2 pb-24 outline-none md:px-7 print:p-0">
           {children}
         </main>
       </div>

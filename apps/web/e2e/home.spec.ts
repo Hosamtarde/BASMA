@@ -113,7 +113,7 @@ test('pipeline and donut show live counts; overdue and each stage open the filte
   await setLanguage(page, 'ar');
 });
 
-test('action cards: live ones are links, «قريباً» ones are unavailable and skipped by Tab', async ({
+test('action cards: every card is a live link (the invoice card since B6) and Tab visits each in order', async ({
   page,
 }) => {
   await signedIn(page);
@@ -132,15 +132,13 @@ test('action cards: live ones are links, «قريباً» ones are unavailable a
   ] as const) {
     await expect(cards.getByRole('link', { name: new RegExp(`^${name}`) })).toHaveAttribute('href', href);
   }
-  for (const name of ['إنشاء فاتورة']) {
-    const card = cards.getByRole('link', { name: new RegExp(`^${name}`) });
-    await expect(card).toHaveAttribute('aria-disabled', 'true');
-    await expect(card).not.toHaveAttribute('href');
-    await expect(card).toContainText('قريباً');
-    await expect(card).toContainText('في تحديث قادم');
-    await expect(card.locator('.knob-soon')).toBeVisible();
-  }
-  // Keyboard: Tab skips the unavailable cards (no trap, no dead stop).
+  // B6: the invoice card opens «إنشاء فاتورة»; no card is «قريباً» any more.
+  const invoice = cards.getByRole('link', { name: /^إنشاء فاتورة/ });
+  await expect(invoice).toHaveAttribute('href', '/invoices/new');
+  await expect(invoice).not.toHaveAttribute('aria-disabled');
+  await expect(cards.locator('.knob-soon')).toHaveCount(0);
+  await expect(cards).not.toContainText('قريباً');
+  // Keyboard: Tab visits every card in order (no trap, no dead stop).
   await cards.getByRole('link', { name: /^دفعة واردة/ }).focus();
   await page.keyboard.press('Tab');
   await expect(cards.getByRole('link', { name: /^دفعة صادرة/ })).toBeFocused();
@@ -148,11 +146,12 @@ test('action cards: live ones are links, «قريباً» ones are unavailable a
   await expect(cards.getByRole('link', { name: /^الديون/ })).toBeFocused();
   await cards.getByRole('link', { name: /^سجل الشيكات/ }).focus();
   await page.keyboard.press('Tab');
+  await expect(invoice).toBeFocused();
+  await page.keyboard.press('Tab');
   await expect(doctors).toBeFocused();
-  // A disabled card does nothing when clicked.
-  // (force: Playwright never clicks an aria-disabled element on its own.)
-  await cards.getByRole('link', { name: /^إنشاء فاتورة/ }).click({ force: true });
-  await expect(page).toHaveURL(/\/$/);
+  await invoice.click();
+  await expect(page).toHaveURL(/\/invoices\/new$/);
+  await page.goBack();
   await add.click();
   await expect(page).toHaveURL(/\/cases\/new$/);
 });

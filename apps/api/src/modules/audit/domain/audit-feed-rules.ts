@@ -20,6 +20,7 @@ const LABEL_KEY: Record<string, string> = {
   work_type: 'name',
   technician: 'name',
   expense_category: 'name',
+  invoice: 'invoiceNo',
 };
 
 const MAX_LABEL = 100;

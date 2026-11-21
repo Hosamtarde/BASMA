@@ -1,5 +1,6 @@
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useLayoutEffect, useRef } from 'react';
+import { FilePlus2, Palette } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Outlet } from 'react-router';
 import {
@@ -9,6 +10,7 @@ import {
   GearIcon,
   HomeIcon,
   IncomingIcon,
+  InvoiceIcon,
   OutgoingIcon,
   ScaleIcon,
   ToothIcon,
@@ -68,6 +70,14 @@ export function ShellLayout() {
     ...(can('expenses.read') ? [{ to: '/outgoing', label: t('nav.outgoing'), icon: <OutgoingIcon /> }] : []),
     { to: '/debts', label: t('nav.debts'), icon: <ScaleIcon /> },
     { to: '/cheques', label: t('nav.cheques'), icon: <ChequeIcon /> },
+    // B6: «الفواتير» (the list), «إنشاء فاتورة» and «مظهر الفاتورة» (SPEC §4 items 8–9), each for those who may use it.
+    ...(can('invoices.read')
+      ? [{ to: '/invoices', label: t('nav.invoices'), icon: <InvoiceIcon />, except: ['/invoices/new'] }]
+      : []),
+    ...(can('invoices.write') ? [{ to: '/invoices/new', label: t('nav.newInvoice'), icon: <FilePlus2 aria-hidden="true" /> }] : []),
+    ...(can('settings.read')
+      ? [{ to: '/invoice-appearance', label: t('nav.invoiceAppearance'), icon: <Palette aria-hidden="true" /> }]
+      : []),
     { to: '/doctors', label: t('nav.doctors'), icon: <DoctorsIcon /> },
   ];
   const navBottom: NavItem[] = [{ to: '/settings', label: t('nav.settings'), icon: <GearIcon /> }];

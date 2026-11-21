@@ -1,6 +1,6 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useId, useState } from 'react';
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/cn';
 
@@ -156,6 +156,29 @@ export function SelectField({
       >
         {children}
       </select>
+    </FieldShell>
+  );
+}
+
+export interface TextAreaFieldProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'id'> {
+  label: string;
+  hint?: string | undefined;
+  error?: string | undefined;
+}
+
+/** Multi-line plain text (notes, a footer); same label, hint and error links as TextField. */
+export function TextAreaField({ label, hint, error, required, className, ...area }: TextAreaFieldProps) {
+  const id = useId();
+  return (
+    <FieldShell id={id} label={label} hint={hint} error={error} required={required}>
+      <textarea
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-required={required || undefined}
+        aria-describedby={describedBy(id, hint, error)}
+        className={cn(controlClass, 'h-auto min-h-20 py-2 leading-relaxed', className)}
+        {...area}
+      />
     </FieldShell>
   );
 }

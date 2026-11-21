@@ -8,6 +8,7 @@ import { notFound } from '../../../shared/errors/common-errors';
 import { DomainError } from '../../../shared/errors/domain-error';
 import { isUniqueViolation } from '../../../shared/db/pg-errors';
 import { LabCalendar } from '../../settings/application/lab-calendar.service';
+import { InvoicesRepository } from '../../invoices/infrastructure/invoices.repository';
 import { LedgerService } from '../../payments/application/ledger.service';
 import {
   AdvancePayment,
@@ -85,6 +86,8 @@ export interface CaseDetail extends CaseRow {
   /** «تحصيل مستحق»: delivered, the collect date has come and something is still owed (B5). */
   collectDue: boolean;
   overdue: boolean;
+  /** B6: the active invoice the case is on, null when none (edits and cancel are locked while set). */
+  invoice: { id: number; no: number } | null;
   items: CaseItemRow[];
   history: HistoryRow[];
 }
@@ -116,12 +119,16 @@ export interface CreatedCase {
 
 export interface CaseSummary extends CaseRow {
   overdue: boolean;
+  /** B6: the active invoice the case is on (SPEC §5.6 "linked invoice"), null when none. */
+  invoice: { id: number; no: number } | null;
 }
 
 /** A list row; paid / remaining are null when the caller may not read the ledger (B4). */
 export interface CaseListItem extends CaseSummary {
   paid: number | null;
   remaining: number | null;
+  /** «مغلقة» (SPEC §9): delivered + invoiced + nothing left to pay; null without ledger figures. */
+  closed: boolean | null;
 }
 
 const err = (code: string, status: HttpStatus, params: Record<string, string | number> = {}) =>
@@ -142,6 +149,7 @@ export class CasesService {
     private readonly payments: PaymentsService,
     private readonly paymentsRepo: PaymentsRepository,
     private readonly ledger: LedgerService,
+    private readonly invoices: InvoicesRepository,
   ) {}
 
   async list(
@@ -152,13 +160,23 @@ export class CasesService {
     const { items, total } = await this.repo.list(this.db, q, today);
     // One batch for the whole page (four statements however many rows), never one per row.
     const figures = withFigures ? await this.ledger.figuresForCases(items) : undefined;
+    const invoiced = await this.invoices.activeInvoicesOf(
+      this.db,
+      items.map((c) => c.id),
+    );
     return {
-      items: items.map((c) => ({
-        ...c,
-        overdue: isOverdue(c, today),
-        paid: figures ? (figures.get(c.id)?.paid ?? 0) : null,
-        remaining: figures ? (figures.get(c.id)?.remaining ?? 0) : null,
-      })),
+      items: items.map((c) => {
+        const remaining = figures ? (figures.get(c.id)?.remaining ?? 0) : null;
+        const invoice = invoiced.get(c.id) ?? null;
+        return {
+          ...c,
+          overdue: isOverdue(c, today),
+          invoice,
+          paid: figures ? (figures.get(c.id)?.paid ?? 0) : null,
+          remaining,
+          closed: remaining === null ? null : c.status === 'delivered' && invoice !== null && remaining === 0,
+        };
+      }),
       page: q.page,
       pageSize: q.pageSize,
       total,
@@ -187,6 +205,7 @@ export class CasesService {
     const figures =
       found.status === 'cancelled' ? undefined : await this.ledger.caseFigures(found.doctorId, id);
     const pendingCheques = await this.paymentsRepo.pendingBoundCheques(this.db, id);
+    const invoice = (await this.invoices.activeInvoicesOf(this.db, [id])).get(id) ?? null;
     const deliverable = found.status !== 'cancelled' && found.status !== 'delivered';
     return {
       ...found,
@@ -206,6 +225,7 @@ export class CasesService {
         found.collectOn !== null &&
         collectPhase(found.collectOn, today, figures?.remaining ?? 0) !== null,
       overdue: isOverdue(found, today),
+      invoice,
       items,
       history,
     };
@@ -351,7 +371,7 @@ export class CasesService {
   async update(id: number, rowVersion: number, patch: CaseHeaderPatch, userId: number): Promise<CaseDetail> {
     await this.db.transaction(async (tx) => {
       if (patch.discount !== undefined) await lockCurrencyForMoneyWrite(tx);
-      const current = this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion));
+      const current = await this.notInvoiced(tx, this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion)));
       const changes: CaseChanges = {};
       for (const key of Object.keys(patch) as (keyof CaseHeaderPatch)[]) {
         const value = patch[key];
@@ -393,7 +413,7 @@ export class CasesService {
   async addLines(id: number, rowVersion: number, lines: LineInput[], userId: number): Promise<CaseDetail> {
     await this.db.transaction(async (tx) => {
       await lockCurrencyForMoneyWrite(tx);
-      const current = this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion));
+      const current = await this.notInvoiced(tx, this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion)));
       const existing = await this.repo.items(tx, id);
       if (existing.length + lines.length > MAX_LINES_PER_CASE) {
         throw err('error.case.too_many_lines', HttpStatus.CONFLICT, { max: MAX_LINES_PER_CASE });
@@ -424,7 +444,7 @@ export class CasesService {
   ): Promise<CaseDetail> {
     await this.db.transaction(async (tx) => {
       if (patch.unitPrice !== undefined) await lockCurrencyForMoneyWrite(tx);
-      const current = this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion));
+      const current = await this.notInvoiced(tx, this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion)));
       const items = await this.repo.items(tx, id);
       const item = items.find((i) => i.id === itemId);
       if (!item) throw notFound();
@@ -465,7 +485,7 @@ export class CasesService {
   async removeLine(id: number, itemId: number, rowVersion: number, userId: number): Promise<CaseDetail> {
     await this.db.transaction(async (tx) => {
       await lockCurrencyForMoneyWrite(tx);
-      const current = this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion));
+      const current = await this.notInvoiced(tx, this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion)));
       const items = await this.repo.items(tx, id);
       const item = items.find((i) => i.id === itemId);
       if (!item) throw notFound();
@@ -669,6 +689,8 @@ export class CasesService {
   async cancel(id: number, rowVersion: number, reason: string | null, userId: number): Promise<CaseDetail> {
     await this.db.transaction(async (tx) => {
       const current = this.editable(assertCurrent(await this.repo.findForUpdate(tx, id), rowVersion));
+      // S13 (B6): checked before the status rule, so a case on an invoice says why it cannot be cancelled.
+      await this.notInvoiced(tx, current);
       if (!canCancel(current.status)) {
         throw err('error.case.cannot_cancel', HttpStatus.CONFLICT, { status: current.status });
       }
@@ -700,6 +722,16 @@ export class CasesService {
   }
 
   // ---- helpers ----
+
+  /**
+   * S13 (B6, SPEC §7.8): a case on an active invoice keeps its content and cannot be cancelled. Called under
+   * the case row lock (FOR UPDATE); invoice issue locks the same row, so the two never interleave.
+   */
+  private async notInvoiced(tx: Tx, current: CaseRow): Promise<CaseRow> {
+    const on = (await this.invoices.activeInvoicesOf(tx, [current.id])).get(current.id);
+    if (on) throw err('error.case.invoiced', HttpStatus.CONFLICT, { caseNo: current.caseNo, invoiceNo: on.no });
+    return current;
+  }
 
   private editable(current: CaseRow): CaseRow {
     if (!canEdit(current.status)) throw err('error.case.cancelled', HttpStatus.CONFLICT);

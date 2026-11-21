@@ -96,7 +96,11 @@ export function CaseDetailsPage() {
             variant="secondary"
             onClick={() => setDialog('edit')}
             disabledReason={
-              detail.canEdit ? null : t(cancelled ? 'caseDetails.why.cancelled' : 'caseDetails.why.noEdit')
+              detail.canEdit
+                ? null
+                : detail.editBlockedReason === 'invoiced' && detail.invoice
+                  ? t('caseDetails.why.invoiced', { no: detail.invoice.no })
+                  : t(cancelled ? 'caseDetails.why.cancelled' : 'caseDetails.why.noEdit')
             }
           >
             <Pencil aria-hidden="true" />
@@ -120,7 +124,9 @@ export function CaseDetailsPage() {
             disabledReason={
               detail.canCancel
                 ? null
-                : t(cancelled ? 'caseDetails.why.cancelled' : 'caseDetails.why.cancelAfterDelivery')
+                : detail.invoice && !cancelled
+                  ? t('caseDetails.why.invoiced', { no: detail.invoice.no })
+                  : t(cancelled ? 'caseDetails.why.cancelled' : 'caseDetails.why.cancelAfterDelivery')
             }
           >
             <Ban aria-hidden="true" />
@@ -128,6 +134,16 @@ export function CaseDetailsPage() {
           </ActionButton>
         </div>
       </div>
+      {detail.invoice && (
+        <p role="note" data-case-invoice="" className="mb-4 rounded-lg bg-hover px-4 py-2.5 font-semibold">
+          {t('caseDetails.onInvoice')}{' '}
+          <Link to={`/invoices/${detail.invoice.id}`} className="text-cyan-ink underline-offset-4 hover:underline">
+            {t('caseDetails.invoiceNo', { no: detail.invoice.no })}
+          </Link>
+          {' — '}
+          {t('caseDetails.invoicedHint')}
+        </p>
+      )}
       {detail.status === 'cancelled' && (
         <p
           role="note"

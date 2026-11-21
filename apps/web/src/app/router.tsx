@@ -88,6 +88,26 @@ export const routes: RouteObject[] = [
                     errorElement: <RouteError />,
                   },
                   {
+                    path: 'invoices',
+                    lazy: page(() => import('@/features/invoices/InvoicesPage'), 'InvoicesPage'),
+                    errorElement: <RouteError />,
+                  },
+                  {
+                    path: 'invoices/new',
+                    lazy: page(() => import('@/features/invoices/NewInvoicePage'), 'NewInvoicePage'),
+                    errorElement: <RouteError />,
+                  },
+                  {
+                    path: 'invoices/:id',
+                    lazy: page(() => import('@/features/invoices/InvoicePage'), 'InvoicePage'),
+                    errorElement: <RouteError />,
+                  },
+                  {
+                    path: 'invoice-appearance',
+                    lazy: page(() => import('@/features/invoices/InvoiceAppearancePage'), 'InvoiceAppearancePage'),
+                    errorElement: <RouteError />,
+                  },
+                  {
                     path: 'debts',
                     lazy: page(() => import('@/features/payments/DebtsPage'), 'DebtsPage'),
                     errorElement: <RouteError />,

@@ -92,11 +92,11 @@ test('Home before the first case: a friendly empty state with a button to add th
   await expect(banner.locator('[data-banner-mark]')).toBeVisible();
   await expect(banner).not.toContainText('بسمة');
   await expect(banner).not.toContainText('Basma');
-  // The action cards are there: six links (B3 added payments, debts and cheques; B4b the outgoing
-  // payment), one «قريباً» (the invoice, B6).
+  // The action cards are there: seven links (B3 added payments, debts and cheques; B4b the outgoing
+  // payment; B6 the invoice), none «قريباً» any more.
   const cards = page.getByRole('region', { name: 'ماذا تريد أن تسجّل؟' });
-  await expect(cards.locator('a[href]')).toHaveCount(6);
-  await expect(cards.locator('[aria-disabled="true"]')).toHaveCount(1);
+  await expect(cards.locator('a[href]')).toHaveCount(7);
+  await expect(cards.locator('[aria-disabled="true"]')).toHaveCount(0);
   await expectAccessible(page);
   await shot(page, 'home-empty-ar', { fullPage: false });
   // Signed in, the language is saved for the installation: wait for each save, so the next tests
@@ -203,6 +203,34 @@ test('numbering: editable before the first case, locked with the next number aft
   await expect(caseStart).toBeDisabled();
   await expect(page.getByText(/صدر أول رقم، فلا يمكن تغيير البداية. الرقم التالي: 501/)).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'رقم أول فاتورة' })).toBeEnabled();
+});
+
+test('B6 numbering: the first invoice number is set before the first invoice, then locked; the invoice carries it', async ({
+  page,
+  request,
+}) => {
+  await signedInFirst(page);
+  await page.getByRole('link', { name: 'الإعدادات' }).click();
+  const invoiceStart = page.getByRole('textbox', { name: 'رقم أول فاتورة' });
+  await expect(invoiceStart).toBeEnabled();
+  await invoiceStart.fill('7000');
+  await page.getByRole('form', { name: 'الترقيم' }).getByRole('button', { name: 'حفظ' }).click();
+  await expect(page.getByText('تم حفظ الإعدادات.').first()).toBeVisible();
+
+  const login = await request.post('/api/v1/auth/login', { data: { username: FIRST.username, password: FIRST.password } });
+  const token = ((await login.json()) as { accessToken: string }).accessToken;
+  const issued = await request.post('/api/v1/invoices', {
+    headers: { Authorization: `Bearer ${token}`, 'Idempotency-Key': crypto.randomUUID() },
+    data: { type: 'free', partyName: `جهة ${uid()}`, reason: 'أول فاتورة', amount: 100 },
+  });
+  expect(issued.status()).toBe(201);
+  expect((await issued.json()).no).toBe(7000);
+
+  await page.reload();
+  await expect(invoiceStart).toBeDisabled();
+  // Numbers are shown with grouping, as everywhere in the UI.
+  await expect(page.getByText(/الرقم التالي: 7,001\./)).toBeVisible();
+  await expectAccessible(page);
 });
 
 test('the password can be changed from the user menu', async ({ page }) => {

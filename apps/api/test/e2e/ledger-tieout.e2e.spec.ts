@@ -253,4 +253,93 @@ describe('B4 tie-out over the demo data (e2e)', () => {
       parties: list.filter((d) => d.balance !== 0).length,
     });
   });
+
+  /**
+   * B6 (plan §3): invoices are ledger-neutral. For EVERY demo doctor the balance, the breakdown equation, the
+   * statement closing, the debts row, the case figures and the installation-wide summaries are recorded, then
+   * a cases invoice (every eligible case), a statement and a free invoice are issued, recorded again, voided,
+   * and recorded a third time: the three fingerprints are identical. The demo already holds invoices of all
+   * three types and a voided one, so the tie-out above ran with invoices present.
+   */
+  it('invoices never move the ledger: issue and void of every type leave every figure of every doctor unchanged', async () => {
+    expect(report.invoices?.cases ?? 0).toBeGreaterThanOrEqual(4);
+    expect(report.invoices?.statements ?? 0).toBeGreaterThanOrEqual(2);
+    expect(report.invoices?.free ?? 0).toBeGreaterThanOrEqual(2);
+    expect(report.invoices?.voided ?? 0).toBeGreaterThanOrEqual(1);
+    const summary = (await get('/invoices/summary').expect(200)).body as { active: { cases: number; statement: number; free: number } };
+    expect(summary.active.cases).toBeGreaterThanOrEqual(4);
+
+    const list = (await get('/doctors?pageSize=100').expect(200)).body.items as { id: number; name: string }[];
+    const fingerprint = async () => {
+      const perDoctor: Record<string, unknown> = {};
+      for (const d of list) {
+        const bal = (await get(`/doctors/${d.id}/balance`).expect(200)).body as Record<string, unknown>;
+        const b = (await get(`/doctors/${d.id}/debt-breakdown?pageSize=100`).expect(200)).body as BreakdownBody;
+        const st = (await get(`/doctors/${d.id}/statement?pageSize=100`).expect(200)).body as { closing: number; total: number };
+        const cases = (await get(`/cases?doctorId=${d.id}&pageSize=100`).expect(200)).body.items as {
+          id: number;
+          total: number;
+          paid: number;
+          remaining: number;
+        }[];
+        perDoctor[d.name] = {
+          bal,
+          tieOut: b.tieOut,
+          openCases: b.openCases.items,
+          closing: st.closing,
+          statementLines: st.total,
+          cases: cases.map((c) => [c.id, c.total, c.paid, c.remaining]),
+        };
+      }
+      return {
+        perDoctor,
+        debts: (await get('/debts?pageSize=100&direction=all').expect(200)).body,
+        ledger: (await get('/ledger/summary').expect(200)).body,
+        receipts: (await get('/payments/summary').expect(200)).body,
+        cashFlow: (await get('/ledger/cash-flow').expect(200)).body,
+      };
+    };
+    const issue = async (body: object) =>
+      (
+        await request(t.http)
+          .post('/api/v1/invoices')
+          .set('Authorization', t.auth)
+          .set('Idempotency-Key', crypto.randomUUID())
+          .send(body)
+          .expect(201)
+      ).body as { id: number; rowVersion: number; total: number | null; snapshot: { balances?: { previous: number; current: number } } };
+
+    const before = await fingerprint();
+    const issued: { id: number; rowVersion: number }[] = [];
+    let casesInvoices = 0;
+    for (const d of list) {
+      const bal = (await get(`/doctors/${d.id}/balance`).expect(200)).body as { balance: number };
+      const eligible = (await get(`/invoices/eligible-cases?doctorId=${d.id}&pageSize=100`).expect(200)).body as {
+        items: { caseId: number; total: number }[];
+      };
+      if (eligible.items.length > 0) {
+        const expectedTotal = eligible.items.reduce((s, c) => s + c.total, 0);
+        const inv = await issue({ type: 'cases', doctorId: d.id, caseIds: eligible.items.map((c) => c.caseId), expectedTotal });
+        expect(inv.total).toBe(expectedTotal);
+        // I4: current = the ledger balance at issue; previous + total = current.
+        expect(inv.snapshot.balances).toEqual(expect.objectContaining({ current: bal.balance, previous: bal.balance - expectedTotal }));
+        issued.push(inv);
+        casesInvoices += 1;
+      }
+      issued.push(await issue({ type: 'statement', doctorId: d.id }));
+      issued.push(await issue({ type: 'free', doctorId: d.id, reason: 'Tie-out check', amount: 1_234 }));
+    }
+    expect(casesInvoices).toBeGreaterThan(3);
+    const whileIssued = await fingerprint();
+    for (const inv of issued) {
+      await request(t.http)
+        .post(`/api/v1/invoices/${inv.id}/void`)
+        .set('Authorization', t.auth)
+        .send({ rowVersion: inv.rowVersion, reason: 'tie-out check' })
+        .expect(200);
+    }
+    const afterVoid = await fingerprint();
+    expect(whileIssued).toEqual(before);
+    expect(afterVoid).toEqual(before);
+  });
 });

@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { HandCoins, Plus } from 'lucide-react';
+import { HandCoins, Plus, Printer } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useOutletContext } from 'react-router';
+import { Link, useOutletContext } from 'react-router';
 import type { components } from '@/api/schema.gen';
 import { ActionButton } from '@/components/ui/action-button';
 import { Button } from '@/components/ui/button';
@@ -140,6 +140,7 @@ function serializeRange(r: Range): URLSearchParams {
 /** «كشف الحساب»: cases, cleared payments and bounced cheques with a running balance. */
 export function DoctorStatementTab() {
   const { t } = useTranslation();
+  const can = useCan();
   const doctor = useOutletContext<Doctor>();
   const { data: settings } = useQuery(settingsQuery);
   const today = todayIn(settings?.labProfile?.timeZone ?? 'UTC');
@@ -160,6 +161,14 @@ export function DoctorStatementTab() {
         {(r.from !== '' || r.to !== '') && (
           <Button variant="link" className="h-10" onClick={() => update({ from: '', to: '' })}>
             {t('statement.clearFilters')}
+          </Button>
+        )}
+        {can('invoices.write') && (
+          <Button asChild variant="secondary">
+            <Link to={`/invoices/new?type=statement&doctor=${doctor.id}`}>
+              <Printer aria-hidden="true" />
+              {t('statement.printable')}
+            </Link>
           </Button>
         )}
         <ExportButton

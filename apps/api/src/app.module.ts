@@ -11,6 +11,7 @@ import { SearchModule } from './modules/search/search.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { IdentityModule } from './modules/identity/identity.module';
+import { InvoicesModule } from './modules/invoices/invoices.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AuditModule } from './shared/audit/audit-writer';
 import { DatabaseModule } from './shared/db/database.module';
@@ -42,6 +43,7 @@ export class AppModule {
         SettingsModule,
         CasesModule,
         PaymentsModule,
+        InvoicesModule,
         ExportsModule,
         SearchModule,
         NotificationsModule,
