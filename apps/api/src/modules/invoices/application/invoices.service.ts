@@ -230,14 +230,13 @@ export class InvoicesService {
 
   /** Everything printed, read under the caller's locks (create) or snapshot (preview). */
   private async build(tx: Tx, input: CreateInvoiceInput, no: number, lock = true): Promise<Built> {
-    const [profile, currency, language, template, logo, issueDate] = await Promise.all([
-      this.settings.get<LabProfile>(tx, LAB_PROFILE),
-      this.settings.get<CurrencySetting>(tx, CURRENCY),
-      this.settings.get<LanguageSetting>(tx, LANGUAGE),
-      this.templates.get(tx),
-      this.logos.file(tx),
-      this.calendar.today(tx),
-    ]);
+    // One connection per transaction: its queries run one after the other (never Promise.all on a tx).
+    const profile = await this.settings.get<LabProfile>(tx, LAB_PROFILE);
+    const currency = await this.settings.get<CurrencySetting>(tx, CURRENCY);
+    const language = await this.settings.get<LanguageSetting>(tx, LANGUAGE);
+    const template = await this.templates.get(tx);
+    const logo = await this.logos.file(tx);
+    const issueDate = await this.calendar.today(tx);
     if (!profile || !currency) throw new Error('settings missing (setup not completed)');
     const frozenLogo = logo ? { sha256: sha256Hex(logo.content), mimeType: logo.mimeType, content: logo.content } : null;
     const lab: InvoiceLab = {
