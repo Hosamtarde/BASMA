@@ -54,4 +54,19 @@ export default tseslint.config(
     files: ['scripts/**/*.ts'],
     rules: { 'no-console': 'off' },
   },
+  {
+    // B6 (SPEC §2.3): printed documents show only the lab's own logo and name — never the product's.
+    files: ['src/features/invoices/document/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { group: ['**/product-logo*', '**/assets/brand/**', '**/basma-logo*'], message: 'Printed documents never show the product logo (SPEC §2.3).' },
+          ],
+          paths: [{ name: '@app/shared', importNames: ['PRODUCT_NAME'], message: 'Printed documents never show the product name (SPEC §2.3).' }],
+        },
+      ],
+    },
+  },
 );

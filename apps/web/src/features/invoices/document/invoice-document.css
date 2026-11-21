@@ -1,0 +1,298 @@
+/*
+ * The printed invoice (SPEC §5.14, §5.15; docs/reference/invoice-sample.html is the approved look).
+ * Everything the owner can change in «مظهر الفاتورة» arrives as a CSS custom property set by the renderer from
+ * validated values only (hex colours, a size code, millimetres). Logical properties only (RTL and LTR).
+ */
+.inv-doc {
+  --inv-ink: #023f65;
+  --inv-muted: #5f7482;
+  --inv-line: #dce6ec;
+  --inv-zebra: #f4f8fa;
+  font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif;
+  color: var(--inv-ink);
+  font-size: var(--inv-font-size, 10.5pt);
+  line-height: 1.5;
+  background: #fff;
+}
+
+/* On screen: one A4 sheet with the chosen margins as padding. */
+.inv-sheet {
+  box-sizing: border-box;
+  width: 210mm;
+  min-height: 297mm;
+  margin-inline: auto;
+  padding-block: var(--inv-margin-top, 12mm) var(--inv-margin-bottom, 14mm);
+  padding-inline: var(--inv-margin-start, 12mm) var(--inv-margin-end, 12mm);
+  box-shadow: 0 1px 3px rgb(2 63 101 / 0.12), 0 8px 24px rgb(2 63 101 / 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.inv-topbar {
+  height: 4mm;
+  margin-block-end: 7mm;
+  border-radius: 1mm;
+  background: linear-gradient(90deg, var(--inv-table-header), var(--inv-primary));
+}
+
+.inv-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10mm;
+}
+.inv-lab {
+  display: flex;
+  gap: 5mm;
+  align-items: center;
+  min-width: 0;
+}
+.inv-lab img {
+  display: block;
+  max-width: 46mm;
+  max-height: 30mm;
+  width: auto;
+  height: auto;
+}
+.inv-lab-info {
+  font-size: 0.88em;
+  color: var(--inv-muted);
+  line-height: 1.55;
+  min-width: 0;
+}
+.inv-lab-name {
+  display: block;
+  color: var(--inv-ink);
+  font-size: 1.3em;
+  font-weight: 800;
+}
+.inv-docbox {
+  min-width: 62mm;
+}
+.inv-title {
+  margin: 0;
+  font-size: 2em;
+  font-weight: 800;
+  color: var(--inv-table-header);
+}
+.inv-meta {
+  margin: 2mm 0 0;
+  border: 1px solid var(--inv-line);
+  border-radius: 3mm;
+  overflow: hidden;
+  font-size: 0.9em;
+}
+.inv-meta > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  padding: 1.4mm 3.5mm;
+}
+.inv-meta > div:nth-child(odd) {
+  background: var(--inv-zebra);
+}
+.inv-meta dt {
+  color: var(--inv-muted);
+}
+.inv-meta dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.inv-void {
+  margin-block: 5mm 0;
+  padding: 2.5mm 4mm;
+  border: 0.6mm solid #b4232a;
+  border-radius: 2mm;
+  color: #8c1d22;
+  font-weight: 800;
+  text-align: center;
+}
+
+.inv-party {
+  margin-block: 7mm 5mm;
+  padding: 3.5mm 5mm;
+  border-inline-start: 1.6mm solid var(--inv-primary);
+  background: var(--inv-zebra);
+  border-radius: 2mm;
+  display: flex;
+  gap: 4mm 12mm;
+  flex-wrap: wrap;
+}
+.inv-party small {
+  display: block;
+  color: var(--inv-muted);
+  font-size: 0.78em;
+}
+.inv-party strong {
+  font-weight: 700;
+}
+
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+.inv-table thead {
+  display: table-header-group; /* repeats on every printed page */
+}
+.inv-table th {
+  background: var(--inv-table-header);
+  color: var(--inv-header-text);
+  font-weight: 700;
+  padding: 2.2mm 2mm;
+  text-align: center;
+  white-space: nowrap;
+}
+.inv-table td {
+  padding: 2mm;
+  text-align: center;
+  border-block-end: 1px solid var(--inv-line);
+  vertical-align: top;
+}
+.inv-table tr {
+  break-inside: avoid;
+}
+.inv-table tbody tr:nth-child(even) {
+  background: var(--inv-zebra);
+}
+.inv-table .inv-text {
+  text-align: start;
+}
+.inv-table .inv-money {
+  text-align: end;
+  white-space: nowrap;
+}
+.inv-table tfoot td {
+  font-weight: 800;
+  border-block-start: 2px solid var(--inv-table-header);
+}
+
+/* Digits keep their order inside Arabic: an isolated LTR run, aligned figures. */
+.inv-num {
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: tabular-nums;
+}
+
+.inv-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-block-start: 6mm;
+  gap: 10mm;
+  break-inside: avoid;
+}
+.inv-notes {
+  flex: 1;
+  font-size: 0.88em;
+  color: var(--inv-muted);
+  line-height: 1.7;
+  white-space: pre-line;
+  min-width: 0;
+}
+.inv-notes h2 {
+  margin: 0 0 1mm;
+  color: var(--inv-ink);
+  font-size: 1.05em;
+}
+.inv-totals {
+  width: 80mm;
+  margin: 0;
+  border: 1px solid var(--inv-line);
+  border-radius: 3mm;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.inv-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  padding: 2mm 4mm;
+}
+.inv-totals dt {
+  font-weight: 600;
+}
+.inv-totals dd {
+  margin: 0;
+}
+.inv-totals .inv-sep {
+  border-block-start: 1px dashed var(--inv-line);
+}
+.inv-totals .inv-grand {
+  background: var(--inv-table-header);
+  color: var(--inv-header-text);
+  font-weight: 800;
+  font-size: 1.1em;
+}
+.inv-totals .inv-bal {
+  background: var(--inv-zebra);
+  font-weight: 700;
+}
+.inv-credit {
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.inv-memo {
+  margin-block-start: 3mm;
+  font-size: 0.85em;
+  color: var(--inv-muted);
+}
+
+.inv-sign {
+  display: flex;
+  justify-content: space-between;
+  gap: 20mm;
+  margin-block-start: 16mm;
+  font-size: 0.85em;
+  color: var(--inv-muted);
+  break-inside: avoid;
+}
+.inv-sign > div {
+  flex: 1;
+  border-block-start: 1px solid var(--inv-line);
+  padding-block-start: 2mm;
+  text-align: center;
+}
+
+.inv-footer {
+  margin-block-start: auto;
+  padding-block-start: 6mm;
+}
+.inv-footer > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 4mm;
+  font-size: 0.75em;
+  color: var(--inv-muted);
+  border-block-start: 1px solid var(--inv-line);
+  padding-block-start: 2mm;
+}
+
+/* The preview frame on screen: the sheet scrolls inside it, never the page (B5b rule). */
+.inv-frame {
+  overflow-x: auto;
+  background: #e9eef1;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+@media print {
+  .inv-frame {
+    overflow: visible;
+    background: none;
+    padding: 0;
+    border-radius: 0;
+  }
+  .inv-sheet {
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+  .inv-doc {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
