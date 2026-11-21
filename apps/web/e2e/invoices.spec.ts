@@ -159,6 +159,9 @@ test.describe('B6 invoices', () => {
       const preview = page.getByRole('region', { name: 'Preview' });
       await expect(preview.locator('[data-invoice-document="statement"]')).toHaveAttribute('dir', 'ltr');
       await expect(preview.locator('[data-invoice-total]')).toHaveText('300.00 ₪');
+      // The language switch leaves a toast; axe is run once it is gone (testing skill, F2b notes).
+      await page.mouse.move(0, 0);
+      await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 });
       await expectAccessible(page);
       await page.getByRole('button', { name: 'Issue and print the statement' }).click();
       await expect(page.getByRole('heading', { level: 1, name: /^Account statement no\. \d+$/ })).toBeVisible();

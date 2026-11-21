@@ -92,11 +92,11 @@ test('Home before the first case: a friendly empty state with a button to add th
   await expect(banner.locator('[data-banner-mark]')).toBeVisible();
   await expect(banner).not.toContainText('بسمة');
   await expect(banner).not.toContainText('Basma');
-  // The action cards are there: six links (B3 added payments, debts and cheques; B4b the outgoing
-  // payment), one «قريباً» (the invoice, B6).
+  // The action cards are there: seven links (B3 added payments, debts and cheques; B4b the outgoing
+  // payment; B6 the invoice), none «قريباً» any more.
   const cards = page.getByRole('region', { name: 'ماذا تريد أن تسجّل؟' });
-  await expect(cards.locator('a[href]')).toHaveCount(6);
-  await expect(cards.locator('[aria-disabled="true"]')).toHaveCount(1);
+  await expect(cards.locator('a[href]')).toHaveCount(7);
+  await expect(cards.locator('[aria-disabled="true"]')).toHaveCount(0);
   await expectAccessible(page);
   await shot(page, 'home-empty-ar', { fullPage: false });
   // Signed in, the language is saved for the installation: wait for each save, so the next tests
@@ -228,7 +228,8 @@ test('B6 numbering: the first invoice number is set before the first invoice, th
 
   await page.reload();
   await expect(invoiceStart).toBeDisabled();
-  await expect(page.getByText(/الرقم التالي: 7001/)).toBeVisible();
+  // Numbers are shown with grouping, as everywhere in the UI.
+  await expect(page.getByText(/الرقم التالي: 7,001\./)).toBeVisible();
   await expectAccessible(page);
 });
 
