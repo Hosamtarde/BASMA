@@ -24,6 +24,7 @@ const SOON = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
 
 interface Seeded {
   caseId: number;
+  invoiceId: number;
   doctorId: number;
   doctorName: string;
   suffix: string;
@@ -62,7 +63,14 @@ async function seed(request: APIRequestContext): Promise<Seeded> {
     amount: 100000,
     cheque: { chequeNo: `OUT-${suffix}`, bank: 'بنك فلسطين', dueDate: SOON },
   });
-  return { caseId: created.id, doctorId: doctor.id, doctorName: doctor.name, suffix };
+  // B6: one issued invoice for the invoice view.
+  const invoice = await apiPostKey<{ id: number }>(request, token, '/invoices', {
+    type: 'free',
+    doctorId: doctor.id,
+    reason: `أجرة ${suffix}`,
+    amount: 2500,
+  });
+  return { caseId: created.id, invoiceId: invoice.id, doctorId: doctor.id, doctorName: doctor.name, suffix };
 }
 
 /** The document is not wider than the screen (a table may scroll inside its own card). */
@@ -89,6 +97,11 @@ function routes(s: Seeded): { name: string; path: string; table?: boolean }[] {
     { name: 'doctor-prices', path: `/doctors/${s.doctorId}/prices` },
     { name: 'doctor-payments', path: `/doctors/${s.doctorId}/payments` },
     { name: 'doctor-statement', path: `/doctors/${s.doctorId}/statement` },
+    { name: 'invoices', path: `/invoices?q=${encodeURIComponent(s.suffix)}`, table: true },
+    { name: 'invoice-new', path: `/invoices/new?doctor=${s.doctorId}` },
+    { name: 'invoice-new-free', path: '/invoices/new?type=free' },
+    { name: 'invoice-view', path: `/invoices/${s.invoiceId}` },
+    { name: 'invoice-appearance', path: '/invoice-appearance' },
     { name: 'settings', path: '/settings' },
     { name: 'settings-work-types', path: '/settings/work-types' },
     { name: 'settings-technicians', path: '/settings/technicians' },

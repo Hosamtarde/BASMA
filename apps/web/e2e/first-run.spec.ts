@@ -205,6 +205,33 @@ test('numbering: editable before the first case, locked with the next number aft
   await expect(page.getByRole('textbox', { name: 'رقم أول فاتورة' })).toBeEnabled();
 });
 
+test('B6 numbering: the first invoice number is set before the first invoice, then locked; the invoice carries it', async ({
+  page,
+  request,
+}) => {
+  await signedInFirst(page);
+  await page.getByRole('link', { name: 'الإعدادات' }).click();
+  const invoiceStart = page.getByRole('textbox', { name: 'رقم أول فاتورة' });
+  await expect(invoiceStart).toBeEnabled();
+  await invoiceStart.fill('7000');
+  await page.getByRole('form', { name: 'الترقيم' }).getByRole('button', { name: 'حفظ' }).click();
+  await expect(page.getByText('تم حفظ الإعدادات.').first()).toBeVisible();
+
+  const login = await request.post('/api/v1/auth/login', { data: { username: FIRST.username, password: FIRST.password } });
+  const token = ((await login.json()) as { accessToken: string }).accessToken;
+  const issued = await request.post('/api/v1/invoices', {
+    headers: { Authorization: `Bearer ${token}`, 'Idempotency-Key': crypto.randomUUID() },
+    data: { type: 'free', partyName: `جهة ${uid()}`, reason: 'أول فاتورة', amount: 100 },
+  });
+  expect(issued.status()).toBe(201);
+  expect((await issued.json()).no).toBe(7000);
+
+  await page.reload();
+  await expect(invoiceStart).toBeDisabled();
+  await expect(page.getByText(/الرقم التالي: 7001/)).toBeVisible();
+  await expectAccessible(page);
+});
+
 test('the password can be changed from the user menu', async ({ page }) => {
   await signedInFirst(page);
   await page.getByRole('button', { name: `قائمة المستخدم: ${FIRST.username}` }).click();
