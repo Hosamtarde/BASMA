@@ -33,7 +33,7 @@ const CARDS: readonly CardDef[] = [
   { key: 'outgoing', icon: <OutgoingIcon />, band: 'bg-band-3', to: '/outgoing' },
   { key: 'debts', icon: <ScaleIcon />, band: 'bg-band-4', to: '/debts' },
   { key: 'cheques', icon: <ChequeIcon />, band: 'bg-band-5', to: '/cheques' },
-  { key: 'invoice', icon: <InvoiceIcon />, band: 'bg-band-6' },
+  { key: 'invoice', icon: <InvoiceIcon />, band: 'bg-band-6', to: '/invoices/new' },
   { key: 'doctors', icon: <DoctorsIcon />, band: 'bg-band-7', to: '/doctors' },
 ];
 
@@ -81,7 +81,7 @@ export function ActionCards({ figures }: { figures: Partial<Record<CardKey, stri
                     <>
                       <b className="num block text-[15px] font-extrabold">{figure}</b>{' '}
                       <small className="text-[12px] text-ink">
-                        {t(`home.actions.${c.key as 'newCase' | 'doctors' | 'incoming' | 'outgoing' | 'debts' | 'cheques'}.figure`)}
+                        {t(`home.actions.${c.key}.figure`)}
                       </small>
                     </>
                   )

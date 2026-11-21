@@ -215,7 +215,7 @@ describe('HomePage', () => {
     expect(legend.querySelector('svg text')).toBeNull();
   });
 
-  it('action cards: built ones are links with live figures; invoice is unavailable, not focusable', async () => {
+  it('action cards: every card is a link with its live figure (the invoice card since B6)', async () => {
     render(counts({ ready: 7 }), [summary()]);
     const cards = (await screen.findByRole('heading', { name: 'ماذا تريد أن تسجّل؟' })).closest('section')!;
     const add = within(cards).getByRole('link', { name: /^إضافة حالة جديدة/ });
@@ -237,16 +237,14 @@ describe('HomePage', () => {
     const outgoing = within(cards).getByRole('link', { name: /^دفعة صادرة/ });
     expect(outgoing).toHaveAttribute('href', '/outgoing');
     await waitFor(() => expect(outgoing).toHaveTextContent('400.00 ₪ مصاريف هذا الشهر'));
-    for (const name of ['إنشاء فاتورة']) {
-      const card = within(cards).getByRole('link', { name: new RegExp(`^${name}`) });
-      expect(card).toHaveAttribute('aria-disabled', 'true');
-      expect(card).not.toHaveAttribute('href');
-      expect(card).not.toHaveAttribute('tabindex');
-      expect(card).toHaveTextContent('قريباً في تحديث قادم');
-      // Same language as the built cards: brand knob (softer) and the figure band.
-      expect(card.querySelector('.knob-soon')).not.toBeNull();
-      expect(card.querySelector('[class*="bg-band-"]')).not.toBeNull();
-    }
+    // B6: the last card is built too — «إنشاء فاتورة» opens the new-invoice screen; no card is «قريباً» any more.
+    const invoice = within(cards).getByRole('link', { name: /^إنشاء فاتورة/ });
+    expect(invoice).toHaveAttribute('href', '/invoices/new');
+    expect(invoice).not.toHaveAttribute('aria-disabled');
+    expect(invoice.querySelector('.knob')).not.toBeNull();
+    expect(invoice.querySelector('[class*="bg-band-"]')).not.toBeNull();
+    expect(cards.querySelector('.knob-soon')).toBeNull();
+    expect(within(cards).queryByText('قريباً')).toBeNull();
   });
 
   it('latest cases: each opens its details by the number, the «فتح» button or the row', async () => {

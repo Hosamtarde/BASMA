@@ -8,6 +8,7 @@ import { Spinner } from '@/components/ui/field';
 import { caseCountsQuery, latestCasesQuery } from '@/features/cases/api';
 import { doctorsQuery } from '@/features/doctors/api';
 import { useCan } from '@/features/auth/permissions';
+import { invoiceSummaryQuery } from '@/features/invoices/api';
 import { ledgerSummaryQuery } from '@/features/payments/api';
 import { useCurrency } from '@/features/shell/currency';
 import { labNameFor, settingsQuery, useLogoUrl } from '@/features/shell/settings';
@@ -40,6 +41,8 @@ export function HomePage() {
   const { data: doctors } = useQuery(doctorsQuery({ search: '', active: true, page: 1 }));
   const { data: ledger } = useQuery(ledgerSummaryQuery);
   const can = useCan();
+  // «الفواتير» (SPEC §5.1): active invoices — cases and free ones; statements are documents, not counted (I8).
+  const { data: invoiceSummary } = useQuery({ ...invoiceSummaryQuery, enabled: can('invoices.read'), throwOnError: false });
   const currency = useCurrency();
   const money = (minor: number | undefined) =>
     minor === undefined ? undefined : `${currency.format(minor)} ${currency.symbol}`;
@@ -129,6 +132,7 @@ export function HomePage() {
       <ActionCards
         figures={{
           newCase: counts ? formatNumber(counts.byStatus.ready, lang) : undefined,
+          invoice: invoiceSummary ? formatNumber(invoiceSummary.active.cases + invoiceSummary.active.free, lang) : undefined,
           doctors: doctors ? formatNumber(doctors.total, lang) : undefined,
           incoming: money(ledger?.receivedThisMonth),
           outgoing: money(ledger?.outgoingThisMonth ?? undefined),
