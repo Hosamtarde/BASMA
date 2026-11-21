@@ -107,7 +107,9 @@ describe('InvoiceDocument — the printing renderer', () => {
     render(<InvoiceDocument snapshot={casesSnapshot()} logoUrl={null} />);
     expect(doc()).toHaveAttribute('lang', 'ar');
     expect(doc()).toHaveAttribute('dir', 'rtl');
-    expect(screen.getByRole('heading', { name: 'فاتورة' })).toBeInTheDocument();
+    // The page keeps its one h1; the document's title is a level-2 heading.
+    expect(screen.getByRole('heading', { level: 2, name: 'فاتورة' })).toBeInTheDocument();
+    expect(doc().querySelector('h1')).toBeNull();
     expect(doc().querySelector('.inv-lab-name')).toHaveTextContent('مختبر الاختبار');
     expect(doc().querySelector('[data-invoice-no]')).toHaveTextContent('1001');
     const rows = within(doc().querySelector('[data-invoice-lines]') as HTMLElement).getAllByRole('row');

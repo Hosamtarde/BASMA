@@ -158,7 +158,7 @@ export function InvoiceDocument({ snapshot, style, logoUrl, language, voided, dr
           </div>
         </div>
         <div className="inv-docbox">
-          <h1 className="inv-title">{title}</h1>
+          <h2 className="inv-title">{title}</h2>
           <dl className="inv-meta">
             <div>
               <dt>{td('invoiceDoc.number')}</dt>
@@ -235,7 +235,7 @@ function NotesAndTotals({ notes, footer, td, children }: { notes: string | null;
       <div className="inv-notes">
         {text && (
           <>
-            <h2>{td('invoiceDoc.notes')}</h2>
+            <h3>{td('invoiceDoc.notes')}</h3>
             <span dir="auto" data-invoice-notes="">
               {text}
             </span>

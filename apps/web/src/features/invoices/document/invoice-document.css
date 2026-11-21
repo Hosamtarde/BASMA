@@ -191,7 +191,7 @@
   white-space: pre-line;
   min-width: 0;
 }
-.inv-notes h2 {
+.inv-notes h3 {
   margin: 0 0 1mm;
   color: var(--inv-ink);
   font-size: 1.05em;
