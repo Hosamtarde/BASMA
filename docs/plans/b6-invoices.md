@@ -1,6 +1,6 @@
 # B6 — Invoices, immutable snapshots, void, invoice appearance and printing (plan)
 
-Status: **draft for the owner's approval — planning only, no code, no migration.**
+Status: **approved 2026-11-21 (defaults I1–I11 and departures P1–P5, with four conditions); built on this branch — backend and screens. See §12 build notes and §13 decisions taken while unattended.**
 Branch: `feat/b6-invoices` (from `main` at `2d100c8`, after PR #14 (B5) and PR #15 (B5b)).
 Sources read (2026-11-20): SPEC §1, §2.3, §3, §4, §5.1/5.2/5.6/5.8/5.14/5.15/5.18, §6.1, §7, §8, §9, §10, §11, §12 (owner answers 2026-11-06: no VAT, invoice numbering starts at a number the owner chooses and is settable only before the first invoice, lab name/logo/slogan from the lab profile); CLAUDE.md; ENGINEERING_STANDARDS; `docs/production-readiness.md`; `docs/plans/b3-payments.md`, `b4-debts-reports-search.md`, `b4b-outgoing-expenses.md`, `b5-delivery-notifications-backlog.md`; skills feature-workflow, money-ledger, db-migrations, security-review, `smile-artec-web-*`; `docs/reference/invoice-sample.html`. Code read: `case-rules.ts` (`canCancel`, `canEdit`, the S13 hook comment), `CasesService` lock order, `settings-rules.ts` (`COUNTER_NAMES` already has `invoice_no`, `withNewStart`, `isCounterLocked`), `SettingsRepository.hasMoneyData`, `schema/system.ts` (`settings`, `counters`, `lab_logo` single row, `audit_log`), `schema/cases.ts` (no `invoice_id` column today), `permissions.ts`, migration list 0000–0008, `GeneralSettingsPage.tsx` (invoice start number already editable until locked).
 
@@ -265,3 +265,54 @@ Ledger-neutrality: every demo doctor's A, B, C, debts row, case paid/remaining, 
 | I11 | Document language. | Default from Settings, changeable on the creation screen; a reprint can switch labels only. | Always the Settings value. |
 
 Still waiting on Ibrahim (provisional, not blocking): Q1, Q2 (Q2 owner-confirmed 2026-11-06), D2, D3, D9, X1–X3, X9.
+
+---
+
+## 12. Build notes (2026-11-21)
+
+Owner conditions with the approval, and where each is met:
+1. **Backup / restore with the triggers:** `apps/api/test/e2e/invoice-backup-restore.e2e.spec.ts` dumps a database with issued, voided and numbered invoices (start number 700, a frozen logo) with `pg_dump` in custom and plain formats, restores each into a fresh database (`pg_restore`, `psql -v ON_ERROR_STOP=1`) and checks rows, snapshots, SHA-256 (recomputed), counters, `invoice_cases`, `document_images`, that the triggers still refuse changes, and that the API on the restored database verifies every hash and issues the next number (704). Restore rule for B7: `docs/production-readiness.md` #22.
+2. **Numbering:** `invoice-numbering.e2e.spec.ts` — the start number is settable twice before the first invoice and refused after it (409 `error.settings.numbering_locked`); 20 concurrent issues, then 5 voids racing 10 issues, give 5000…5030 without a gap; a voided number is never reused; a failure forced after the number is taken gives it back; a raced Idempotency-Key gives one invoice. Also in the browser (`first-run.spec.ts`, start 7000).
+3. **Template injection and the product identity:** shared validator (`validateInvoiceTemplate`) refuses script tags, event handlers, `url()`, `javascript:` and CSS breakouts in every structured field (shared unit tests and `invoices.e2e.spec.ts`, every field × every attack); the footer is plain text. The renderer's `safeStyle` re-checks; component tests and Playwright put the attacks in every text field and the template and assert no script, no `on*` attribute, no `url(` in styles, no `img[src=x]`, `window.__pwned` undefined, in the preview and the print view. ESLint `no-restricted-imports` on `features/invoices/document/**` refuses `PRODUCT_NAME` and the product logo (proved with a probe file), plus a test reading the folder and checks that printed documents never contain the product name or another image.
+4. **Docs:** SPEC §5.14 (as built: P1–P5, I1–I11 pending Ibrahim's sign-off), §8 relationships, §11 (B6 built, **B6b** added), §12.17; `docs/production-readiness.md` (P1–P5, I1–I11, B6b, #14 and S13 done, #22 restore rule, #23).
+
+Tests first: `c6f6852 test(api): … (failing)` (immutability, ledger neutrality, numbering, backup/restore) was committed before the implementation; the immutability test failed with 404 at that commit.
+
+### 12.1 Endpoints (as built, `/api/v1`)
+| Method + path | Permission |
+|---|---|
+| `GET /invoices/eligible-cases?doctorId` | invoices.read + cases.read + ledger.read |
+| `POST /invoices/preview` | invoices.write (+ cases.read, ledger.read for cases; ledger.read for a statement) |
+| `POST /invoices` + `Idempotency-Key` | same as preview |
+| `GET /invoices`, `GET /invoices/summary`, `GET /invoices/{id}`, `GET /invoices/{id}/logo` | invoices.read |
+| `POST /invoices/{id}/void` | invoices.void |
+| `GET` / `PUT /settings/invoice-template` | settings.read / settings.write |
+| `GET /exports/invoices` | invoices.read + exports.run |
+| `GET /cases`, `GET /cases/{id}` (additive: `invoice`, `closed`, `editBlockedReason`) | cases.read |
+| case edits and `POST /cases/{id}/cancel` (changed: 409 `error.case.invoiced`) | as before |
+
+### 12.2 Measured
+- Web bundle (`npm run build`): entry 270.6 kB (84.5 kB gzip; B5b: 269.1 kB); all JavaScript 1,291 kB in route chunks (B5b: 1,182 kB). Invoice chunks: renderer 12.7 kB + 4.3 kB CSS, new-invoice 11.7 kB, appearance 8.6 kB, list 5.7 kB, view 5.1 kB.
+- A 60-line cases invoice prints on ≥ 2 A4 pages with the table head repeated (`page.pdf()` in `invoices.spec.ts`).
+- The statement cap (2 000 lines) is enforced and tested (`invoices.e2e.spec.ts`); the snapshot size of a 2 000-line statement or a 200-case invoice was **not measured** (stage 0 item left undone).
+
+## 13. Decisions taken while unattended
+
+Safest default from the plan each time; each is easy to change.
+1. **`invoices.party_name` is NOT NULL for every type** (the party as printed, frozen) rather than only for a free invoice to a typed name; the list and its search use it, so a renamed doctor never changes an old invoice's row.
+2. **Idempotency keys of invoices are their own namespace** (not checked against payments): a different endpoint and resource.
+3. **Template permissions:** read with `settings.read`, save with `settings.write` (no new permission); the table header colour also tints the top bar and the title.
+4. **Per-type permissions for issuing** are checked in the controller (cases: `cases.read` + `ledger.read`; statement: `ledger.read`) on top of `invoices.write`.
+5. **`expectedTotal` is required for a cases invoice and optional for the preview**; the screen sends the preview's total. A click on «إنشاء وطباعة» before the preview settles waits for it, then issues (found by Playwright).
+6. **Sidebar:** three items — «الفواتير» (the list; SPEC §5.14 requires a list but §4 has no item for it), «إنشاء فاتورة», «مظهر الفاتورة».
+7. **«إنشاء وطباعة»** opens the invoice view with `?print=1`, which prints once (after the frozen logo and the fonts are ready).
+8. **Page numbers** are CSS `@page` margin boxes `n / m` (language neutral; Chromium / Edge). The reference's `#` column is not printed.
+9. **A negative balance on paper** is the amount plus «(رصيد للطبيب)» — never a bare minus (the screens' rule).
+10. **Font sizes** S/M/L = 9.5 / 10.5 / 11.5 pt (the reference used 10 / 11.5 / 13 pt at a smaller sheet padding).
+11. **TRUNCATE is not guarded** by the triggers (only DELETE and UPDATE): the e2e reset drops schemas and only an administrator can truncate; recorded in production-readiness #22.
+12. **The document title is an `h2`** (the page has its one `h1`); found by the 390 px axe sweep.
+13. **Toasts are hidden in print** (`print:hidden` on the toaster); found in the print-preview screenshot.
+14. **Demo seed:** start number 1001; cases invoices for up to five doctors, each leaving its newest finished case un-invoiced; the first voided («أُصدرت بخصم خاطئ») and re-issued; two statements; two free invoices (one to a typed name, in English).
+15. **Existing tests changed because behaviour changed (not weakened):** `case-rules.spec.ts` (the `editBlockedReason` field, plus new invoiced cases), the owner's permission list in `auth.e2e.spec.ts`, the Home action-card tests (component, `home.spec.ts`, `home-demo.spec.ts`, `first-run.spec.ts`): the invoice card is now a live link with its figure, and Tab now stops on it.
+16. **Parallel reads in one transaction:** the invoice builder reads its settings one by one; the shared `LedgerRepository.doctorInputs` still uses `Promise.all` and is called inside the issue transaction — correct today, deprecated in pg (production-readiness #23), left for a separate change.
+17. **Observed flake:** `outgoing.spec.ts` "refund a doctor's credit…" failed once in a full local run (the over-the-credit message did not appear after the click) and passed on every rerun; no B6 code is on that path.
