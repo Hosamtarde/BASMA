@@ -46,21 +46,21 @@ d. production-readiness #23 — sequential reads when given a transaction, own c
 | V2 | Arabic wording of amounts (no diacritics, «شيكل / أغورة») | Plain standard wording; to be read once by an Arabic speaker on the owner's lab currency |
 
 ## 5. Measured / found
-- **Snapshot size (cleanup b)**, : 200-case invoice (3 teeth per case, Arabic names) = 96,067 bytes as text, 4,583 bytes stored (compressed jsonb), response 88,424 bytes, issue 95 ms, GET 10 ms. 2,000-line statement (1,000 cases + 1,000 payments) = 443,266 bytes, 26,577 stored, response 399,597 bytes, issue 164 ms, GET 32 ms. Both far below the 1 MB cap: nothing to fix. Recorded in production-readiness #24 (input for B8).
-- **Bug found by that measurement (fixed, own commits, test first):** the statement page ordered same-day items by the TEXT alias of the id (10 before 9) while the running balance summed in numeric order, so the running column did not add up and issuing such a statement as an invoice returned 500. ;  (fails before, passes after).
-- **Notifications region (cleanup a):** the region follows the language in a component test (ar → en → ar) and in the browser (); I could not reproduce the stale Arabic name on this code (Sonner takes the label from  on every render), so the tests are the fix: they pin the behaviour in both languages.
-- **outgoing.spec.ts refund flake (cleanup c):** 20 runs in a loop (, CI=1, TZ=UTC, Chromium): 20 / 20 passed. Not reproducible; no cause found. The step that failed once (over-the-credit message after fill + click) already waits for the refundable amount to load. Recorded, not changed.
-- **#23 (cleanup d):** done in its own commit —  runs the reads of  and  sequentially inside a transaction and in parallel on the pool.  counted 5 overlapping queries before, 0 after. Tie-out (every demo doctor), property, mutation, invoices, immutability, numbering, delivery, payments and statements stayed green.
+- **Snapshot size (cleanup b)**, `invoice-snapshot-size.e2e.spec.ts`: a 200-case invoice (3 teeth per case, Arabic names) = 96,067 bytes as text, 4,583 bytes stored (compressed jsonb), response 88,424 bytes, issue 95 ms, GET 10 ms. A 2,000-line statement (1,000 cases + 1,000 payments) = 443,266 bytes, 26,577 stored, response 399,597 bytes, issue 164 ms, GET 32 ms. Both far below the 1 MB cap: nothing to fix. Recorded in production-readiness #24 (input for B8).
+- **Bug found by that measurement (fixed, own commits, test first):** the statement page ordered same-day items by the TEXT alias of the id (10 before 9) while the running balance summed in numeric order, so the running column did not add up and issuing such a statement as an invoice returned 500. Fix: `ORDER BY run.date, run.ord, run.ref_id`. Test `statement-order.e2e.spec.ts` (fails before, passes after).
+- **Notifications region (cleanup a):** the region follows the language in a component test (ar → en → ar) and in the browser (`session-language.spec.ts`). I could not reproduce the stale Arabic name on this code (Sonner takes the label from `t()` on every render), so the tests pin the behaviour in both languages; no production code changed for it.
+- **outgoing.spec.ts refund flake (cleanup c):** 20 runs in a loop (`--repeat-each=20 --retries=0`, CI=1, TZ=UTC, Chromium): 20 / 20 passed. Not reproducible, no cause found. Recorded, not changed.
+- **#23 (cleanup d):** done in its own commit. `readAll` runs the reads of `doctorInputs` and `statement` one after the other inside a transaction and in parallel on the pool. `ledger-tx-reads.spec.ts` counted 5 overlapping queries before, 0 after. Tie-out (every demo doctor), property, mutation, invoices, immutability, numbering, delivery, payments and statements stayed green.
 
 ## 6. Decisions taken while unattended
-1. **No API change and no new permission:**  prints receipt vouchers,  payment vouchers (the owner-permission test is untouched).
-2. **A voucher shows the current lab profile and logo** (not a snapshot), V1; the payment row is immutable except void.
-3. **Document language** defaults to Settings (documents), switchable on the preview (labels and words only), like invoices.
-4. **Amount in words:** plain Arabic without diacritics; known currencies ILS JOD USD EUR EGP SAR AED; an unknown code or unusual decimals prints «words CODE و 50/100». Zero major prints «صفر شيكل».
-5. **Row action opens the preview** (a link), not the print dialog;  prints once.
-6. **Shared pieces extracted** from InvoiceDocument: , , ; the voucher lives in the same folder so the product-logo lint rule and test cover it.
-7. **Playwright:** the silent  POST is excluded from the "only GETs" check (session upkeep).
-8. Because a 2,000-line statement was needed, the statement bug above was fixed in this branch (small, test first).
+1. **No API change and no new permission:** `payments.read` prints receipt vouchers, `expenses.read` payment vouchers (the owner-permission test is untouched).
+2. **A voucher shows the current lab profile and logo** (not a snapshot), V1; the payment row itself is immutable except void.
+3. **Document language** defaults to Settings (documents) and is switchable on the preview (labels and words only), like invoices.
+4. **Amount in words:** plain Arabic without diacritics; known currencies ILS, JOD, USD, EUR, EGP, SAR, AED; an unknown code or unusual decimals prints «words CODE و 50/100». A zero major part prints «صفر شيكل».
+5. **The row action opens the preview** (a link), not the print dialog; `?print=1` prints once.
+6. **Shared pieces extracted** from InvoiceDocument: `DocumentHeader`, `documentVars`, `printNow`; the voucher lives in the same folder, so the product-logo lint rule and test cover it.
+7. **Playwright:** the silent `/auth/refresh` POST is excluded from the "only GETs" check (session upkeep).
+8. The statement ordering bug was fixed in this branch (small, test first) because the 2,000-line measurement exposed it.
 
-## 7. Final gate
-lint, typecheck, i18n:check (1,200 / 1,157), rtl:check, contract:check, build: exit 0. Shared 45/45; API unit 27 suites; integration 132/132 (15 suites); API e2e 466/466 (27 suites); web unit 357/357; Playwright + axe, CI=1, TZ=UTC, fresh DBs, all projects: 97/97 three times.
+## 7. Final gate (real output)
+lint, typecheck, i18n:check (1,200 / 1,157), rtl:check, contract:check, build: exit 0. Shared 45/45; API unit 27 suites; integration 132/132 (15 suites); API e2e 466/466 (27 suites); web unit 357/357; Playwright + axe, CI=1, TZ=UTC, fresh databases, all projects: 97/97 three times, no retry. Screenshots: `docs/screenshots/b6b/`.
