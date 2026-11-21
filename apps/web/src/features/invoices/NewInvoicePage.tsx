@@ -169,16 +169,34 @@ export function NewInvoicePage() {
     },
   });
 
-  const submit = () => {
-    setTouched(true);
-    setFormError(null);
-    if (!body || !previewCurrent || !preview.data) return;
+  // A click while the preview is still being made waits for it, then issues (never a silent no-op).
+  const [waiting, setWaiting] = useState(false);
+  const issue = () => {
+    if (!body || !preview.data) return;
     const req: CreateInvoice =
       body.type === 'cases' && preview.data.type === 'cases' ? { ...body, expectedTotal: preview.data.totals.total } : body;
     const json = JSON.stringify(req);
     if (attempt.current?.body !== json) attempt.current = { key: newIdempotencyKey(), body: json };
     create.mutate({ req, key: attempt.current.key });
   };
+  const submit = () => {
+    setTouched(true);
+    setFormError(null);
+    if (!valid) return;
+    if (previewCurrent) issue();
+    else setWaiting(true);
+  };
+  useEffect(() => {
+    if (!waiting) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!valid || preview.isError) setWaiting(false);
+    else if (previewCurrent) {
+      setWaiting(false);
+      issue();
+    }
+    // `issue` reads the current render's request; it runs once, when the preview it waited for arrives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [waiting, valid, preview.isError, previewCurrent]);
 
   const setType = (next: InvoiceType) => {
     setParams((p) => {
@@ -388,9 +406,9 @@ export function NewInvoicePage() {
 
             {can('invoices.write') && (
               <div className="flex flex-wrap items-center gap-3">
-                <Button type="submit" disabled={create.isPending || (touched && (!valid || !previewCurrent))}>
+                <Button type="submit" disabled={create.isPending || waiting || (touched && !valid)}>
                   <Printer aria-hidden="true" />
-                  {create.isPending ? t('common.saving') : type === 'statement' ? t('invoices.new.issueStatement') : t('invoices.new.issue')}
+                  {create.isPending || waiting ? t('common.saving') : type === 'statement' ? t('invoices.new.issueStatement') : t('invoices.new.issue')}
                 </Button>
                 <span className="text-[13px] text-muted">{t('invoices.new.immutableNote')}</span>
               </div>
