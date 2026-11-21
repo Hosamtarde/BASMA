@@ -316,3 +316,18 @@ Safest default from the plan each time; each is easy to change.
 15. **Existing tests changed because behaviour changed (not weakened):** `case-rules.spec.ts` (the `editBlockedReason` field, plus new invoiced cases), the owner's permission list in `auth.e2e.spec.ts`, the Home action-card tests (component, `home.spec.ts`, `home-demo.spec.ts`, `first-run.spec.ts`): the invoice card is now a live link with its figure, and Tab now stops on it.
 16. **Parallel reads in one transaction:** the invoice builder reads its settings one by one; the shared `LedgerRepository.doctorInputs` still uses `Promise.all` and is called inside the issue transaction — correct today, deprecated in pg (production-readiness #23), left for a separate change.
 17. **Observed flake:** `outgoing.spec.ts` "refund a doctor's credit…" failed once in a full local run (the over-the-credit message did not appear after the click) and passed on every rerun; no B6 code is on that path.
+
+### 12.3 Final gate (2026-11-21, real output)
+| Suite | Result |
+|---|---|
+| lint · typecheck · i18n:check (API 237 keys, web 1,174 / 1,131 strings) · rtl:check (122 files) | all exit 0 |
+| shared unit | 33 / 33 |
+| API unit | 416 / 416 (27 suites) |
+| API integration (Testcontainers PostgreSQL 16) | 131 / 131 (14 suites) |
+| API e2e (tie-out over every demo doctor with invoices, neutrality, immutability, numbering, backup/restore) | 456 / 456 (23 suites) |
+| contract:check | no drift |
+| build | ok |
+| web unit (Vitest) | 344 / 344 (43 files) |
+| Playwright + axe, all four projects, CI=1, TZ=UTC, fresh `*_e2e` databases, three runs | 92 / 92, 92 / 92, 92 / 92 — no retry, no flake |
+
+The first set of three CI runs failed twice for one cause — axe running while a toast was still shown (Chromium is faster than the locally used Edge): the English statement test and the existing `first-run-outgoing` test. Both now wait for the toast to go before axe (the testing skill's pattern); no assertion was removed. Seen while there: the toast region's accessible name stays «الإشعارات» after switching to English (pre-existing, outside B6).
