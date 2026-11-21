@@ -153,11 +153,16 @@ test.describe('B6b vouchers', () => {
     await expectOnlyLabIdentity(page);
     await expectAccessible(page);
     await shot(page, 'voucher-payment-en');
+    await page.emulateMedia({ media: 'print' });
+    await expect(page.getByRole('complementary')).toBeHidden();
+    await shot(page, 'voucher-print-en');
+    await page.emulateMedia({ media: 'screen' });
 
     await page.getByRole('combobox', { name: 'Print language' }).selectOption('ar');
     await expect(doc).toHaveAttribute('dir', 'rtl');
     await expect(doc.locator('[data-voucher-amount]')).toHaveText('2,000,000.00 ₪');
     await expect(doc.locator('[data-voucher-words]')).toHaveText('مليونان شيكل');
+    await shot(page, 'voucher-payment-ar');
     expect(writes).toEqual([]);
   });
 
