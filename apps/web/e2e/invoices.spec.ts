@@ -54,6 +54,14 @@ async function stubPrint(page: Page) {
 }
 const printed = (page: Page) => page.evaluate(() => (window as unknown as { __printed: number }).__printed);
 
+
+/** A write leaves a toast (Sonner dims it when stacked, axe flags that): wait until it is gone, then axe. */
+async function settledAccessible(page: Page) {
+  await page.mouse.move(0, 0);
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 });
+  await expectAccessible(page);
+}
+
 const documentOf = (page: Page) => page.locator('[data-invoice-document]');
 
 /** No image but the lab's own logo, no product name, no "Powered by" (SPEC §2.3). */
@@ -86,7 +94,7 @@ test.describe('B6 invoices', () => {
     await expect(preview.locator('[data-invoice-document="cases"]')).toBeVisible();
     await expect(preview.locator('[data-invoice-total]')).toHaveText('1,000.00 ₪');
     await expect(preview.locator('[data-invoice-no]')).toHaveText('يُعطى عند الإنشاء');
-    await expectAccessible(page);
+    await settledAccessible(page);
     await shot(page, 'invoice-new-ar');
 
     await page.getByRole('button', { name: 'إنشاء وطباعة' }).click();
@@ -99,7 +107,7 @@ test.describe('B6 invoices', () => {
     await expect(documentOf(page).locator('[data-invoice-total]')).toHaveText('1,000.00 ₪');
     await expect(documentOf(page)).toHaveAttribute('dir', 'rtl');
     await expectOnlyLabIdentity(page);
-    await expectAccessible(page);
+    await settledAccessible(page);
     await shot(page, 'invoice-view-ar');
 
     // Print preview: only the document is printed; the A4 page rule and the repeating table head apply.
@@ -130,7 +138,7 @@ test.describe('B6 invoices', () => {
     const dialog = page.getByRole('dialog');
     await dialog.getByRole('button', { name: 'إلغاء الفاتورة' }).click();
     await expect(dialog.getByRole('textbox', { name: /^سبب الإلغاء/ })).toHaveAttribute('aria-invalid', 'true');
-    await expectAccessible(page);
+    await settledAccessible(page);
     await dialog.getByRole('textbox', { name: /^سبب الإلغاء/ }).fill('اختيار حالات خاطئ');
     await dialog.getByRole('button', { name: 'إلغاء الفاتورة' }).click();
     await expect(documentOf(page).locator('[data-void-band]')).toContainText('اختيار حالات خاطئ');
@@ -140,7 +148,7 @@ test.describe('B6 invoices', () => {
     await expect(page.getByRole('button', { name: 'تعديل البيانات' })).not.toHaveAttribute('aria-disabled', 'true');
     await page.goto(`/invoices?q=${no}`);
     await expect(page.locator(`[data-invoice="${no}"]`)).toContainText('ملغاة');
-    await expectAccessible(page);
+    await settledAccessible(page);
     await shot(page, 'invoices-list-ar');
   });
 
@@ -159,16 +167,13 @@ test.describe('B6 invoices', () => {
       const preview = page.getByRole('region', { name: 'Preview' });
       await expect(preview.locator('[data-invoice-document="statement"]')).toHaveAttribute('dir', 'ltr');
       await expect(preview.locator('[data-invoice-total]')).toHaveText('300.00 ₪');
-      // The language switch leaves a toast; axe is run once it is gone (testing skill, F2b notes).
-      await page.mouse.move(0, 0);
-      await expect(page.locator('[data-sonner-toast]')).toHaveCount(0, { timeout: 15_000 });
-      await expectAccessible(page);
+      await settledAccessible(page);
       await page.getByRole('button', { name: 'Issue and print the statement' }).click();
       await expect(page.getByRole('heading', { level: 1, name: /^Account statement no\. \d+$/ })).toBeVisible();
       await expect.poll(() => printed(page)).toBe(1);
       await expect(documentOf(page).locator('[data-invoice-total]')).toHaveText('300.00 ₪');
       await expectOnlyLabIdentity(page);
-      await expectAccessible(page);
+      await settledAccessible(page);
       await shot(page, 'statement-view-en');
       // The same document reprinted in Arabic: labels and direction change, the figures do not.
       await page.getByRole('combobox', { name: 'Print language' }).selectOption('ar');
@@ -182,14 +187,14 @@ test.describe('B6 invoices', () => {
       await page.getByRole('textbox', { name: /^Amount/ }).fill('75');
       await page.getByRole('combobox', { name: /^Document language/ }).selectOption('en');
       await expect(page.getByRole('region', { name: 'Preview' }).locator('[data-invoice-total]')).toHaveText('75.00 ₪');
-      await expectAccessible(page);
+      await settledAccessible(page);
       await shot(page, 'invoice-new-free-en');
       await page.getByRole('button', { name: 'Issue and print' }).click();
       await expect(page.getByRole('heading', { level: 1, name: /^Free invoice no\. \d+$/ })).toBeVisible();
       await expect(documentOf(page)).toContainText(`Walk-in ${s.suffix}`);
       await shot(page, 'invoice-view-free-en');
       await page.goto('/invoices');
-      await expectAccessible(page);
+      await settledAccessible(page);
       await shot(page, 'invoices-list-en');
     } finally {
       await switchLanguage(page, /^العربية/);
@@ -231,7 +236,7 @@ test.describe('B6 invoices', () => {
       const preview = page.getByRole('region', { name: 'معاينة ببيانات تجريبية' });
       await expect(preview.locator('[data-invoice-notes]')).toContainText(evilFooter);
       await expect(preview.locator('th[data-col="shade"]')).toHaveCount(0);
-      await expectAccessible(page);
+      await settledAccessible(page);
       await shot(page, 'invoice-appearance-ar');
       await page.getByRole('button', { name: 'حفظ' }).click();
       await expect(page.getByText('تم حفظ إعدادات أعمدة الفاتورة.').first()).toBeVisible();
