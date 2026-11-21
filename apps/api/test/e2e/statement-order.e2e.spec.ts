@@ -62,9 +62,9 @@ describe('Statement order of same-day items (e2e)', () => {
   });
 
   it('every line of the statement adds up to the next, and same-day items follow id order', async () => {
-    const st = (await get(`/doctors/${doctorId}/statement?pageSize=100`).expect(200)).body as { lines: Line[]; opening: number; closing: number };
+    const st = (await get(`/doctors/${doctorId}/statement?pageSize=100`).expect(200)).body as { lines: Line[]; closing: number };
     expect(st.lines).toHaveLength(24);
-    let running = st.opening;
+    let running = 5_000; // the doctor opening balance
     for (const l of st.lines) {
       running += l.debit - l.credit;
       expect({ ref: l.ref, running: l.running }).toEqual({ ref: l.ref, running });

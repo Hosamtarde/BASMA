@@ -505,7 +505,8 @@ export class LedgerRepository {
                credit::text AS credit, running::text AS running, count(*) OVER ()::text AS total,
                patient, method, cheque_no, bank, bound_case_no::text AS bound_case_no
         FROM run WHERE ${inRange}
-        ORDER BY date, ord, ref_id
+        -- Qualified: a bare ref_id would be the text alias above and sort 10 before 9; the running balance is numeric.
+        ORDER BY run.date, run.ord, run.ref_id
         LIMIT ${limit} OFFSET ${offset}`),
       db.execute<Raw>(sql`
         WITH ${events}
