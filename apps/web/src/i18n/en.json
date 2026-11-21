@@ -50,7 +50,10 @@
     "incoming": "Incoming payment",
     "debts": "Debts",
     "cheques": "Cheque register",
-    "outgoing": "Outgoing payment"
+    "outgoing": "Outgoing payment",
+    "invoices": "Invoices",
+    "newInvoice": "New invoice",
+    "invoiceAppearance": "Invoice appearance"
   },
   "home": {
     "title": "Home",
@@ -92,7 +95,8 @@
       },
       "invoice": {
         "title": "Create invoice",
-        "body": "Case invoice, statement of account or free invoice"
+        "body": "Case invoice, statement of account or free invoice",
+        "figure": "active invoices"
       },
       "doctors": {
         "title": "Doctors",
@@ -171,7 +175,10 @@
         "technician_created": "Technician added",
         "technician_updated": "Technician changed",
         "work_type_created": "Work type added",
-        "work_type_updated": "Work type changed"
+        "work_type_updated": "Work type changed",
+        "invoice_created": "Invoice issued",
+        "invoice_voided": "Invoice voided",
+        "invoice_template_updated": "Invoice appearance changed"
       }
     }
   },
@@ -244,7 +251,8 @@
     "moneyDecimals_other": "Only {{count}} decimal places are allowed.",
     "moneyNegative": "A negative amount is not allowed here.",
     "moneyTooLarge": "The amount is too large.",
-    "integerRange": "Enter a whole number from {{min}} to {{max}}."
+    "integerRange": "Enter a whole number from {{min}} to {{max}}.",
+    "moneyPositive": "Enter an amount above zero."
   },
   "errors": {
     "network": {
@@ -616,7 +624,9 @@
     "menuOpen": "Open case",
     "menuNone": "No other actions available",
     "paid": "Paid",
-    "remaining": "Remaining"
+    "remaining": "Remaining",
+    "closed": "Closed",
+    "invoiced": "Invoiced ({{no}})"
   },
   "caseDetails": {
     "title": "Case {{no}}",
@@ -689,7 +699,8 @@
       "cancelAfterDelivery": "A case can be cancelled only before delivery.",
       "noStatus": "The status cannot be changed now.",
       "noEdit": "This case cannot be edited now.",
-      "alreadyDelivered": "This case is already delivered."
+      "alreadyDelivered": "This case is already delivered.",
+      "invoiced": "The case is on invoice no. {{no}} — void the invoice first to edit or cancel it."
     },
     "deliver": "Deliver case",
     "collectOn": "Collect the rest on",
@@ -702,7 +713,10 @@
       "remove": "Remove the date",
       "saved": "The collect date was saved.",
       "removed": "The collect date was removed."
-    }
+    },
+    "onInvoice": "This case is on",
+    "invoiceNo": "invoice no. {{no}}",
+    "invoicedHint": "it cannot be edited or cancelled until the invoice is voided; stage changes, delivery and payments are allowed."
   },
   "payments": {
     "title": "Incoming payment",
@@ -877,7 +891,8 @@
     "empty": "No entries in this period.",
     "note": "A cheque is shown on the day it was cleared; pending cheques are not part of the balance.",
     "description": "Details",
-    "exportLabel": "Export CSV"
+    "exportLabel": "Export CSV",
+    "printable": "Printable statement"
   },
   "doctorPayments": {
     "tab": "Payments",
@@ -1115,5 +1130,222 @@
     },
     "dismiss": "Hide: {{text}}",
     "dismissShort": "Hide"
+  },
+  "invoices": {
+    "types": {
+      "cases": "Cases invoice",
+      "statement": "Account statement",
+      "free": "Free invoice"
+    },
+    "status": {
+      "active": "Active",
+      "void": "Void"
+    },
+    "languages": {
+      "ar": "Arabic",
+      "en": "English"
+    },
+    "list": {
+      "title": "Invoices",
+      "intro": "Every invoice, statement and free invoice. An invoice is never edited after issue; to correct one, void it and issue another.",
+      "new": "New invoice",
+      "search": "Search by invoice number or party",
+      "typeFilter": "Type",
+      "allTypes": "All types",
+      "statusFilter": "Status",
+      "allStatuses": "All",
+      "from": "From",
+      "to": "To",
+      "clearFilters": "Clear filters",
+      "export": "Export CSV",
+      "loadError": "The invoices could not be loaded.",
+      "empty": "No invoices yet.",
+      "no": "No.",
+      "type": "Type",
+      "date": "Date",
+      "party": "Party",
+      "total": "Total",
+      "status": "Status",
+      "voidedReason": "Reason: {{reason}}"
+    },
+    "new": {
+      "title": "New invoice",
+      "intro": "Choose the kind first. The preview beside the form is what will be printed, computed by the program.",
+      "chooseType": "Kind of invoice",
+      "typeHint": {
+        "cases": "Finished, un-invoiced cases of a doctor",
+        "statement": "Every case and payment with a running balance",
+        "free": "A one-off amount for a doctor or another party"
+      },
+      "partyKind": "Party",
+      "party": {
+        "doctor": "A doctor from the list",
+        "name": "Another name"
+      },
+      "doctor": "Doctor",
+      "partyName": "Party name",
+      "eligibleTitle": "Finished cases not invoiced yet",
+      "noEligible": "No cases are waiting to be invoiced.",
+      "selectAll": "Select every case",
+      "selectCase": "Select case no. {{no}}",
+      "caseNo": "Case no.",
+      "patient": "Patient",
+      "status": "Stage",
+      "total": "Total",
+      "remaining": "Remaining",
+      "chooseCases": "Choose at least one case.",
+      "from": "From",
+      "to": "To",
+      "rangeHint": "Empty = the whole account until today",
+      "rangeInvalid": "The start date is after the end date.",
+      "reason": "Reason",
+      "amount": "Amount",
+      "notes": "Notes",
+      "language": "Document language",
+      "languageHint": "Kept with the invoice; it can be reprinted in the other one later.",
+      "issue": "Issue and print",
+      "issueStatement": "Issue and print the statement",
+      "immutableNote": "An invoice cannot be changed after it is issued, to protect it from tampering.",
+      "preview": "Preview",
+      "previewHint": "Fill in the form to see the preview here.",
+      "previewError": "The preview could not be made.",
+      "done": "Invoice no. {{no}} issued"
+    },
+    "view": {
+      "title": "{{type}} no. {{no}}",
+      "back": "All invoices",
+      "printLanguage": "Print language",
+      "print": "Print",
+      "savePdf": "Save as PDF",
+      "void": "Void invoice",
+      "alreadyVoid": "The invoice is already void.",
+      "cannotPrint": "An invoice whose total does not match the program’s calculation cannot be printed.",
+      "voidNote": "This invoice is void. Reason:",
+      "pdfHint": "To save a PDF, choose “Save as PDF” in the print dialog.",
+      "voidTitle": "Void invoice no. {{no}}",
+      "voidBody": "The invoice stays in the list marked “Void” with its number; no balance changes.",
+      "voidBodyCases": "The invoice stays in the list marked “Void” with its number and its cases become un-invoiced. No balance changes.",
+      "voidReason": "Reason",
+      "voidConfirm": "Void the invoice",
+      "voidKeep": "Keep it",
+      "voidDone": "Invoice no. {{no}} voided"
+    },
+    "appearance": {
+      "title": "Invoice appearance",
+      "intro": "Colours, font size and margins apply to every print; columns, logo, balances and the footer are kept with each invoice when it is issued.",
+      "colours": "Colours",
+      "primaryColor": "Main colour",
+      "headerTextColor": "Table header text",
+      "tableHeaderColor": "Table header",
+      "pick": "Pick {{name}}",
+      "lowContrast": "The table header text is hard to read on this colour.",
+      "fontSize": "Font size",
+      "sizes": {
+        "s": "Small",
+        "m": "Medium",
+        "l": "Large"
+      },
+      "margins": "Paper margins",
+      "margin": {
+        "top": "Top",
+        "end": "End",
+        "bottom": "Bottom",
+        "start": "Start"
+      },
+      "mm": "mm",
+      "columns": "Table columns",
+      "columnsHint": "The “Total” column always stays. Empty width = automatic.",
+      "width": "Width of “{{column}}”",
+      "auto": "auto",
+      "show": "What is shown",
+      "showLogo": "Lab logo",
+      "showBalances": "Previous and current balance",
+      "footerText": "Footer text",
+      "footerHint": "Plain text, up to {{max}} characters and {{lines}} lines.",
+      "saved": "The invoice settings were saved.",
+      "preview": "Preview with sample data",
+      "previewLanguage": "Preview language",
+      "errors": {
+        "primaryColor": "Enter a colour like #006EBD.",
+        "headerTextColor": "Enter a colour like #FFFFFF.",
+        "tableHeaderColor": "Enter a colour like #01416C.",
+        "fontSize": "Choose a size.",
+        "margins": "Margins are whole numbers from {{min}} to {{max}} mm.",
+        "widths": "A width is a whole number from {{min}} to {{max}} mm, or empty.",
+        "columns": "Choose the columns.",
+        "footerText": "The text is too long."
+      }
+    },
+    "sample": {
+      "clinic": "Sample clinic",
+      "doctor": "Dr Sample",
+      "zirconia": "Zirconia crown",
+      "bridge": "Porcelain bridge",
+      "patient1": "Sample patient",
+      "patient2": "Another patient",
+      "notes": "Thank you for your trust."
+    }
+  },
+  "invoiceDoc": {
+    "title": {
+      "cases": "Invoice",
+      "statement": "Account statement",
+      "free": "Invoice"
+    },
+    "logoAlt": "{{name}} logo",
+    "phone": "Phone",
+    "address": "Address",
+    "number": "Number",
+    "date": "Date",
+    "period": "Period",
+    "periodStart": "start",
+    "draftNumber": "given on issue",
+    "voidBand": "VOID",
+    "party": "Party",
+    "doctor": "Doctor",
+    "partyName": "Party",
+    "clinic": "Clinic",
+    "receiver": "Received by",
+    "accountant": "Accountant",
+    "notes": "Notes",
+    "creditNote": "(in the doctor’s favour)",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "grandTotal": "Total due",
+    "previousBalance": "Previous balance",
+    "currentBalance": "Current balance",
+    "pendingCheques": "Cheques not cleared yet (not counted)",
+    "pendingChequesStatement": "Cheques not cleared yet (not counted)",
+    "kindCol": "Entry",
+    "reference": "Reference",
+    "description": "Details",
+    "debit": "Debit",
+    "credit": "Credit",
+    "runningBalance": "Balance",
+    "periodOpening": "Balance at the start of the period",
+    "openingBalance": "Opening balance",
+    "kind": {
+      "case": "Case",
+      "payment": "Payment received",
+      "cheque_return": "Returned cheque",
+      "refund": "Refund to the doctor",
+      "refund_cheque_return": "Returned refund cheque"
+    },
+    "forCase": "for case {{caseNo}}",
+    "totals": "Totals",
+    "closingBalance": "Closing balance",
+    "reason": "Description",
+    "amount": "Amount",
+    "col": {
+      "caseNo": "Case no.",
+      "patient": "Patient",
+      "teeth": "Teeth",
+      "workType": "Work type",
+      "shade": "Shade",
+      "qty": "Qty",
+      "unitPrice": "Unit price",
+      "lineTotal": "Total"
+    },
+    "totalsMismatch": "The total shown does not match the program’s calculation — check the lines."
   }
 }
