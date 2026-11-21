@@ -1312,8 +1312,7 @@
     "backPayment": "Outgoing payments",
     "voidNote": "This payment is void; the voucher prints marked “Void” and keeps its number.",
     "printRow": "Print voucher",
-    "printRowFor": "Print voucher {{no}}",
-    "notFound": "We could not find this voucher."
+    "printRowFor": "Print voucher {{no}}"
   },
   "invoiceDoc": {
     "title": {
