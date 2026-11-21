@@ -26,7 +26,7 @@ describe('Invoice snapshot size at the caps (e2e)', () => {
   const report: string[] = [];
 
   beforeAll(async () => {
-    t = await startTestApp({ LOG_LEVEL: 'error' }, { clock });
+    t = await startTestApp({}, { clock });
     const s = await get('/settings').expect(200);
     await request(t.http)
       .patch(api('/settings/lab-profile'))
