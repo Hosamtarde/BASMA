@@ -9,6 +9,7 @@ import type { CaseDetail } from '@/features/cases/api';
 import { casePaymentsQuery } from './api';
 import { AddPaymentDialog } from './PaymentDialogs';
 import { MethodCell } from './PaymentsPage';
+import { VoucherLink } from '@/features/vouchers/VoucherLink';
 import { MoneyCell, PaymentStatusBadge } from './parts';
 
 /** «الدفعات» of a case (SPEC §5.6): paid / remaining from the API and the payments bound to it. */
@@ -52,6 +53,9 @@ export function CasePaymentsPanel({ detail }: { detail: CaseDetail }) {
             <Th>{t('casePayments.method')}</Th>
             <Th kind="money">{t('casePayments.amount')}</Th>
             <Th>{t('casePayments.status')}</Th>
+            <Th kind="actions">
+              <span className="sr-only">{t('list.actions')}</span>
+            </Th>
           </>
         }
       >
@@ -68,6 +72,9 @@ export function CasePaymentsPanel({ detail }: { detail: CaseDetail }) {
             </Td>
             <Td>
               <PaymentStatusBadge payment={p} />
+            </Td>
+            <Td kind="actions">
+              <VoucherLink to={`/payments/${p.id}/voucher`} voucherNo={p.voucherNo} />
             </Td>
           </tr>
         ))}

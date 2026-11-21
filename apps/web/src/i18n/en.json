@@ -1286,6 +1286,35 @@
       "notes": "Thank you for your trust."
     }
   },
+  "voucherDoc": {
+    "title": { "receipt": "Receipt voucher", "payment": "Payment voucher" },
+    "number": "Voucher no.",
+    "receivedFrom": "Received from",
+    "paidTo": "Paid to",
+    "category": "Category",
+    "forCase": "For case no.",
+    "amount": "Amount",
+    "inWords": "Amount in words",
+    "method": "Payment method",
+    "cheque": "Cheque details",
+    "chequeNo": "Cheque no.",
+    "bank": "Bank",
+    "dueDate": "Due date",
+    "chequeStatus": "Status",
+    "voidBand": "Void",
+    "voidedOn": "on {{date}}",
+    "signPayer": "Paid by"
+  },
+  "vouchers": {
+    "titleReceipt": "Receipt voucher {{no}}",
+    "titlePayment": "Payment voucher {{no}}",
+    "backReceipt": "Incoming payments",
+    "backPayment": "Outgoing payments",
+    "voidNote": "This payment is void; the voucher prints marked “Void” and keeps its number.",
+    "printRow": "Print voucher",
+    "printRowFor": "Print voucher {{no}}",
+    "notFound": "We could not find this voucher."
+  },
   "invoiceDoc": {
     "title": {
       "cases": "Invoice",

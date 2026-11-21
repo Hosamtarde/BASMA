@@ -215,7 +215,8 @@ const outgoingRow = {
 describe('voucher pages — printing is a read', () => {
   beforeEach(async () => {
     await initI18n('ar');
-    session.setToken('t');
+    session.set({ accessToken: 't' });
+    vi.spyOn(window, 'print').mockImplementation(() => undefined);
   });
   afterEach(() => {
     resetSessionForTests();

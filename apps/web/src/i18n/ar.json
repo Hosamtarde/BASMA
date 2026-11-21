@@ -1329,6 +1329,35 @@
       "notes": "شكرًا لثقتكم."
     }
   },
+  "voucherDoc": {
+    "title": { "receipt": "سند قبض", "payment": "سند صرف" },
+    "number": "رقم السند",
+    "receivedFrom": "استلمنا من",
+    "paidTo": "صرفنا إلى",
+    "category": "البند",
+    "forCase": "عن الحالة رقم",
+    "amount": "المبلغ",
+    "inWords": "المبلغ كتابةً",
+    "method": "طريقة الدفع",
+    "cheque": "بيانات الشيك",
+    "chequeNo": "رقم الشيك",
+    "bank": "البنك",
+    "dueDate": "تاريخ الاستحقاق",
+    "chequeStatus": "الحالة",
+    "voidBand": "ملغى",
+    "voidedOn": "بتاريخ {{date}}",
+    "signPayer": "المسلِّم"
+  },
+  "vouchers": {
+    "titleReceipt": "سند قبض {{no}}",
+    "titlePayment": "سند صرف {{no}}",
+    "backReceipt": "الدفعات الواردة",
+    "backPayment": "الدفعات الصادرة",
+    "voidNote": "هذه الدفعة ملغاة؛ يُطبع السند مع علامة «ملغى» ويبقى رقمه محفوظًا.",
+    "printRow": "طباعة السند",
+    "printRowFor": "طباعة السند {{no}}",
+    "notFound": "لم نجد هذا السند."
+  },
   "invoiceDoc": {
     "title": {
       "cases": "فاتورة",
