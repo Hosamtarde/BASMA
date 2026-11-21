@@ -17,14 +17,16 @@ Items to decide or build before selling the product to other labs (SPEC §2.4). 
 | 11 | Access token after password change | Stays valid up to 15 min (refresh tokens are revoked at once). Add a per-user token version if this matters |
 | 12 | Lockout as denial of service | Anyone who can reach the API can lock the owner for 15 min. Acceptable while bound to 127.0.0.1; revisit with LAN use (#8) |
 | 13 | Rate-limit store | In-memory, per process. Fine for one service; revisit if several API processes ever run |
-| 14 | "Money exists" check grows per milestone | `SettingsRepository.hasMoneyData` covers work-type prices, opening balances, special prices (B1) and any case (B2); B3 added payments, B4b added outgoing payments (done, tested on a fresh install); **B6 must add invoices**, or the currency could change under real amounts |
+| 14 | "Money exists" check grows per milestone | `SettingsRepository.hasMoneyData` covers work-type prices, opening balances, special prices (B1) and any case (B2); B3 added payments, B4b added outgoing payments (done, tested on a fresh install); **B6 added invoices (done):** a first free invoice alone locks the currency (`invoice-numbering.e2e.spec.ts`) |
 | 15 | Search speed | **Decided in B4: no `pg_trgm`, no trigram index.** Stage-0 measurement at 20 000 cases / 50 000 payments / 500 doctors: the folded `ILIKE` search had p95 143 ms (a text matching half of the cases) and 230 ms (two-word "closest" tiers), above the 100 ms gate, because `translate(lower(…))` ran on every row (~50 ms per scan of the cases). Migration 0006 adds two **generated stored columns** (`cases.patient_search`, `doctors.search_text`: the folded text, computed once per write): p95 is now 11–26 ms for every search shape. A trigram index would add little (measured: no-match scan 4.6 ms → 0.9 ms) and would make `pg_trgm` an installer dependency; revisit with the B8 load test or if typo-tolerant search is wanted |
 | 16 | Logo in the browser | Done in F0: fetched as a blob and shown through an object URL that is revoked on change/unmount |
 | 17 | Pre-B1 databases | A database set up with the B0 first run has no settings and no expense categories. No customer install exists yet; developers reset their dev DB (`docker compose down -v`) |
 | 18 | Cancel from "returned" (decided in B3 as D2, pending sign-off below) | Not allowed in B2. Decide in B3, once payments exist, whether a returned case may be cancelled and what happens to its payments (owner, B2) |
 | 19 | Case search by patient | Contains-search on patient names returns personal data to any user with `cases.read`; fine with one owner, review when more roles exist |
 | 20 | HTTPS / reverse proxy | The refresh cookie gets `Secure` from `req.secure`. Behind a TLS proxy (cloud, LAN #8) set Express `trust proxy`, enable HSTS (off on loopback http, ADR-0017) and review the loopback-only `API_HOST` rule |
-| 21 | Web bundle size | One chunk loaded from the local disk: 733 KB (229 KB gzip) in F0, 1,000 KB (302 KB gzip) after F2 (cases screens, cmdk, react-day-picker with date-fns; only the ar/en calendar locales are bundled), 1,030 KB (310 KB gzip) after F2b (Home, row actions; no new package). Split by route (React Router `lazy`) if start-up gets slow. **B5b baseline (measured after B5):** 1,182 KB (341 KB gzip), one chunk |
+| 21 | Web bundle size | One chunk loaded from the local disk: 733 KB (229 KB gzip) in F0, 1,000 KB (302 KB gzip) after F2 (cases screens, cmdk, react-day-picker with date-fns; only the ar/en calendar locales are bundled), 1,030 KB (310 KB gzip) after F2b (Home, row actions; no new package). Split by route (React Router `lazy`) if start-up gets slow. **B5b baseline (measured after B5):** 1,182 KB (341 KB gzip), one chunk. **After B6:** entry 270.6 kB (84.5 kB gzip), all JavaScript 1,291 kB in route chunks; the invoice screens are their own chunks (renderer 12.7 kB + 4.3 kB CSS) |
+| 22 | **Restore with immutable invoices (rule for B7)** | Issued invoices are protected by triggers that refuse UPDATE (except the one-way void) and DELETE on `invoices`, `invoice_cases` and `document_images` (B6, migration 0009). INSERT is not guarded, so a backup restores cleanly **into a fresh, empty database** with `pg_restore` (custom format) or `psql -v ON_ERROR_STOP=1` (plain SQL) — tested in `invoice-backup-restore.e2e.spec.ts` with issued, voided and numbered invoices and a frozen logo: rows, snapshots, SHA-256 checks, counters and the triggers themselves come back identical, and the API on the restored database continues the numbering. **B7 must:** restore into a new database and switch over (never a data-only restore into the live schema, never `--disable-triggers`, never row deletes to "clean" a database — drop and recreate it); after a restore, read every invoice once (the API verifies each hash) and refuse the restore if one fails; never write a migration that rewrites issued snapshots (a new snapshot shape gets a new `snapshot_version`, old ones still render). TRUNCATE is not guarded (only an administrator can run it); the e2e reset drops schemas |
+| 23 | Parallel reads inside one transaction | `LedgerRepository.doctorInputs` reads its five statements with `Promise.all`; inside a transaction (delivery in B5, invoice issue in B6) they share one connection, which pg queues correctly today but reports as deprecated ("client.query() while already executing", removed in pg@9). Make it sequential when given a transaction before upgrading pg |
 
 ## Open decisions — editions (`docs/editions.md`, ADR-0018)
 
@@ -51,7 +53,7 @@ Items to decide or build before selling the product to other labs (SPEC §2.4). 
 | S10 | Payments | Outgoing payments, refunds and the separate «إلغاء دفعة» page | **Done in B4b:** outgoing payments and refunds of a doctor's credit exist (`POST /outgoing-payments`) and the screens are built: «دفعة صادرة», «استرداد رصيد» on the doctor page. The separate void page stays out by owner decision (B4b X6): void is a row action on both payment pages |
 | S11 | Debts | Breakdown modal and CSV export (SPEC 5.11) | **Done (B4):** a name opens the breakdown dialog (URL `?doctor=`), the statement is one click away in the row; CSV for debts and for the breakdown |
 | S12 | Cases | Per-row paid / remaining in the cases list | **Done (B4):** `GET /cases` items carry `paid` and `remaining` (null without `ledger.read`), computed for the doctors on the page in a fixed number of statements (7 per request at any page size) and the existing `allocate()` once per doctor; the doctors list carries the balance the same way |
-| S13 | Cancel from returned | «Blocked once invoiced» (SPEC 7.8) | Not enforced yet because invoices do not exist; B6 must refuse cancelling a case on an active invoice. **B5:** the hook is recorded next to `canCancel` / `canEdit` in `case-rules.ts` and in the B6 roadmap |
+| S13 | Cancel from returned | «Blocked once invoiced» (SPEC 7.8) | **Done in B6:** a case on an active invoice can be neither edited nor cancelled (also from «مرتجعة»), `error.case.invoiced` with the invoice number; `canEdit` / `canCancel` / `editBlockedReason` come from the API; voiding the invoice lifts the lock (`invoices.e2e.spec.ts` "S13") |
 | S14 | Lists | Wide tables at phone width | **Done in B5b:** the table scrolls inside its card (the cause was visually hidden table parts widening the page), and every route is checked at 390 px in both languages with axe (`e2e/responsive.spec.ts`). The sidebar still stacks above the content on a phone; the product runs on a desktop (SPEC §2.1) |
 | S15 | Export | CSV opens correctly in Excel with Arabic | Comma delimiter and UTF-8 BOM are tested at the byte level, but Excel's list separator depends on the Windows regional settings. Verify on the owner's computer (steps in `docs/plans/b4-debts-reports-search.md` §2.4) and switch `CSV_DELIMITER` to `;` if a file opens in one column |
 | S16 | Export | Row cap and rate limit | 50 000 rows per file and 10 files per user per minute (in memory, one API process, like #13); raise after the B8 load test if needed. Every export is audited without the search text |
@@ -110,3 +112,37 @@ Recorded for the B6 plan (`docs/plans/b6-invoices.md`). Each is built or planned
 | X2 | A refund is limited to the doctor's refundable credit | provisional, pending Ibrahim's sign-off |
 | X3 | A refund is a dated charge item in the FIFO | provisional, pending Ibrahim's sign-off |
 | X9 | Salaries are ordinary expenses | provisional, pending Ibrahim's sign-off |
+
+## B6 departures from SPEC (approved with the plan, recorded in SPEC §5.14)
+
+| # | SPEC said | Built as |
+|---|---|---|
+| P1 | `cases.invoice_id`; a void deletes the `invoice_cases` rows | No `cases.invoice_id`; `invoice_cases` keeps every row with `active`; a partial unique index = one active invoice per case; a void sets `active = false` |
+| P2 | Optional invoice discount | No discount typed on the invoice; the discount line is Σ the case discounts |
+| P3 | Free invoice "for one-off charges" | A document only; never changes a balance |
+| P4 | `snapshot_json TEXT` | `snapshot jsonb` + `snapshot_sha256` (canonical JSON) verified on every read; triggers refuse any change to issued content and any delete |
+| P5 | Lab logo "reference" in the snapshot | The logo bytes frozen in `document_images` (content-addressed); the snapshot names the hash |
+
+## B6 decisions — provisional, pending Ibrahim's sign-off (they did not block B6)
+
+Built as the plan's defaults (`docs/plans/b6-invoices.md` §11), approved by the owner on 2026-11-21.
+
+| # | Decision | Built as | Status |
+|---|---|---|---|
+| I1 | Does a free invoice to a doctor change what he owes? | No — a document only; prints no balances | provisional, pending Ibrahim's sign-off |
+| I2 | Invoice-level discount | None typed on the invoice; Σ case discounts shown | provisional, pending Ibrahim's sign-off |
+| I3 | Number series of statements | Same series as invoices | provisional, pending Ibrahim's sign-off |
+| I4 | «الرصيد السابق / الحالي» | Current = the doctor's balance at issue; previous = current − invoice total | provisional, pending Ibrahim's sign-off |
+| I5 | Which cases can be invoiced | Delivered or ready, not cancelled, not on an active invoice | provisional, pending Ibrahim's sign-off |
+| I6 | What an invoice locks | Header, lines, prices, discount and cancel; status moves, delivery, collect date and payments stay allowed | provisional, pending Ibrahim's sign-off |
+| I7 | Reprint after the appearance changes | Content and layout frozen; colours, font size and margins follow the current appearance | provisional, pending Ibrahim's sign-off |
+| I8 | Home «الفواتير» count | Active cases + free invoices | provisional, pending Ibrahim's sign-off |
+| I9 | Printing receipts and outgoing vouchers | A new small slice **B6b** (SPEC §11) | provisional, pending Ibrahim's sign-off |
+| I10 | Issue date | The lab's today only | provisional, pending Ibrahim's sign-off |
+| I11 | Document language | Chosen at issue (default from Settings); a reprint may switch labels only | provisional, pending Ibrahim's sign-off |
+
+## Next slice — B6b (roadmap, SPEC §11)
+
+| Item | Notes |
+|---|---|
+| B6b: printing of payment and expense vouchers | The receipt of an incoming payment (`IN-`) and the outgoing voucher (`OUT-`) on the B6 print shell (A4 stylesheet, embedded Cairo, lab identity only, both languages). Owner decision I9 |

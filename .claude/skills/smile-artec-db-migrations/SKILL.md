@@ -12,3 +12,8 @@ description: Use when creating or changing database tables, constraints, indexes
 - Destructive changes (drop/rename) need an expand→migrate→contract plan and a backup note.
 - Migrations must run unattended inside the Windows installer/upgrader (after an automatic `pg_dump` backup, with rollback on failure).
 - Seed data (work types with price 0, expense categories) lives in a separate, idempotent seed — not in schema migrations.
+
+## Immutable tables (B6, migration 0009)
+- `invoices`, `invoice_cases`, `document_images` are guarded by triggers: an issued invoice only moves active → void (void columns, `row_version`, `updated_*`); `invoice_cases.active` only true → false; `document_images` never changes; DELETE is refused (statement-level, even with no matching row). Tests: `invoices-migration.spec.ts`.
+- **Never write a migration that updates issued invoices** beyond that. A new snapshot shape gets a new `snapshot_version`; old snapshots are never rewritten.
+- **Backup/restore:** INSERT is not guarded, so `pg_dump` → fresh database → `pg_restore` / `psql` works (`invoice-backup-restore.e2e.spec.ts`). Restore into a new database; never a data-only restore into the live schema or `--disable-triggers` (production-readiness #22).
