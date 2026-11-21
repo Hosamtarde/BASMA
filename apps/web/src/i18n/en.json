@@ -1302,7 +1302,7 @@
     "dueDate": "Due date",
     "chequeStatus": "Status",
     "voidBand": "Void",
-    "voidedOn": "on {{date}}",
+    "voidedOn": "on {{date, ltr}}",
     "signPayer": "Paid by"
   },
   "vouchers": {

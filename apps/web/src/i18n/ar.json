@@ -1345,7 +1345,7 @@
     "dueDate": "تاريخ الاستحقاق",
     "chequeStatus": "الحالة",
     "voidBand": "ملغى",
-    "voidedOn": "بتاريخ {{date}}",
+    "voidedOn": "بتاريخ {{date, ltr}}",
     "signPayer": "المسلِّم"
   },
   "vouchers": {
