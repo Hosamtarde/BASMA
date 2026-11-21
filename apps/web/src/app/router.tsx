@@ -78,6 +78,16 @@ export const routes: RouteObject[] = [
                     errorElement: <RouteError />,
                   },
                   {
+                    path: 'payments/:id/voucher',
+                    lazy: page(() => import('@/features/vouchers/VoucherPage'), 'ReceiptVoucherPage'),
+                    errorElement: <RouteError />,
+                  },
+                  {
+                    path: 'outgoing/:id/voucher',
+                    lazy: page(() => import('@/features/vouchers/VoucherPage'), 'PaymentVoucherPage'),
+                    errorElement: <RouteError />,
+                  },
+                  {
                     path: 'outgoing',
                     lazy: page(() => import('@/features/outgoing/OutgoingPage'), 'OutgoingPage'),
                     errorElement: <RouteError />,

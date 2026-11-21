@@ -20,6 +20,7 @@ import { exportApi, PAYMENT_METHODS, paymentsQuery } from './api';
 import type { Payment, PaymentListParams, PaymentMethod } from './api';
 import { PaymentForm } from './PaymentForm';
 import { VoidPaymentDialog } from './PaymentDialogs';
+import { VoucherLink } from '@/features/vouchers/VoucherLink';
 import { MoneyCell, PaymentStatusBadge } from './parts';
 import { ReceiptsSummary } from './ReceiptsSummary';
 
@@ -137,19 +138,22 @@ export function PaymentRows({
               )}
             </div>
           </Td>
-          {onVoid && (
-            <Td kind="actions">
-              <ActionButton
-                variant="ghost"
-                size="sm"
-                aria-label={`${t('payments.void')} ${p.voucherNo}`}
-                disabledReason={p.status === 'void' ? t('payments.voidWhy') : null}
-                onClick={() => onVoid(p)}
-              >
-                <Ban aria-hidden="true" />
-              </ActionButton>
-            </Td>
-          )}
+          <Td kind="actions">
+            <div className="flex flex-wrap justify-end gap-1">
+              <VoucherLink to={`/payments/${p.id}/voucher`} voucherNo={p.voucherNo} />
+              {onVoid && (
+                <ActionButton
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`${t('payments.void')} ${p.voucherNo}`}
+                  disabledReason={p.status === 'void' ? t('payments.voidWhy') : null}
+                  onClick={() => onVoid(p)}
+                >
+                  <Ban aria-hidden="true" />
+                </ActionButton>
+              )}
+            </div>
+          </Td>
         </tr>
       ))}
     </>

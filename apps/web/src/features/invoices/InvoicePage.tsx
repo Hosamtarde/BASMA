@@ -16,15 +16,9 @@ import { currentLanguage } from '@/i18n/i18n';
 import { invoiceApi, invoiceQuery, invoiceTemplateQuery, refreshInvoices, useInvoiceLogoUrl } from './api';
 import type { Invoice } from './api';
 import { DocumentFrame } from './document/DocumentFrame';
+import { printNow } from './document/print';
 import { InvoiceDocument } from './document/InvoiceDocument';
 import { InvoiceStatusBadge } from './InvoicesPage';
-
-/** Waits for the bundled fonts, then opens the browser's print dialog (Save as PDF is one of its printers). */
-async function printNow(): Promise<void> {
-  // Older engines (and jsdom) have no FontFaceSet; printing must not depend on it.
-  if ('fonts' in document) await document.fonts.ready;
-  window.print();
-}
 
 /** «إلغاء الفاتورة»: a reason is required; the invoice stays listed as «ملغاة» with its number. */
 function VoidInvoiceDialog({ invoice, open, onOpenChange }: { invoice: Invoice; open: boolean; onOpenChange: (o: boolean) => void }) {

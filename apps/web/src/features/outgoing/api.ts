@@ -152,3 +152,10 @@ export const outgoingApi = {
     body: { status: ChequeStatus; rowVersion: number; statusDate?: string; note?: string | null },
   ) => unwrap(api.PATCH('/api/v1/outgoing-cheques/{id}/status', { params: { path: { id } }, body })),
 };
+
+/** One outgoing payment (for its voucher, B6b): a read, nothing else. */
+export const outgoingPaymentQuery = (id: number) =>
+  queryOptions({
+    queryKey: ['outgoing', 'detail', id] as const,
+    queryFn: () => unwrap(api.GET('/api/v1/outgoing-payments/{id}', { params: { path: { id } } })),
+  });

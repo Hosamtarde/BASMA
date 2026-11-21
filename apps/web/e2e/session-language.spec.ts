@@ -39,7 +39,11 @@ test('a reload restores the session from the httpOnly cookie; no token is stored
 test('the language switch flips the page in place and is saved for the installation', async ({ page }) => {
   await signedIn(page);
   await setLanguage(page, 'ar');
+  // The toast region is a named landmark and its name follows the language, both ways (B6b).
+  await expect(page.getByRole('region', { name: /^الإشعارات/ })).toHaveCount(1);
   await setLanguage(page, 'en');
+  await expect(page.getByRole('region', { name: /^Notifications/ })).toHaveCount(1);
+  await expect(page.getByRole('region', { name: /^الإشعارات/ })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Home' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'What do you want to record?' })).toBeVisible();
   await page.reload();

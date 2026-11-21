@@ -25,6 +25,7 @@ import {
   outgoingFilterCategoriesQuery,
   outgoingQuery,
 } from './api';
+import { VoucherLink } from '@/features/vouchers/VoucherLink';
 import type { OutgoingKind, OutgoingListParams, OutgoingMethod, OutgoingPayment } from './api';
 import { CashFlowPanel } from './CashFlowPanel';
 import { ExpensesSummary } from './ExpensesSummary';
@@ -269,6 +270,7 @@ export function OutgoingPage() {
                 </Td>
                 <Td kind="actions">
                   <div className="flex flex-wrap justify-end gap-1">
+                    <VoucherLink to={`/outgoing/${p.id}/voucher`} voucherNo={p.voucherNo} />
                     {p.cheque && p.status === 'active' && can('cheques.write') && can('expenses.write') && (
                       <ActionButton
                         variant="secondary"

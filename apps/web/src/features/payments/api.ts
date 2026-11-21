@@ -293,3 +293,10 @@ export async function refreshMoney(queryClient: QueryClient): Promise<void> {
 
 /** A new idempotency key for one form attempt. */
 export const newIdempotencyKey = (): string => globalThis.crypto.randomUUID();
+
+/** One incoming payment (for its voucher, B6b): a read, nothing else. */
+export const paymentQuery = (id: number) =>
+  queryOptions({
+    queryKey: ['payments', 'detail', id] as const,
+    queryFn: () => unwrap(api.GET('/api/v1/payments/{id}', { params: { path: { id } } })),
+  });

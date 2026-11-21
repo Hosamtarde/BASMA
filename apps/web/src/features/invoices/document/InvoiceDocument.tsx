@@ -14,6 +14,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import { useMemo } from 'react';
 import { i18next } from '@/i18n/i18n';
 import { localeOf } from '@/i18n/format';
+import { DocumentHeader } from './DocumentHeader';
 import './invoice-document.css';
 
 /** The current appearance: only what may change on a reprint (SPEC §5.14: colours and fonts; plan I7). */
@@ -56,6 +57,20 @@ export function safeStyle(s: Partial<DocumentStyle> | undefined): DocumentStyle 
       start: mm(m?.start, FALLBACK.margins.start),
     },
   };
+}
+
+/** The style variables of a document: only validated values (see safeStyle). */
+export function documentVars(s: DocumentStyle): CSSProperties {
+  return {
+    '--inv-primary': s.primaryColor,
+    '--inv-header-text': s.headerTextColor,
+    '--inv-table-header': s.tableHeaderColor,
+    '--inv-font-size': FONT_SIZE[s.fontSize],
+    '--inv-margin-top': `${s.margins.top}mm`,
+    '--inv-margin-bottom': `${s.margins.bottom}mm`,
+    '--inv-margin-start': `${s.margins.start}mm`,
+    '--inv-margin-end': `${s.margins.end}mm`,
+  } as CSSProperties;
 }
 
 /** The `@page` rule: A4 and the margins (start/end mapped to the sides of the document's direction). */
@@ -105,16 +120,7 @@ export function InvoiceDocument({ snapshot, style, logoUrl, language, voided, dr
     );
   }
 
-  const vars = {
-    '--inv-primary': s.primaryColor,
-    '--inv-header-text': s.headerTextColor,
-    '--inv-table-header': s.tableHeaderColor,
-    '--inv-font-size': FONT_SIZE[s.fontSize],
-    '--inv-margin-top': `${s.margins.top}mm`,
-    '--inv-margin-bottom': `${s.margins.bottom}mm`,
-    '--inv-margin-start': `${s.margins.start}mm`,
-    '--inv-margin-end': `${s.margins.end}mm`,
-  } as CSSProperties;
+  const vars = documentVars(s);
 
   const labName = printedLabName(snapshot.lab, lang);
   const title =
@@ -137,50 +143,26 @@ export function InvoiceDocument({ snapshot, style, logoUrl, language, voided, dr
     >
       <style>{pageRule(s, dir)}</style>
       <div className="inv-topbar" aria-hidden="true" />
-      <header className="inv-head">
-        <div className="inv-lab">
-          {showLogo && <img src={logoUrl} alt={td('invoiceDoc.logoAlt', { name: labName })} data-lab-logo="" />}
-          <div className="inv-lab-info">
-            <span className="inv-lab-name" dir="auto">
-              {labName}
-            </span>
-            {snapshot.lab.slogan && <span dir="auto" className="block">{snapshot.lab.slogan}</span>}
-            {snapshot.lab.phone && (
-              <span className="block">
-                {td('invoiceDoc.phone')}: <span className="inv-num">{snapshot.lab.phone}</span>
-              </span>
-            )}
-            {snapshot.lab.address && (
-              <span className="block" dir="auto">
-                {td('invoiceDoc.address')}: {snapshot.lab.address}
-              </span>
-            )}
+      <DocumentHeader lab={snapshot.lab} labName={labName} logoUrl={showLogo ? logoUrl : null} td={td} title={title}>
+        <div>
+          <dt>{td('invoiceDoc.number')}</dt>
+          <dd className="inv-num" data-invoice-no="">
+            {draft ? td('invoiceDoc.draftNumber') : String(snapshot.no)}
+          </dd>
+        </div>
+        <div>
+          <dt>{td('invoiceDoc.date')}</dt>
+          <dd className="inv-num">{snapshot.issueDate}</dd>
+        </div>
+        {snapshot.type === 'statement' && (
+          <div>
+            <dt>{td('invoiceDoc.period')}</dt>
+            <dd className="inv-num">
+              {snapshot.statement.from ?? td('invoiceDoc.periodStart')} → {snapshot.statement.to ?? snapshot.issueDate}
+            </dd>
           </div>
-        </div>
-        <div className="inv-docbox">
-          <h2 className="inv-title">{title}</h2>
-          <dl className="inv-meta">
-            <div>
-              <dt>{td('invoiceDoc.number')}</dt>
-              <dd className="inv-num" data-invoice-no="">
-                {draft ? td('invoiceDoc.draftNumber') : String(snapshot.no)}
-              </dd>
-            </div>
-            <div>
-              <dt>{td('invoiceDoc.date')}</dt>
-              <dd className="inv-num">{snapshot.issueDate}</dd>
-            </div>
-            {snapshot.type === 'statement' && (
-              <div>
-                <dt>{td('invoiceDoc.period')}</dt>
-                <dd className="inv-num">
-                  {snapshot.statement.from ?? td('invoiceDoc.periodStart')} → {snapshot.statement.to ?? snapshot.issueDate}
-                </dd>
-              </div>
-            )}
-          </dl>
-        </div>
-      </header>
+        )}
+      </DocumentHeader>
 
       {voided && (
         <p className="inv-void" role="note" data-void-band="">

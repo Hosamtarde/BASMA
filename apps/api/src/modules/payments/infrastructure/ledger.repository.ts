@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { and, asc, desc, eq, inArray, ne, or, sql } from 'drizzle-orm';
 import type { Database, Tx } from '../../../shared/db/database';
+import { readAll } from '../../../shared/db/read-all';
 import { cases, cheques, doctors, payments } from '../../../shared/db/schema';
 import type { CountedPayment, CountedRefund, LedgerCase, PaymentMethod } from '../domain/payment-rules';
 import { countedWhere } from './payments.repository';
@@ -127,7 +128,7 @@ export class LedgerRepository {
       ids.map((id) => sql`${id}`),
       sql`, `,
     );
-    const [doctorRows, caseRows, countedRows, pendingRows, refundRows] = await Promise.all([
+    const [doctorRows, caseRows, countedRows, pendingRows, refundRows] = await readAll(db, [
       db
         .select({ id: doctors.id, name: doctors.name, opening: doctors.openingBalance })
         .from(doctors)
@@ -498,14 +499,15 @@ export class LedgerRepository {
         FROM ev
       )`;
     const inRange = sql`(${from}::date IS NULL OR date >= ${from}::date) AND (${to}::date IS NULL OR date <= ${to}::date)`;
-    const [page, agg] = await Promise.all([
+    const [page, agg] = await readAll(db, [
       db.execute<Raw>(sql`
         WITH ${events}
         SELECT date::text AS date, kind, ref_id::text AS ref_id, ref, debit::text AS debit,
                credit::text AS credit, running::text AS running, count(*) OVER ()::text AS total,
                patient, method, cheque_no, bank, bound_case_no::text AS bound_case_no
         FROM run WHERE ${inRange}
-        ORDER BY date, ord, ref_id
+        -- Qualified: a bare ref_id would be the text alias above and sort 10 before 9; the running balance is numeric.
+        ORDER BY run.date, run.ord, run.ref_id
         LIMIT ${limit} OFFSET ${offset}`),
       db.execute<Raw>(sql`
         WITH ${events}
