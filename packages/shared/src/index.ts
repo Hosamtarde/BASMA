@@ -1,4 +1,5 @@
 export { PRODUCT_NAME } from './product.ts';
+export { amountInWords } from './amount-words.ts';
 export { formatMoney, MAX_AMOUNT_MINOR, parseMoney, sumMinor, toMoneyInput } from './money.ts';
 export type { MoneyParseError, MoneyParseResult } from './money.ts';
 export {
