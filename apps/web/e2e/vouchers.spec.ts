@@ -53,7 +53,8 @@ async function expectOnlyLabIdentity(page: Page) {
 function watchWrites(page: Page): string[] {
   const writes: string[] = [];
   page.on('request', (r) => {
-    if (r.url().includes('/api/') && r.method() !== 'GET') writes.push(`${r.method()} ${new URL(r.url()).pathname}`);
+    // The silent token refresh is session upkeep, not data.
+    if (r.url().includes('/api/') && r.method() !== 'GET' && !r.url().endsWith('/auth/refresh')) writes.push(`${r.method()} ${new URL(r.url()).pathname}`);
   });
   return writes;
 }
@@ -190,6 +191,7 @@ test.describe('B6b vouchers', () => {
     const s = await seed(request);
     const evil = `<img src=x onerror="window.__pwned=1"><script>window.__pwned=1</script>${s.suffix}`;
     const shortEvil = `<img src=x onerror=window.__pwned=1>`;
+    const chequeEvil = '<img src=x onerror=alert(1)>';
     const category = await apiPost<{ id: number }>(request, s.token, '/expense-categories', { name: `فئة ${s.suffix}` });
     const o = await apiPostKey<PaymentBody>(request, s.token, '/outgoing-payments', {
       categoryId: category.id,
@@ -198,7 +200,7 @@ test.describe('B6b vouchers', () => {
       amount: 12345,
       paidAt: TODAY,
       notes: evil,
-      cheque: { chequeNo: shortEvil, bank: shortEvil, dueDate: '2099-01-15' },
+      cheque: { chequeNo: chequeEvil, bank: shortEvil, dueDate: '2099-01-15' },
     });
     const res = await request.post(`/api/v1/outgoing-payments/${o.payment.id}/void`, {
       headers: { Authorization: `Bearer ${s.token}` },
@@ -213,6 +215,7 @@ test.describe('B6b vouchers', () => {
     await expect(doc.locator('[data-voucher-notes]')).toContainText(evil);
     await expect(doc.locator('[data-void-band]')).toContainText(evil);
     await expect(doc.locator('[data-voucher-cheque]')).toContainText(shortEvil);
+    await expect(doc.locator('[data-voucher-cheque]')).toContainText(chequeEvil);
     for (const media of ['screen', 'print'] as const) {
       await page.emulateMedia({ media });
       await expect(doc.locator('script, img[src="x"], [onerror]')).toHaveCount(0);
